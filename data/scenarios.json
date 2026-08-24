@@ -1,0 +1,32 @@
+{
+  "scenarios": [
+    {
+      "id": "first-meeting",
+      "title": "Meeting Grandma & Grandpa",
+      "description": "You've just arrived and are meeting your partner's grandparents for the first time. Greet them, introduce yourself, and answer their first questions.",
+      "icon": "👋",
+      "minPhase": 0
+    },
+    {
+      "id": "family-chat",
+      "title": "Family Small Talk",
+      "description": "Sitting in the living room with the family, making easy conversation before dinner.",
+      "icon": "💬",
+      "minPhase": 1
+    },
+    {
+      "id": "dinner-table",
+      "title": "At the Dinner Table",
+      "description": "Grandma has made a huge spread. Talk about the food, accept seconds, and be polite about it.",
+      "icon": "🍽️",
+      "minPhase": 3
+    },
+    {
+      "id": "phone-call",
+      "title": "A Phone Call Home",
+      "description": "Your partner's grandmother calls to check in. Practice phone etiquette and a short catch-up.",
+      "icon": "📞",
+      "minPhase": 5
+    }
+  ]
+}
