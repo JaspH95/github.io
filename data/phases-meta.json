@@ -1,0 +1,74 @@
+{
+  "phases": [
+    {
+      "id": 0,
+      "slug": "foundations",
+      "title": "Foundations",
+      "subtitle": "Sounds, survival phrases & formality",
+      "icon": "🔤",
+      "color": "purple",
+      "description": "Romanian's special sounds, the phrases you'll need in the first five minutes of any conversation, and the tu/dumneavoastră formality rule that matters most before you meet elders.",
+      "status": "complete"
+    },
+    {
+      "id": 1,
+      "slug": "meeting-the-family",
+      "title": "Meeting the Family",
+      "subtitle": "Introductions & family vocabulary",
+      "icon": "👋",
+      "color": "lime",
+      "description": "Introduce yourself, name every relative in the room, and answer the questions you'll be asked at the door.",
+      "status": "complete"
+    },
+    {
+      "id": 2,
+      "slug": "everyday-small-talk",
+      "title": "Everyday Small Talk",
+      "subtitle": "Weather, wellbeing & core verbs",
+      "icon": "💬",
+      "color": "purple",
+      "description": "Keep a casual conversation moving: weather, how your day went, and the handful of verbs that carry most sentences.",
+      "status": "planned"
+    },
+    {
+      "id": 3,
+      "slug": "dinner-table",
+      "title": "The Dinner Table",
+      "subtitle": "Food, drink & hospitality",
+      "icon": "🍽️",
+      "color": "lime",
+      "description": "Talk about food, say it's delicious, and navigate the politeness of accepting (or declining) more.",
+      "status": "planned"
+    },
+    {
+      "id": 4,
+      "slug": "visiting-socializing",
+      "title": "Visiting & Socializing",
+      "subtitle": "Arriving, leaving & making plans",
+      "icon": "🏡",
+      "color": "purple",
+      "description": "Arrive and leave gracefully, compliment the home, and make plans to see everyone again.",
+      "status": "planned"
+    },
+    {
+      "id": 5,
+      "slug": "phone-calls",
+      "title": "Phone Calls & Distance",
+      "subtitle": "Phone etiquette",
+      "icon": "📞",
+      "color": "lime",
+      "description": "The phrases that are different on a call than in person: who's calling, can you hear me, ending politely.",
+      "status": "planned"
+    },
+    {
+      "id": 6,
+      "slug": "celebrations-traditions",
+      "title": "Celebrations & Traditions",
+      "subtitle": "Holidays, toasts & name days",
+      "icon": "🎉",
+      "color": "purple",
+      "description": "Holiday greetings, toasts, and name-day wishes — name days are a big deal in Romania.",
+      "status": "planned"
+    }
+  ]
+}
