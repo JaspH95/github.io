@@ -1,0 +1,24 @@
+{
+  "name": "knowfeed",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "pipeline": "tsx pipeline/run.ts"
+  },
+  "devDependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.10.0",
+    "fast-xml-parser": "^4.5.0",
+    "jsdom": "^25.0.1",
+    "robots-parser": "^3.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
+  }
+}
