@@ -79,11 +79,6 @@ function content(c: Card): { html: string; speech: string[]; meta: string } {
         speech: [`${m.home.name} ${m.score.home ?? 0}, ${m.away.name} ${m.score.away ?? 0}. ${m.statusLong}.`], meta: m.league || 'Football',
       };
     }
-    case 'tfl':
-      return {
-        html: c.tfl!.map(l => `<h3>${esc(l.name)}</h3>${l.statuses.map(s => `<p><strong>${esc(s.status)}.</strong> ${esc(s.reason)}</p>`).join('')}`).join('') + `<a class="cta full-story" href="https://tfl.gov.uk/tube-dlr-overground/status/" target="_blank" rel="noopener">Live status on TfL</a>`,
-        speech: c.tfl!.map(l => `${l.name}: ${l.statuses.map(s => s.status).join(', ')}.`), meta: 'Transport for London',
-      };
     case 'f1': {
       const f = c.f1!;
       const res = f.last ? `<h3>${esc(f.last.race)}</h3><ol class="results">${f.last.results.map(r => `<li><b>${r.pos}</b><span>${esc(r.driver)} · ${esc(r.team)}</span><span>${esc(r.detail)}</span></li>`).join('')}</ol>` : '';

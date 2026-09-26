@@ -3,7 +3,7 @@ import { S } from './state';
 import { loadData } from './cards';
 import { setData, build, onRefresh } from './feed';
 import { startOnboarding } from './chat';
-import { startLive, startTfl } from './live';
+import { startLive } from './live';
 import './audio';
 
 /* The feed is rebuilt fresh from the latest data every time the app opens */
@@ -11,7 +11,6 @@ async function refreshAll() {
   setData(await loadData());
   build();
   startLive();
-  startTfl();
 }
 onRefresh(() => { refreshAll(); });
 
@@ -28,7 +27,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-/* Offline support: cache the app and the latest feed (for the Tube) */
+/* Offline support: cache the app and the latest feed (for when there's no signal) */
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
 }

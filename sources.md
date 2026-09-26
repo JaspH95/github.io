@@ -78,10 +78,6 @@ World cities (New York, Paris, Dublin, Berlin, Dubai, Singapore, Sydney, Toronto
   - https://feeds.bbci.co.uk/news/world/australia/rss.xml
 - **A Guardian API search** for the city name.
 
-London extra:
-- **TfL Unified API:** https://api.tfl.gov.uk/Line/Mode/tube,elizabeth-line,dlr,overground/Status
-- Show a card only when a line has disruption.
-
 ## Sport
 
 | Feed | URL |

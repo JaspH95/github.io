@@ -251,9 +251,6 @@ img.scene{ object-fit:cover; display:block; background:#0E0C1A; }
 .quiz-prompt{ font-size:1.12rem !important; color:#fff !important; font-weight:500; }
 .src-line{ font-size:.85rem; color:rgba(255,255,255,.7); margin-top:10px; }
 .src-line a{ color:inherit; }
-.tfl-list{ list-style:none; padding:0; margin:0 0 8px; }
-.tfl-list li{ font-size:1rem; line-height:1.4; padding:6px 0; border-top:1px solid rgba(255,255,255,.14); }
-.tfl-list b{ font-family:var(--display); }
 .ft{ background:#1F2937 !important; }
 .ft i{ display:none; }
 .results{ list-style:none; padding:0; margin:0 0 10px; }

@@ -18,7 +18,7 @@ export const label = (c: Card) =>
 
 export const cardTitle = (c: Card): string =>
   c.story?.title || c.learn?.title || c.quiz?.q || c.hub?.title || (c.phrase ? `${c.phrase.lang}: ${c.phrase.p.meaning}` : '') ||
-  (c.type === 'signday' ? 'Sign of the day: the BSL vowels' : c.type === 'live' || c.type === 'result' ? matchLine(c.match!) : c.type === 'tfl' ? 'Tube disruption' : c.type === 'f1' ? f1Title(c) : '');
+  (c.type === 'signday' ? 'Sign of the day: the BSL vowels' : c.type === 'live' || c.type === 'result' ? matchLine(c.match!) : c.type === 'f1' ? f1Title(c) : '');
 
 export const matchLine = (m: Match) => `${m.home.name} ${m.score.home ?? 0}–${m.score.away ?? 0} ${m.away.name}`;
 const f1Title = (c: Card) => (c.id.startsWith('f1-r') && c.f1?.last ? `${c.f1.last.race}: result` : c.f1?.next ? `Next up: ${c.f1.next.race}` : 'Formula 1');
@@ -93,8 +93,6 @@ function body(c: Card): string {
     case 'signday':
       return `<p class="myth-label">Sign of the day</p><h2>The BSL vowels</h2><p>Thumb is <strong>A</strong>, then <strong>E, I, O, U</strong> across the fingertips. Watch the finger move.</p>`;
     case 'live': case 'result': return matchHTML(c);
-    case 'tfl':
-      return `<p class="myth-label">Tube status right now</p><h2>${c.tfl!.length === 1 ? `Disruption on the ${esc(c.tfl![0].name)} line` : `Disruption on ${c.tfl!.length} lines`}</h2><ul class="tfl-list">${c.tfl!.slice(0, 5).map(l => `<li><b>${esc(l.name)}</b>: ${esc([...new Set(l.statuses.map(s => s.status))].join(', '))}</li>`).join('')}</ul><p class="attrib">From Transport for London</p>`;
     case 'f1': {
       const f = c.f1!;
       if (c.id.startsWith('f1-r') && f.last) return `<p class="myth-label">Race result · Round ${f.last.round}</p><h2>${esc(f.last.race)}</h2><ol class="results">${f.last.results.slice(0, 3).map(r => `<li><b>${r.pos}</b><span>${esc(r.driver)}</span><span>${esc(r.team)}</span></li>`).join('')}</ol><p class="attrib">Results from Jolpica F1</p>`;
@@ -270,7 +268,7 @@ export function build() {
   counts();
 }
 
-/* Pinned cards slot in just after the intro card: live football first (rank 1), then the Tube (rank 2) */
+/* Pinned cards (live football and results) slot in just after the intro card */
 export function pinTop(c: Card, rank: number) {
   const n = render(c); observe(n);
   n.dataset.pinned = String(rank);

@@ -1,6 +1,6 @@
-/* Live football and the Tube. Both go through our own serverless functions, which hold the keys and cache the answers. */
+/* Live football goes through our own serverless function, which holds the key and caches the answers. */
 import { S, load, save, today } from './state';
-import { activeTopics, type Card, type Match, type TflLine } from './cards';
+import { activeTopics, type Card, type Match } from './cards';
 import { pinTop, unpin } from './feed';
 
 const LIVE = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE']);
@@ -71,12 +71,4 @@ export async function startLive() {
       timer = setTimeout(() => { watching = { m, team }; poll(); }, ko - now);
     }
   }
-}
-
-/* London: a card only when a line has disruption */
-export async function startTfl() {
-  unpin('tfl');
-  if (S.profile?.place !== 'London' || !activeTopics().has('local')) return;
-  const r = await api<{ disrupted: TflLine[] }>('/api/tfl');
-  if (r?.disrupted?.length) pinTop({ id: 'tfl', type: 'tfl', t: 'local', tag: 'London', tfl: r.disrupted }, 2);
 }

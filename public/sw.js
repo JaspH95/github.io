@@ -1,4 +1,4 @@
-/* Knowfeed service worker: keeps the app and the latest feed available offline (for the Tube) */
+/* Knowfeed service worker: keeps the app and the latest feed available offline (for when there's no signal) */
 const VERSION = 'kf-v1';
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, IMG = `${VERSION}-img`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];

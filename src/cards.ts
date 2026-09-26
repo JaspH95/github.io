@@ -9,9 +9,8 @@ export interface Match {
   home: { id: number; name: string }; away: { id: number; name: string }; score: { home: number | null; away: number | null };
   events: { min?: number; extra?: number; team?: string; player?: string; type?: string; detail?: string }[];
 }
-export interface TflLine { id: string; name: string; statuses: { status: string; reason: string }[] }
 
-export type CardType = 'intro' | 'end' | 'news' | 'learn' | 'quiz' | 'hubspot' | 'phrase' | 'review' | 'signday' | 'live' | 'result' | 'discover' | 'tfl' | 'f1';
+export type CardType = 'intro' | 'end' | 'news' | 'learn' | 'quiz' | 'hubspot' | 'phrase' | 'review' | 'signday' | 'live' | 'result' | 'discover' | 'f1';
 
 export interface Card {
   id: string;
@@ -27,7 +26,6 @@ export interface Card {
   match?: Match;
   team?: string;
   f1?: F1Data;
-  tfl?: TflLine[];
   discover?: TopicKey;
   pool?: Card[];
   isLater?: boolean;

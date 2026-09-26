@@ -232,6 +232,7 @@ Phrase packs are the one fixed content type. Everything else is live.
 - Live scores for sports other than football
 - Push notifications
 - Accounts and cloud sync
+- London Tube status (TfL)
 
 ## Free architecture
 
@@ -263,7 +264,6 @@ Phrase packs are the one fixed content type. Everything else is live.
 - **Live football:** a Vercel serverless function at `/api/live` holds the API-Football key.
   - The phone polls it every 2 to 3 minutes only while a followed team's match is in play.
   - Cache for 2 minutes so the phone never exceeds the free quota.
-- **London Tube status:** `/api/tfl`, cached for 60 seconds. A card appears only when a line has disruption.
 - **Storage:** everything personal lives in the browser (localStorage or IndexedDB), as in the prototype.
 - **Wikimedia etiquette:** send a descriptive User-Agent with a contact email, and keep requests modest.
 
@@ -275,7 +275,6 @@ These are all free keys, kept in GitHub Actions secrets and Vercel environment v
 - `GUARDIAN_API_KEY` (The Guardian Open Platform, developer key)
 - `API_FOOTBALL_KEY` (API-Football free plan)
 - `NASA_API_KEY` (api.nasa.gov)
-- `TFL_APP_KEY` (optional)
 
 ## AI summary prompt (pipeline only)
 
@@ -299,7 +298,7 @@ Use this, or something very close:
    - Wikipedia topic lists
    - data-generated quizzes
    - the HubSpot changelog and blog
-5. **Local news** (city feeds plus TfL for London), then Follow story.
+5. **Local news** (city feeds), then Follow story.
 6. **Sport:** BBC Sport feeds, team feeds, and live football via `/api/live`. F1 results via Jolpica.
 7. **Languages:**
    - Write the phrase packs, 100+ per language, following the phrase schema.
