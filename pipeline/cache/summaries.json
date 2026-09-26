@@ -342,5 +342,117 @@
  "https://www.bbc.co.uk/news/articles/cw62jje658dlo": {
   "failed": true,
   "at": "2026-09-26T19:57:51.895Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cve8xx47rnjxo": {
+  "failed": true,
+  "at": "2026-09-26T22:55:20.656Z"
+ },
+ "https://www.theverge.com/tech/1001118/apple-hit-with-5-7-billion-in-damages-over-haptic-patents": {
+  "failed": true,
+  "at": "2026-09-26T22:55:21.098Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cq4gmmdl52rgo": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "Tasia Fortune, a 29-year-old mother, was found hanging from a tree in Mississippi in August. Police confirmed her death was a homicide and stated that the hanging was staged after she died. Three suspects have been arrested. Officers believe the killing arose from a drug dispute. Her mother expressed shock, as the exact cause of death remains undisclosed."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "The discovery caused fear in the majority-black city of Jackson due to the state's history of lynchings and racial violence. The case left the local community on edge and led lawmakers to demand federal investigations."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T22:55:37.431Z"
+ },
+ "https://techcrunch.com/2026/09/26/insurers-claim-ai-is-already-increasing-healthcare-costs/": {
+  "failed": true,
+  "at": "2026-09-26T22:55:37.888Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c2dyxg0zkpko": {
+  "failed": true,
+  "at": "2026-09-26T22:55:44.396Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/cmy0zz2ylr5no": {
+  "failed": true,
+  "at": "2026-09-26T22:55:50.896Z"
+ },
+ "https://www.bbc.co.uk/sport/cycling/articles/cxr500pj7dlqo": {
+  "failed": true,
+  "at": "2026-09-26T22:55:57.386Z"
+ },
+ "https://www.lightspeedmagazine.com/fiction/welcome-to-the-medical-clinic-at-the-interplanetary-relay-station/": {
+  "failed": true,
+  "at": "2026-09-26T22:56:04.821Z"
+ },
+ "https://www.bbc.co.uk/sport/rugby-league/articles/c6n8mm9d11lno": {
+  "failed": true,
+  "at": "2026-09-26T22:56:10.403Z"
+ },
+ "https://arxiv.org/abs/2609.22978": {
+  "failed": true,
+  "at": "2026-09-26T22:56:16.914Z"
+ },
+ "https://www.aljazeera.com/economy/2026/9/25/japan-moves-to-tighten-rules-for-foreigners-throwing-futures-into-doubt": {
+  "failed": true,
+  "at": "2026-09-26T22:56:23.416Z"
+ },
+ "https://terrytao.wordpress.com/2026/09/24/were-gonna-need-a-lot-more-mathematicians/": {
+  "failed": true,
+  "at": "2026-09-26T22:56:29.911Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/dream-come-true-six-year-old-rubiks-cube-world-record": {
+  "failed": true,
+  "at": "2026-09-26T22:56:36.413Z"
+ },
+ "https://techcrunch.com/2026/09/25/at-meta-connect-the-companys-smart-glasses-were-everywhere/": {
+  "failed": true,
+  "at": "2026-09-26T22:56:42.915Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/ukraine-war-briefing-russian-attacks-close-largest-steelmaker-arcelormittal": {
+  "failed": true,
+  "at": "2026-09-26T22:56:49.414Z"
+ },
+ "https://www.bbc.co.uk/iplayer/episode/m0032d9k": {
+  "failed": true,
+  "at": "2026-09-26T22:56:55.925Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6d94wywx0ypo": {
+  "failed": true,
+  "at": "2026-09-26T22:57:02.422Z"
+ },
+ "https://www.bbc.co.uk/news/articles/ckvgyzjpy2eno": {
+  "failed": true,
+  "at": "2026-09-26T22:57:08.909Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cpd7zw43wexo": {
+  "failed": true,
+  "at": "2026-09-26T22:57:15.411Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cm2l8qv7zppko": {
+  "failed": true,
+  "at": "2026-09-26T22:57:21.937Z"
+ },
+ "https://techcrunch.com/2026/09/25/crusoe-abandons-1-25b-plan-to-use-boom-turbines-at-ai-data-centers/": {
+  "failed": true,
+  "at": "2026-09-26T22:57:28.431Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cmx2zlqeje9zo": {
+  "failed": true,
+  "at": "2026-09-26T22:57:34.928Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cm4gjjlgzdjgo": {
+  "failed": true,
+  "at": "2026-09-26T22:57:41.451Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6evwmzxdn4do": {
+  "failed": true,
+  "at": "2026-09-26T22:57:47.928Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cm86xn6775z3o": {
+  "failed": true,
+  "at": "2026-09-26T22:57:54.426Z"
  }
 }
