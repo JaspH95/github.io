@@ -77,7 +77,7 @@ export async function getFeed(name: string, url: string, outlet: string): Promis
   try {
     const xml = await fetchText(url, { headers: { Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' } });
     const items = parseFeed(xml, outlet);
-    record(name, url, items.length > 0, items.length, items.length ? undefined : `no items (response starts: ${xml.slice(0, 120).replace(/\s+/g, ' ')})`);
+    record(name, url, items.length > 0, items.length, items.length ? undefined : `no items (${debugFirst(xml)})`);
     return items;
   } catch (e: any) {
     record(name, url, false, 0, e?.message || String(e));
@@ -109,4 +109,14 @@ export function fresh(items: FeedItem[], hours = 48, max = 30): FeedItem[] {
     .sort((a, b) => +new Date(b.published) - +new Date(a.published))
     .filter(i => (seen.has(i.url) ? false : (seen.add(i.url), true)))
     .slice(0, max);
+}
+
+/* When a feed parses to nothing, describe its first raw item so the status file shows why */
+function debugFirst(xml: string): string {
+  try {
+    const doc = parser.parse(xml);
+    const list = arr(doc.rss?.channel?.item ?? doc.feed?.entry);
+    const first = list[0];
+    return first ? `${list.length} raw items; first has ${Object.keys(first).join(',')}; link=${JSON.stringify(first.link ?? first.guid).slice(0, 120)}` : `response starts: ${xml.slice(0, 120).replace(/\s+/g, ' ')}`;
+  } catch (e: any) { return `parse error: ${e?.message}`; }
 }
