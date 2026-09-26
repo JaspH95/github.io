@@ -1,13 +1,15 @@
 import { XMLParser } from 'fast-xml-parser';
-import { fetchText, normaliseUrl, stripHtml, clip, record, hash } from './util';
+import { fetchText, normaliseUrl, stripHtml, clip, record, hash, decodeEntities } from './util';
 import type { Story, TopicKey } from '../src/types';
 
 export interface FeedItem { title: string; url: string; summary: string; image?: string; published: string; outlet: string }
 
-const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@', textNodeName: '#text', htmlEntities: true, processEntities: true });
+const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@', textNodeName: '#text', htmlEntities: false, processEntities: false });
+/* Entities are decoded by stripHtml/decodeEntities instead: some feeds (HubSpot) exceed the parser's entity limit */
 
 const arr = <T>(x: T | T[] | undefined): T[] => (x == null ? [] : Array.isArray(x) ? x : [x]);
 const txt = (x: any): string => (x == null ? '' : typeof x === 'object' ? String(x['#text'] ?? '') : String(x));
+const link = (s: string) => decodeEntities(s.trim());
 
 /* BBC thumbnails come at 240px; the same image server serves larger sizes */
 function upscale(u?: string): string | undefined {
@@ -29,7 +31,7 @@ function imageFrom(it: any): string | undefined {
   if (m) cands.push(m[1]);
   // Prefer the largest-looking candidate (media:content is usually bigger than the thumbnail)
   const best = cands.find(u => !/thumb|\/\d{2,3}x\d{2,3}/i.test(u)) || cands[0];
-  return upscale(best?.replace(/&amp;/g, '&'));
+  return upscale(best ? decodeEntities(best) : undefined);
 }
 
 export function parseFeed(xml: string, outlet: string): FeedItem[] {
@@ -42,7 +44,7 @@ export function parseFeed(xml: string, outlet: string): FeedItem[] {
       const url = txt(it.link) || txt(it.guid);
       items.push({
         title: stripHtml(txt(it.title)),
-        url: normaliseUrl(url.trim()),
+        url: normaliseUrl(link(url)),
         summary: clip(stripHtml(txt(it.description) || txt(it['content:encoded']))),
         image: imageFrom(it),
         published: toISO(txt(it.pubDate) || txt(it['dc:date'])),
@@ -52,10 +54,10 @@ export function parseFeed(xml: string, outlet: string): FeedItem[] {
   } else if (doc.feed) {
     for (const it of arr(doc.feed.entry)) {
       const links = arr(it.link);
-      const link = links.find((l: any) => !l['@rel'] || l['@rel'] === 'alternate') ?? links[0];
+      const lk = links.find((l: any) => !l['@rel'] || l['@rel'] === 'alternate') ?? links[0];
       items.push({
         title: stripHtml(txt(it.title)),
-        url: normaliseUrl(String(link?.['@href'] ?? '').trim()),
+        url: normaliseUrl(link(String(lk?.['@href'] ?? ''))),
         summary: clip(stripHtml(txt(it.summary) || txt(it.content))),
         image: imageFrom(it),
         published: toISO(txt(it.published) || txt(it.updated)),
@@ -75,7 +77,7 @@ export async function getFeed(name: string, url: string, outlet: string): Promis
   try {
     const xml = await fetchText(url, { headers: { Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' } });
     const items = parseFeed(xml, outlet);
-    record(name, url, items.length > 0, items.length, items.length ? undefined : 'no items');
+    record(name, url, items.length > 0, items.length, items.length ? undefined : `no items (response starts: ${xml.slice(0, 120).replace(/\s+/g, ' ')})`);
     return items;
   } catch (e: any) {
     record(name, url, false, 0, e?.message || String(e));
