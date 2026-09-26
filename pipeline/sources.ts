@@ -16,7 +16,6 @@ export const NEWS_FEEDS: FeedDef[] = [
   { name: 'MIT Technology Review', url: 'https://www.technologyreview.com/feed/', outlet: 'MIT Technology Review', topic: 'ai' },
   { name: 'BBC Science & Environment', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', outlet: 'BBC', topic: 'space' },
   { name: 'NASA news', url: 'https://www.nasa.gov/news-release/feed/', outlet: 'NASA', topic: 'space' },
-  { name: 'Space.com', url: 'https://www.space.com/feeds/all', outlet: 'Space.com', topic: 'space' },
   { name: 'Bank of England news', url: 'https://www.bankofengland.co.uk/rss/news', outlet: 'Bank of England', topic: 'money' },
 ];
 

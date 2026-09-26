@@ -44,7 +44,7 @@ The Guardian API is queried by section (world, uk-news, technology, science, bus
 |---|---|
 | BBC Science & Environment | https://feeds.bbci.co.uk/news/science_and_environment/rss.xml |
 | NASA news (verify) | https://www.nasa.gov/news-release/feed/ |
-| Space.com | https://www.space.com/feeds/all |
+| ~~Space.com~~ (dropped 2026-09-26, see log) | https://www.space.com/feeds/all |
 | NASA Astronomy Picture of the Day (API) | https://api.nasa.gov/planetary/apod |
 
 ## Money and economics
@@ -152,3 +152,8 @@ Team feeds follow the pattern https://feeds.bbci.co.uk/sport/football/teams/{tea
 - 2026-09-26: The build environment couldn't reach external sites, so no URL was verified at build time. The pipeline writes `public/data/status.json` on every run, listing each source with `ok`, item count and error. Check it after the first run and note replacements here.
 - HubSpot developer changelog: the pipeline tries `https://developers.hubspot.com/changelog/rss.xml`, then `.../changelog/rss`. If both fail, it's skipped.
 - Wikipedia: if the daily feed at `en.wikipedia.org/api/rest_v1` fails, the pipeline falls back to `api.wikimedia.org/feed/v1`. If page summaries fail, it falls back to the Action API (`w/api.php`, extracts + pageimages).
+- 2026-09-26, first pipeline runs on GitHub Actions: 60 of 62 sources returned data.
+  - **Space.com: dropped.** The feed returns a valid RSS document with no items for automated readers. Space news still comes from NASA news, BBC Science & Environment and NASA APOD.
+  - **HubSpot blog: fixed.** The feed has more XML entities than the parser allows, so entities are now decoded separately. It returns 50 items.
+  - **HubSpot developer changelog: working** at `https://developers.hubspot.com/changelog/rss.xml`.
+  - **World cities (Toronto, Dublin, Singapore, Dubai, Sydney): few or no stories** until `GUARDIAN_API_KEY` is set. The BBC regional feeds rarely mention those cities by name.
