@@ -1,1 +1,150 @@
-{}
+{
+ "https://www.bbc.co.uk/news/articles/ckjrxx22wqgdo": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "The Parades Commission permitted the Orange Order to march along Garvaghy Road on Sunday with restrictions. The march must start by 08:00 BST with only 35 participants and no bands. The Garvaghy Road Residents' Coalition has challenged this decision at the High Court in Belfast."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "It would be the first march along this route in almost 30 years. A local Catholic priest warned the event could clash with Sunday Mass, noting high community tensions. Sinn Féin condemned the decision as reckless, while the Orange Order agreed to comply with the ruling and appealed for calm."
+    },
+    {
+     "heading": "What happens next",
+     "text": "Judge Patricia Smyth adjourned the court hearing to seek a way forward in the limited time available. Meanwhile, police have arranged contingency operations for Sunday, with roughly 200 officers travelling from Scotland."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T12:53:14.518Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6p3kk78l4l1o": {
+  "failed": true,
+  "at": "2026-09-26T12:53:20.124Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cm5yww993n10o": {
+  "failed": true,
+  "at": "2026-09-26T12:53:26.773Z"
+ },
+ "https://www.theverge.com/games/1001002/pokemon-30th-celebration-scalping-resellers": {
+  "failed": true,
+  "at": "2026-09-26T12:53:29.811Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c60m334grx9vo": {
+  "failed": true,
+  "at": "2026-09-26T12:53:39.419Z"
+ },
+ "https://www.bbc.co.uk/news/articles/ckq631d25dvlo": {
+  "failed": true,
+  "at": "2026-09-26T12:53:53.259Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cwn8mn0rzkzlo": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "Andy Burnham has become Prime Minister after replacing Sir Keir Starmer. Labour's internal mood has improved, and the party has seen a modest rise in opinion polls."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "The government faces severe economic hurdles, including rising debt interest, inflation, and anticipated energy price increases. Some within the party worry the leadership focuses too heavily on spending rather than economic growth."
+    },
+    {
+     "heading": "What happens next",
+     "text": "Burnham will address the Labour conference, with potential announcements on housing and defence. Meanwhile, Chancellor John Healey will finalise the Budget due in a month, amid speculation over tax rises and spending cuts."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T12:54:01.054Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cw8d322y7y15o": {
+  "failed": true,
+  "at": "2026-09-26T12:54:01.472Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/c6d944ylqkkeo": {
+  "failed": true,
+  "at": "2026-09-26T12:54:08.441Z"
+ },
+ "https://www.theguardian.com/technology/2026/sep/26/oxford-university-bodleian-library-open-ai-chat-gpt": {
+  "failed": true,
+  "at": "2026-09-26T12:54:19.952Z"
+ },
+ "https://www.theguardian.com/business/2026/sep/26/work-intensifying-uk-laws-stamp-out-concert-ticket-touts": {
+  "failed": true,
+  "at": "2026-09-26T12:54:29.249Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/ai-datacentre-hyperscale-india-andhra-pradesh-village-google-confiscated-land": {
+  "failed": true,
+  "at": "2026-09-26T12:54:34.056Z"
+ },
+ "https://www.theguardian.com/uk-news/2026/sep/26/kill-off-heathrow-express-airport-train-third-runway": {
+  "failed": true,
+  "at": "2026-09-26T12:54:36.135Z"
+ },
+ "https://gultsch.de/posts/breaking-up-with-google-play/": {
+  "failed": true,
+  "at": "2026-09-26T12:54:43.365Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/c962jjl18g3ro": {
+  "failed": true,
+  "at": "2026-09-26T12:54:48.912Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cmx2zz035q99o": {
+  "failed": true,
+  "at": "2026-09-26T12:54:55.407Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/cqn744el41d8o": {
+  "failed": true,
+  "at": "2026-09-26T12:54:55.903Z"
+ },
+ "https://blog.bustikiller.com/2026/09/25/one-month-without-ai.html": {
+  "failed": true,
+  "at": "2026-09-26T12:55:01.890Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cv62k9p1rz4do": {
+  "failed": true,
+  "at": "2026-09-26T12:55:08.524Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6qxv75g4zx8o": {
+  "failed": true,
+  "at": "2026-09-26T12:55:21.731Z"
+ },
+ "https://www.bbc.co.uk/news/articles/ck9dww05y4p6o": {
+  "failed": true,
+  "at": "2026-09-26T12:55:28.969Z"
+ },
+ "https://lexontech.org/fifteen-years-later-the-apple-cards-origin-story": {
+  "failed": true,
+  "at": "2026-09-26T12:55:34.977Z"
+ },
+ "https://www.bbc.co.uk/weather/articles/cqm2mgdmj3e5o": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "Cooler air reached Scotland and Northern Ireland on Friday, while southern areas stayed warm. The weekend brings typical late September conditions, with showers in the west on Saturday and rain across most areas on Sunday."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "September rainfall has been very uneven across the UK. Several drought-affected parts of England and Wales still need significant rain, but they may stay largely dry."
+    },
+    {
+     "heading": "What happens next",
+     "text": "An Atlantic low-pressure system could bring a spell of windy weather and heavy rain next week, especially in the west and north. South-east England may briefly see low-20s Celsius before changeable conditions settle in."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T12:55:42.373Z"
+ },
+ "https://www.bbc.co.uk/sport/boxing/articles/cq3d77ppnzdro": {
+  "failed": true,
+  "at": "2026-09-26T12:55:47.275Z"
+ },
+ "https://floci.io/": {
+  "failed": true,
+  "at": "2026-09-26T12:55:49.297Z"
+ }
+}
