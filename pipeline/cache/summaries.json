@@ -114,5 +114,121 @@
  "https://www.bbc.co.uk/sport/boxing/articles/cq3d77ppnzdro": {
   "failed": true,
   "at": "2026-09-26T12:58:44.809Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cv8e33gdw17no": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "Prime Minister Andy Burnham has announced a housing scheme called Your First Home for first-time buyers in England. The initiative offers a 20% equity loan on a new build home to buyers with a 2.5% deposit. The loan includes an initial interest-free period, with funding coming from existing budgets and housing developers."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "The government aims to help buyers who lack financial help from family and give builders confidence to supply new properties. This announcement comes as new home construction has declined, leaving the government behind on its target to build 1.5 million homes by the next election."
+    },
+    {
+     "heading": "What happens next",
+     "text": "Further details about the scheme will be revealed in next month's Budget. Pre-registration for buyers will open before the end of the year."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T17:14:09.993Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cqgmrr9ekr7ko": {
+  "failed": true,
+  "at": "2026-09-26T17:14:11.775Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cw3055j73pe7o": {
+  "failed": true,
+  "at": "2026-09-26T17:14:18.297Z"
+ },
+ "https://www.bbc.co.uk/news/articles/ck1wxxzn5jndo": {
+  "failed": true,
+  "at": "2026-09-26T17:14:24.798Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/greek-authorities-seek-answers-after-six-killed-in-athens-apartment-block-explosion": {
+  "failed": true,
+  "at": "2026-09-26T17:14:31.328Z"
+ },
+ "https://www.bbc.co.uk/sport/rugby-union/videos/c6vgyyvyr45po": {
+  "failed": true,
+  "at": "2026-09-26T17:14:32.097Z"
+ },
+ "https://www.theverge.com/ai-artificial-intelligence/1001049/openai-training-pause": {
+  "failed": true,
+  "at": "2026-09-26T17:14:39.096Z"
+ },
+ "https://www.bbc.co.uk/news/articles/crx2zz401935o": {
+  "failed": true,
+  "at": "2026-09-26T17:14:44.298Z"
+ },
+ "https://www.theguardian.com/uk-news/2026/sep/26/ranulph-fiennes-explorer-stepson-launches-crowdfunder": {
+  "failed": true,
+  "at": "2026-09-26T17:14:50.806Z"
+ },
+ "https://themomoftheyear.substack.com/p/im-the-mom-in-that-viral-giants-clip": {
+  "failed": true,
+  "at": "2026-09-26T17:14:50.876Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cw20vvezklx4o": {
+  "failed": true,
+  "at": "2026-09-26T17:14:57.308Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/us-airstrikes-ecuador-fishers": {
+  "failed": true,
+  "at": "2026-09-26T17:15:06.157Z"
+ },
+ "https://tangled.org/yanndegat.tngl.sh/drawgent": {
+  "failed": true,
+  "at": "2026-09-26T17:15:10.306Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cqm2mm4y5dkko": {
+  "failed": true,
+  "at": "2026-09-26T17:15:16.811Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c914ddj21rzlo": {
+  "failed": true,
+  "at": "2026-09-26T17:15:23.313Z"
+ },
+ "https://techcrunch.com/2026/09/25/automattic-has-a-new-board-after-failed-attempt-to-put-ceo-on-leave/": {
+  "failed": true,
+  "at": "2026-09-26T17:15:29.813Z"
+ },
+ "https://github.com/brumar/chess-postmortem-skills": {
+  "failed": true,
+  "at": "2026-09-26T17:15:37.309Z"
+ },
+ "https://www.bbc.co.uk/news/videos/cwp933mr9v1xo": {
+  "failed": true,
+  "at": "2026-09-26T17:15:42.808Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cw23xxlrnexzo": {
+  "failed": true,
+  "at": "2026-09-26T17:15:49.311Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cq4g55r76d9lo": {
+  "failed": true,
+  "at": "2026-09-26T17:15:55.813Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/ckddvv5dn4eyo": {
+  "failed": true,
+  "at": "2026-09-26T17:16:02.305Z"
+ },
+ "https://www.theverge.com/podcast/1000344/cloudflare-matthew-prince-google-zero-ai-web-advertising": {
+  "failed": true,
+  "at": "2026-09-26T17:16:08.821Z"
+ },
+ "https://techcrunch.com/2026/09/26/i-created-an-interactive-digital-avatar-of-myself-and-you-can-talk-to-it/": {
+  "failed": true,
+  "at": "2026-09-26T17:16:15.317Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/cxyvzzj17682o": {
+  "failed": true,
+  "at": "2026-09-26T17:16:21.822Z"
+ },
+ "https://www.bbc.co.uk/sport/formula1/articles/ck8d33760j63o": {
+  "failed": true,
+  "at": "2026-09-26T17:16:28.307Z"
  }
 }
