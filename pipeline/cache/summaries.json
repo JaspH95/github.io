@@ -230,5 +230,117 @@
  "https://www.bbc.co.uk/sport/formula1/articles/ck8d33760j63o": {
   "failed": true,
   "at": "2026-09-26T17:16:28.307Z"
+ },
+ "https://www.theverge.com/report/1000994/decap-drums-that-knock-interview": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "Record producer Nicholas Piantedosi, known as Decap, was interviewed about his work and music tools. He created the Drums That Knock sample pack series, which debuted in 2016 and is now on its eleventh instalment. He discussed his creative process, his favourite software Ableton Live, and his 1998 sampler."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "Decap's sounds feature on tracks by major artists including Kendrick Lamar and Bad Bunny, as well as the Oppenheimer film score. Producer Kenneth Blume noted that Decap changed a million lives with a single snare. Decap also criticised gear gatekeeping, explaining that anyone with a computer has everything they need."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-26T19:55:27.608Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cxq633770y16o": {
+  "failed": true,
+  "at": "2026-09-26T19:55:28.840Z"
+ },
+ "https://www.bbc.co.uk/sport/rugby-union/articles/cwddvvnp9dp9o": {
+  "failed": true,
+  "at": "2026-09-26T19:55:36.755Z"
+ },
+ "https://www.bbc.co.uk/sport/rugby-league/articles/cv2dwykpgz4go": {
+  "failed": true,
+  "at": "2026-09-26T19:55:41.852Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c3vgyyj8q807o": {
+  "failed": true,
+  "at": "2026-09-26T19:55:48.344Z"
+ },
+ "https://www.bbc.co.uk/news/videos/cmj6440w47zko": {
+  "failed": true,
+  "at": "2026-09-26T19:55:55.485Z"
+ },
+ "https://www.bbc.co.uk/sport/formula1/articles/ckly558q6jeqo": {
+  "failed": true,
+  "at": "2026-09-26T19:56:01.364Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cly7l4rn02vo": {
+  "failed": true,
+  "at": "2026-09-26T19:56:07.871Z"
+ },
+ "https://www.theverge.com/entertainment/1001056/this-american-life-npr-kids-group-chat-comment-section": {
+  "failed": true,
+  "at": "2026-09-26T19:56:14.364Z"
+ },
+ "https://github.com/reladraw/reladraw": {
+  "failed": true,
+  "at": "2026-09-26T19:56:20.863Z"
+ },
+ "https://www.economist.com/leaders/2026/09/10/plunging-test-scores-are-a-slow-moving-catastrophe": {
+  "failed": true,
+  "at": "2026-09-26T19:56:20.930Z"
+ },
+ "https://www.theverge.com/games/1000818/control-resonant-reading-collectibles-documents-logs": {
+  "failed": true,
+  "at": "2026-09-26T19:56:27.370Z"
+ },
+ "https://arstechnica.com/cars/2026/09/teslas-big-electric-truck-faces-an-even-bigger-infrastructure-challenge/": {
+  "failed": true,
+  "at": "2026-09-26T19:56:33.863Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cr86xn04gxj9o": {
+  "failed": true,
+  "at": "2026-09-26T19:56:40.367Z"
+ },
+ "https://www.bbc.co.uk/news/articles/ckg7q33gnwro": {
+  "failed": true,
+  "at": "2026-09-26T19:56:46.878Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c9zrzzmez7j5o": {
+  "failed": true,
+  "at": "2026-09-26T19:56:53.390Z"
+ },
+ "https://www.theguardian.com/business/2026/sep/26/british-airways-cabin-crew-legal-battle-employment": {
+  "failed": true,
+  "at": "2026-09-26T19:56:59.876Z"
+ },
+ "https://www.theverge.com/transportation/999785/amflow-tl-review-avinox-esuv-e-bike-avinox": {
+  "failed": true,
+  "at": "2026-09-26T19:57:06.374Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6wyzkwnd258o": {
+  "failed": true,
+  "at": "2026-09-26T19:57:12.888Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cq39mmk114e2o": {
+  "failed": true,
+  "at": "2026-09-26T19:57:19.377Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cqrm90n3m90po": {
+  "failed": true,
+  "at": "2026-09-26T19:57:25.885Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/after-summer-respite-kyiv-winter-dread": {
+  "failed": true,
+  "at": "2026-09-26T19:57:32.398Z"
+ },
+ "https://science.nasa.gov/image-article/apod-2026-september-26-mirrored-meteor-and-milky-way/": {
+  "failed": true,
+  "at": "2026-09-26T19:57:38.894Z"
+ },
+ "https://www.theguardian.com/world/2026/sep/26/russia-strikes-ukraine-digital-economy-attacks-isps-datacentres": {
+  "failed": true,
+  "at": "2026-09-26T19:57:45.385Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cw62jje658dlo": {
+  "failed": true,
+  "at": "2026-09-26T19:57:51.895Z"
  }
 }
