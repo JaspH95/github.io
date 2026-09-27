@@ -6,6 +6,7 @@ import { cover } from './covers';
 import { signSVG } from './scenes';
 import { PACKS, progressLine, LANG_CODE } from './languages';
 import { afterLike, offer } from './suggest';
+import { seriesById, doneEpisodes, minutes, isDraft } from './series';
 import * as srs from './srs';
 import { speakIn } from './audio';
 import { openStory, openLearn, openSkill } from './story';
@@ -13,7 +14,7 @@ import { feedback } from './feedback';
 import { storyLabel } from './data';
 import type { Story, LearnCard, Quiz, HubItem, TopicKey, Entity } from './types';
 
-export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'hub' | 'catchup' | 'done';
+export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'hub' | 'series' | 'catchup' | 'done';
 export interface Card {
   id: string;
   kind: Kind;
@@ -24,6 +25,7 @@ export interface Card {
   quiz?: Quiz;
   skill?: { id: string; label: string };
   phrase?: { lang: string; id: string };
+  series?: { id: string; n: number };
   review?: string;
   hub?: HubItem;
   must?: boolean;
@@ -94,6 +96,7 @@ function background(c: Card): string {
     case 'sign': return signSVG();
     case 'phrase': case 'review': return cover('lang', seedFor(c.id), undefined, 'lang');
     case 'skill': return cover('work', seedFor(c.id), 'Skill');
+    case 'series': { const s = seriesById(c.series!.id); return `<div class="series-bg" style="--c1:${s?.colours[0] || '#5B4BFF'};--c2:${s?.colours[1] || '#19B6D9'}"><span class="series-n">${c.series!.n}</span></div>`; }
     default: return '';
   }
 }
@@ -147,6 +150,14 @@ function body(c: Card): string {
       return `<div class="meta"><span>REMEMBER THIS? · ${esc(lang.toUpperCase())}</span></div><h2>${esc(p.meaning)}</h2><p class="lead">${esc(p.when)}</p>
         <button class="readbtn solid show-phrase">Show the phrase</button><div class="reveal">${phraseBlock}
         <div class="choices grade"><button class="choice yes got">Got it</button><button class="choice notyet">Not yet</button></div></div>`;
+    }
+    case 'series': {
+      const s = seriesById(c.series!.id); const e = s?.episodes.find(x => x.n === c.series!.n);
+      if (!s || !e) return '';
+      const started = doneEpisodes(s.id).length > 0;
+      return `<div class="meta"><span>SERIES · EPISODE ${e.n} OF ${s.episodes.length} · ${minutes(e)} MIN</span></div>${isDraft(s) ? '<span class="unchecked">Draft for review</span>' : s.kind === 'language' ? '<span class="unchecked">Not yet checked</span>' : ''}
+        <h2>${esc(e.title)}</h2><p class="lead"><b>${esc(s.title)}</b>. ${esc(s.blurb)}</p>
+        <button class="readbtn solid start-series">${started ? 'Continue the series' : 'Start episode'} ${ICON.chev}</button>`;
     }
     case 'sign': return `<div class="meta"><span>SIGN OF THE DAY · BSL</span></div><h2>The BSL vowels</h2><p>Thumb is <b>A</b>, then <b>E, I, O, U</b> across the fingertips. Watch the finger move.</p>`;
     case 'hub': {
@@ -267,12 +278,14 @@ function wire(c: Card, el: HTMLElement) {
     else if (c.learn) openLearn(c.learn);
     else if (c.quiz?.article) openLearn({ id: `qa-${c.quiz.id}`, kind: 'topic', topic: c.topic, title: c.quiz.article.title, extract: c.quiz.article.extract, image: c.quiz.article.image, url: c.quiz.article.url, source: 'Wikipedia' });
     else if (c.skill) openSkill(c.skill);
+    else if (c.series) document.dispatchEvent(new CustomEvent('kf-series', { detail: c.series }));
   };
   el.querySelector('.open')?.addEventListener('click', e => { e.stopPropagation(); open(); });
+  el.querySelector('.start-series')?.addEventListener('click', e => { e.stopPropagation(); open(); });
   // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
   // The single tap waits a moment, so a double tap never opens the story by accident.
   const canLike = !['sign', 'catchup', 'done'].includes(c.kind);
-  const opens = ['story', 'learn', 'skill'].includes(c.kind) || (c.kind === 'quiz' && !!c.quiz?.article);
+  const opens = ['story', 'learn', 'skill', 'series'].includes(c.kind) || (c.kind === 'quiz' && !!c.quiz?.article);
   let last = 0, pending: ReturnType<typeof setTimeout> | undefined;
   el.addEventListener('click', e => {
     const target = e.target as HTMLElement;

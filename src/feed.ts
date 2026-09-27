@@ -2,6 +2,7 @@
 import { S, markSeen, bump, day } from './state';
 import { esc, ICON, plural } from './ui';
 import { render, type Card } from './cards';
+import { todays, minutes } from './series';
 import { build, markFinished, nextLabel, SLOT_LABEL, justIn, type Edition } from './edition';
 import { hasPack, progressLine } from './languages';
 import * as srs from './srs';
@@ -91,6 +92,7 @@ function doneHTML(e: Edition): string {
   const due = srs.due({ mark: false, perLang: 99 }).length;
   const week = weekly();
   const goal = goalLine();
+  const ser = S.profile ? todays(S.profile) : null;
   return `<div class="aurora soft"></div><div class="inner done-inner">
     <p class="kicker">${esc(SLOT_LABEL[e.slot])}${e.catchup ? ' · catch-up' : ''}</p>
     <h2 class="display">You're up to date.</h2>
@@ -103,6 +105,7 @@ function doneHTML(e: Edition): string {
     ${goal ? `<p class="goal">${esc(goal)}</p>` : ''}
     <p class="kicker small">Keep learning</p>
     <div class="next-list">
+      ${ser ? `<button class="next-row" data-series="${esc(ser.s.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(ser.s.title)}</b><span>Episode ${ser.e.n} of ${ser.s.episodes.length}: ${esc(ser.e.title)} · ${minutes(ser.e)} min</span></span>${ICON.chev}</button>` : ''}
       ${langs.map(l => `<button class="next-row" data-lesson="${esc(l.name)}"><span class="ic">${ICON.lang}</span><span><b>5-minute ${esc(l.name)} lesson</b><span>${esc(progressLine(l.name))}</span></span>${ICON.chev}</button>`).join('')}
       ${due ? `<button class="next-row" data-review="1"><span class="ic">${ICON.check}</span><span><b>Review ${plural(Math.min(due, 5), 'thing')}</b><span>Quick recall of what you've learned</span></span>${ICON.chev}</button>` : ''}
       <button class="next-row" data-go="learn"><span class="ic">${ICON.book}</span><span><b>Explore your library</b><span>Skills, topics and today's picks</span></span>${ICON.chev}</button>
@@ -116,6 +119,7 @@ function doneHTML(e: Edition): string {
 function wireDone(el: HTMLElement, e: Edition) {
   el.querySelectorAll<HTMLElement>('[data-lesson]').forEach(b => b.addEventListener('click', () => startLesson(b.dataset.lesson!)));
   el.querySelector('[data-review]')?.addEventListener('click', () => startReview());
+  el.querySelector<HTMLElement>('[data-series]')?.addEventListener('click', b => document.dispatchEvent(new CustomEvent('kf-series', { detail: { id: (b.currentTarget as HTMLElement).dataset.series } })));
   el.querySelector('[data-go]')?.addEventListener('click', () => go('learn'));
   el.querySelector('.change')?.addEventListener('click', () => openChat());
 }
@@ -147,6 +151,7 @@ function speechFor(c: Card): string | null {
     case 'learn': return c.learn!.kind === 'onthisday' ? `On this day in ${c.learn!.year}. ${c.learn!.event}` : `${c.label}. ${c.learn!.title}. ${c.learn!.extract.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`;
     case 'quiz': return `Quiz. ${c.quiz!.q} ${c.quiz!.prompt || ''} ${c.quiz!.opts.join(', or ')}? The answer: ${c.quiz!.opts[c.quiz!.answer]}.`;
     case 'hub': return `${c.label}. ${c.hub!.title}. ${c.hub!.summary}`;
+    case 'series': return `A Series episode: ${c.label}.`;
     case 'skill': return `Skill of the day: ${c.skill!.label}.`;
     default: return null;
   }

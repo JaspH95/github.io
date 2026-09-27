@@ -1,0 +1,199 @@
+{
+ "id": "spanish-a-day-in-madrid",
+ "title": "Spanish: a day in Madrid",
+ "kind": "language",
+ "lang": "Spanish",
+ "topic": "lang",
+ "interests": [],
+ "colours": [
+  "#DC2626",
+  "#F59E0B"
+ ],
+ "blurb": "Coffee, directions and new friends: the phrases for a day out.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "pack",
+   "title": "Knowfeed Spanish phrase pack (not yet checked by a native speaker)",
+   "url": "https://knowfeed-nine.vercel.app/"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "Morning coffee",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Un café",
+     "text": "You’ve just arrived in Madrid and you need a coffee. Here’s how to order, eat and pay like a local.",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "phrase",
+     "id": "es-005"
+    },
+    {
+     "type": "phrase",
+     "id": "es-020"
+    },
+    {
+     "type": "phrase",
+     "id": "es-058"
+    },
+    {
+     "type": "phrase",
+     "id": "es-032"
+    },
+    {
+     "type": "phrase",
+     "id": "es-021"
+    },
+    {
+     "type": "check",
+     "q": "How do you ask for the bill?",
+     "opts": [
+      "La carta, por favor",
+      "La cuenta, por favor",
+      "Para llevar"
+     ],
+     "answer": 1,
+     "explain": "La cuenta, por favor. La carta is the menu.",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Buenos días: good morning",
+      "Un café, por favor: a coffee, please",
+      "La cuenta, por favor: the bill, please"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Finding your way",
+   "cards": [
+    {
+     "type": "title",
+     "big": "¿Dónde está…?",
+     "text": "Time to explore. These are the phrases for asking the way, and understanding the answer.",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "phrase",
+     "id": "es-025"
+    },
+    {
+     "type": "phrase",
+     "id": "es-065"
+    },
+    {
+     "type": "phrase",
+     "id": "es-036"
+    },
+    {
+     "type": "phrase",
+     "id": "es-037"
+    },
+    {
+     "type": "phrase",
+     "id": "es-038"
+    },
+    {
+     "type": "phrase",
+     "id": "es-066"
+    },
+    {
+     "type": "check",
+     "q": "Someone says “a la izquierda”. Which way do you go?",
+     "opts": [
+      "Right",
+      "Left",
+      "Straight on"
+     ],
+     "answer": 1,
+     "explain": "Izquierda is left; derecha is right; todo recto is straight on.",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "¿Dónde está…?: where is…?",
+      "A la derecha / a la izquierda: right / left",
+      "Todo recto: straight on"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Making friends",
+   "cards": [
+    {
+     "type": "title",
+     "big": "¿Qué tal?",
+     "text": "In the evening you meet some locals. Here’s how to say hello, introduce yourself and say goodbye.",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "phrase",
+     "id": "es-010"
+    },
+    {
+     "type": "phrase",
+     "id": "es-013"
+    },
+    {
+     "type": "phrase",
+     "id": "es-041"
+    },
+    {
+     "type": "phrase",
+     "id": "es-042"
+    },
+    {
+     "type": "phrase",
+     "id": "es-107"
+    },
+    {
+     "type": "phrase",
+     "id": "es-009"
+    },
+    {
+     "type": "check",
+     "q": "How do you ask someone their name?",
+     "opts": [
+      "¿Cómo te llamas?",
+      "¿Qué tal?",
+      "Me llamo…"
+     ],
+     "answer": 0,
+     "explain": "¿Cómo te llamas? Answer with Me llamo…",
+     "src": [
+      "pack"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "¿Qué tal?: how’s it going?",
+      "Me llamo…: my name is…",
+      "Hasta luego: see you later"
+     ]
+    }
+   ]
+  }
+ ]
+}

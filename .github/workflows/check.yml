@@ -8,6 +8,7 @@ on:
     paths:
       - 'pipeline/check.ts'
       - 'api/**'
+      - 'content/series/**'
       - '.github/workflows/check.yml'
 
 jobs:

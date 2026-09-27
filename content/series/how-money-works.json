@@ -1,0 +1,335 @@
+{
+ "id": "how-money-works",
+ "title": "How money works",
+ "kind": "idea",
+ "topic": "money",
+ "interests": [
+  "personalfinance",
+  "investing",
+  "economy",
+  "property",
+  "business"
+ ],
+ "colours": [
+  "#059669",
+  "#0EA5E9"
+ ],
+ "blurb": "Inflation, interest rates and why time is your best friend.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "infl",
+   "title": "Inflation",
+   "url": "https://en.wikipedia.org/wiki/Inflation"
+  },
+  {
+   "id": "cpi",
+   "title": "Consumer price index",
+   "url": "https://en.wikipedia.org/wiki/Consumer_price_index"
+  },
+  {
+   "id": "ons",
+   "title": "Office for National Statistics",
+   "url": "https://en.wikipedia.org/wiki/Office_for_National_Statistics"
+  },
+  {
+   "id": "boe",
+   "title": "Bank of England",
+   "url": "https://en.wikipedia.org/wiki/Bank_of_England"
+  },
+  {
+   "id": "mpc",
+   "title": "Monetary Policy Committee",
+   "url": "https://en.wikipedia.org/wiki/Monetary_Policy_Committee"
+  },
+  {
+   "id": "rate",
+   "title": "Bank rate",
+   "url": "https://en.wikipedia.org/wiki/Bank_rate"
+  },
+  {
+   "id": "comp",
+   "title": "Compound interest",
+   "url": "https://en.wikipedia.org/wiki/Compound_interest"
+  },
+  {
+   "id": "r72",
+   "title": "Rule of 72",
+   "url": "https://en.wikipedia.org/wiki/Rule_of_72"
+  },
+  {
+   "id": "div",
+   "title": "Diversification (finance)",
+   "url": "https://en.wikipedia.org/wiki/Diversification_(finance)"
+  },
+  {
+   "id": "bond",
+   "title": "Bond (finance)",
+   "url": "https://en.wikipedia.org/wiki/Bond_(finance)"
+  },
+  {
+   "id": "index",
+   "title": "Index fund",
+   "url": "https://en.wikipedia.org/wiki/Index_fund"
+  },
+  {
+   "id": "bogle",
+   "title": "John C. Bogle",
+   "url": "https://en.wikipedia.org/wiki/John_C._Bogle"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "Why prices rise",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Inflation",
+     "text": "Inflation is the rate at which prices rise over time. At 5% inflation, something that cost £100 a year ago costs about £105 now.",
+     "src": [
+      "infl"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "A basket of shopping",
+     "text": "It’s measured with a consumer price index: the price of a typical basket of goods and services, checked every month. In the UK the Office for National Statistics does this.",
+     "src": [
+      "cpi",
+      "ons"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "2%",
+     "text": "The Bank of England’s target, set by the government, is to keep inflation at 2% a year.",
+     "src": [
+      "boe"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Buying power",
+     "text": "Inflation quietly shrinks what cash can buy. Money kept under the mattress buys a little less each year.",
+     "src": [
+      "infl"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "The Bank of England’s inflation target is…",
+     "opts": [
+      "0%",
+      "2%",
+      "5%"
+     ],
+     "answer": 1,
+     "explain": "2% a year.",
+     "src": [
+      "boe"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Inflation is how fast prices rise",
+      "It’s measured with a basket of goods",
+      "The UK target is 2%"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Interest rates",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Bank Rate",
+     "text": "The Bank of England sets Bank Rate, the rate it pays banks on money they hold with it. It feeds through to mortgages, loans and savings.",
+     "src": [
+      "rate",
+      "boe"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Higher rates",
+     "text": "Raising rates makes borrowing dearer and saving more rewarding, so people tend to spend less and price rises slow.",
+     "src": [
+      "mpc"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Lower rates",
+     "text": "Cutting rates does the opposite, encouraging borrowing and spending to support the economy.",
+     "src": [
+      "mpc"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Nine votes",
+     "text": "Rates are set by the Monetary Policy Committee: nine people who meet eight times a year. The Bank has set rates independently of the government since 1997.",
+     "src": [
+      "mpc"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "Raising interest rates usually…",
+     "opts": [
+      "speeds up price rises",
+      "slows down price rises",
+      "has no effect on prices"
+     ],
+     "answer": 1,
+     "explain": "It slows them, by making borrowing and spending less attractive.",
+     "src": [
+      "mpc"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Bank Rate shapes what borrowing costs",
+      "Higher rates cool spending and prices",
+      "The MPC decides, eight times a year"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Interest on interest",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Compounding",
+     "text": "Compound interest means you earn interest on your interest, not just on what you put in. Over time the growth speeds up.",
+     "src": [
+      "comp"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "£1,000 at 5%",
+     "text": "£1,000 growing at 5% a year becomes £1,050 after one year, about £1,629 after 10 years and about £2,653 after 20.",
+     "src": [
+      "comp"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Rule of 72",
+     "text": "Divide 72 by the yearly rate to estimate how many years it takes to double. At 6%, money doubles in about 12 years.",
+     "src": [
+      "r72"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "It works on debt too",
+     "text": "Compounding works against you on debt: unpaid interest is added to the balance, and then that is charged interest as well.",
+     "src": [
+      "comp"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "By the rule of 72, at 8% money doubles in about…",
+     "opts": [
+      "6 years",
+      "9 years",
+      "14 years"
+     ],
+     "answer": 1,
+     "explain": "72 ÷ 8 = 9 years.",
+     "src": [
+      "r72"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Interest earns interest",
+      "Time makes the biggest difference",
+      "Divide 72 by the rate to find the doubling time"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Spreading risk",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Diversification",
+     "text": "Spreading money across many investments means one going wrong doesn’t sink you.",
+     "src": [
+      "div"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Shares and bonds",
+     "text": "A share is a small slice of a company. A bond is a loan to a company or government that pays interest.",
+     "src": [
+      "bond",
+      "div"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Index funds",
+     "text": "An index fund buys every company in a market index, such as the FTSE 100, usually at low cost.",
+     "src": [
+      "index"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "1976",
+     "text": "John Bogle’s Vanguard launched the first index fund for ordinary investors in 1976, following the US S&P 500.",
+     "src": [
+      "bogle",
+      "index"
+     ]
+    },
+    {
+     "type": "tip",
+     "big": "Not advice",
+     "text": "This is general knowledge, not financial advice. Investments can fall as well as rise.",
+     "src": [
+      "div"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What does an index fund do?",
+     "opts": [
+      "Picks a few winning shares",
+      "Buys everything in a market index",
+      "Only holds cash"
+     ],
+     "answer": 1,
+     "explain": "It holds everything in an index, so its return follows the whole market.",
+     "src": [
+      "index"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Don’t put all your eggs in one basket",
+      "Shares are slices of companies; bonds are loans",
+      "Index funds follow a whole market cheaply"
+     ]
+    }
+   ]
+  }
+ ]
+}

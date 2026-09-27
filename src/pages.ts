@@ -11,6 +11,7 @@ import { startLesson, startReview } from './lessons';
 import { openChat } from './chat';
 import { onTab, go } from './nav';
 import { suggestions, follow } from './suggest';
+import { available, doneEpisodes, isDraft } from './series';
 import * as cloud from './cloud';
 import { signSVG } from './scenes';
 import { photo, fixImages, render, type Card } from './cards';
@@ -45,7 +46,10 @@ function learnPage(el: HTMLElement) {
   const daily = cards.filter(c => c.kind !== 'topic');
   const searched = p.interests.filter(i => i.id.startsWith('q:') && i.mode !== 'news' && i.wiki);
   const quiz = (data.learn?.quizzes || [])[0];
+  const series = available(p);
+  const KIND: Record<string, string> = { idea: 'BIG IDEAS', history: 'HISTORY', skill: 'SKILL', book: 'CLASSIC BOOK', language: 'LANGUAGE' };
   el.innerHTML = `${head('Learn', 'Your work, your interests and today\'s picks. Every session ends; start another when you like.')}
+    ${series.length ? `<section class="psec"><h2>Series</h2><div class="rows">${series.map(s => { const d = doneEpisodes(s.id).length; return `<button class="row" data-series="${esc(s.id)}"><span class="series-thumb" style="--c1:${s.colours[0]};--c2:${s.colours[1]}" aria-hidden="true">${s.episodes.length}</span><span class="rt"><span class="rk">${KIND[s.kind] || 'SERIES'} · ${d ? `${d} OF ${s.episodes.length} DONE` : `${s.episodes.length} EPISODES`}${isDraft(s) ? ' · <em>DRAFT</em>' : ''}</span><b>${esc(s.title)}</b><span class="rs">${esc(s.blurb)}</span></span></button>`; }).join('')}</div></section>` : ''}
     ${todays ? `<section class="psec"><h2>Skill of the day</h2><button class="feature" data-skill="${esc(todays.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(cap(todays.label))}</b><span>From your work${p.job ? `: ${esc(p.job.title)}` : ''}</span></span>${ICON.chev}</button>
       <div class="chips">${skills.map(k => `<button class="chip-btn" data-skill="${esc(k.id)}">${esc(cap(k.label))}</button>`).join('')}<button class="chip-btn add" data-add="skills">${ICON.plus} Skills</button></div></section>`
       : `<section class="psec"><h2>Your work</h2><button class="feature" data-add="skills"><span class="ic">${ICON.book}</span><span><b>Add your job and skills</b><span>Get a skill of the day and industry news</span></span>${ICON.chev}</button></section>`}
@@ -57,6 +61,7 @@ function learnPage(el: HTMLElement) {
     ${!byInterest.length ? `<section class="psec"><button class="feature" data-add="interests"><span class="ic">${ICON.plus}</span><span><b>Choose what to learn about</b><span>Pick interests for learning, news or both</span></span>${ICON.chev}</button></section>` : ''}
     <p class="pfoot">Learning cards use Wikipedia (CC BY-SA), NASA and ESCO. The words are theirs, not AI's.</p>`;
   wireRows(el, cards);
+  el.querySelectorAll<HTMLElement>('[data-series]').forEach(b => b.addEventListener('click', () => document.dispatchEvent(new CustomEvent('kf-series', { detail: { id: b.dataset.series } }))));
   el.querySelectorAll<HTMLElement>('[data-skill]').forEach(b => b.addEventListener('click', () => { const k = skills.find(x => x.id === b.dataset.skill); if (k) openSkill(k); }));
   el.querySelector('[data-review]')?.addEventListener('click', () => startReview());
   el.querySelectorAll<HTMLElement>('[data-add]').forEach(b => b.addEventListener('click', () => openChat(b.dataset.add as any)));

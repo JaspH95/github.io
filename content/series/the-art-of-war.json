@@ -1,0 +1,302 @@
+{
+ "id": "the-art-of-war",
+ "title": "The Art of War",
+ "kind": "book",
+ "topic": "culture",
+ "interests": [
+  "history",
+  "philosophy",
+  "books",
+  "entrepreneurship",
+  "business"
+ ],
+ "colours": [
+  "#991B1B",
+  "#F59E0B"
+ ],
+ "blurb": "Sun Tzu’s 2,500-year-old book on strategy, in four short episodes.",
+ "reviewed": false,
+ "book": {
+  "author": "Sun Tzu",
+  "translator": "Lionel Giles (1910)",
+  "text": "https://www.gutenberg.org/cache/epub/132/pg132.txt"
+ },
+ "sources": [
+  {
+   "id": "giles",
+   "title": "The Art of War, translated by Lionel Giles (Project Gutenberg)",
+   "url": "https://www.gutenberg.org/ebooks/132"
+  },
+  {
+   "id": "aow",
+   "title": "The Art of War",
+   "url": "https://en.wikipedia.org/wiki/The_Art_of_War"
+  },
+  {
+   "id": "suntzu",
+   "title": "Sun Tzu",
+   "url": "https://en.wikipedia.org/wiki/Sun_Tzu"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "Who was Sun Tzu?",
+   "cards": [
+    {
+     "type": "title",
+     "big": "The Art of War",
+     "text": "A Chinese book on strategy, traditionally credited to the general Sun Tzu and usually dated to around the 5th century BC. It has 13 short chapters.",
+     "src": [
+      "aow",
+      "suntzu"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "The art of war is of vital importance to the State.",
+     "who": "Chapter 1, Laying Plans",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Five things to weigh",
+     "text": "Before any campaign, Sun Tzu weighs five factors: the Moral Law (whether people are united behind their leader), Heaven, Earth, the Commander, and Method and discipline.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "All warfare is based on deception.",
+     "who": "Chapter 1, Laying Plans",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Why it lasts",
+     "text": "Its real subject is strategy: how to win at the least cost. That’s why people in business, sport and politics still read it.",
+     "src": [
+      "aow"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "How many chapters does The Art of War have?",
+     "opts": [
+      "7",
+      "13",
+      "50"
+     ],
+     "answer": 1,
+     "explain": "13 short chapters.",
+     "src": [
+      "aow"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "A book on strategy from ancient China",
+      "Weigh five factors before acting",
+      "Winning at the least cost is the aim"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Win without fighting",
+   "cards": [
+    {
+     "type": "title",
+     "big": "The best victory",
+     "text": "Sun Tzu’s best-known idea is that the finest way to win is without a battle at all.",
+     "src": [
+      "giles",
+      "aow"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "Hence to fight and conquer in all your battles is not supreme excellence; supreme excellence consists in breaking the enemy’s resistance without fighting.",
+     "who": "Chapter 3, Attack by Stratagem",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Short and sharp",
+     "text": "Long campaigns drain money, supplies and morale, so Sun Tzu warns against drawn-out wars.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "There is no instance of a country having benefited from prolonged warfare.",
+     "who": "Chapter 2, Waging War",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "In war, then, let your great object be victory, not lengthy campaigns.",
+     "who": "Chapter 2, Waging War",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "For Sun Tzu, supreme excellence is…",
+     "opts": [
+      "winning every battle",
+      "breaking resistance without fighting",
+      "having the biggest army"
+     ],
+     "answer": 1,
+     "explain": "Breaking the enemy’s resistance without fighting.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The best win needs no battle",
+      "Long campaigns cost everyone",
+      "Aim for a quick, decisive result"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Know yourself",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Knowledge first",
+     "text": "Sun Tzu puts knowledge at the centre of strategy: understand your own strengths and weaknesses, and your opponent’s.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "If you know the enemy and know yourself, you need not fear the result of a hundred battles.",
+     "who": "Chapter 3, Attack by Stratagem",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "The rest of it",
+     "text": "He goes on: know yourself but not the enemy, and every victory comes with a defeat; know neither, and you’ll lose every battle.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Spies",
+     "text": "The last chapter is about spies. For Sun Tzu, good information is worth far more than it costs.",
+     "src": [
+      "giles",
+      "aow"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What does Sun Tzu say you need, to fear no battle?",
+     "opts": [
+      "The biggest army",
+      "To know the enemy and yourself",
+      "The best weapons"
+     ],
+     "answer": 1,
+     "explain": "To know the enemy and to know yourself.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Know yourself",
+      "Know your opponent",
+      "Good information is worth paying for"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Be like water",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Shape and flow",
+     "text": "Sun Tzu compares an army to water, which avoids high ground, flows to low places and takes its shape from the land.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "Water shapes its course according to the nature of the ground over which it flows; the soldier works out his victory in relation to the foe whom he is facing.",
+     "who": "Chapter 6, Weak Points and Strong",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "quote",
+     "text": "Appear at points which the enemy must hasten to defend; march swiftly to places where you are not expected.",
+     "who": "Chapter 6, Weak Points and Strong",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "tip",
+     "big": "Today",
+     "text": "In modern terms: study the field and your rivals, choose contests you can win, go where others aren’t, and adapt as things change.",
+     "src": [
+      "aow"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What does Sun Tzu compare a good army to?",
+     "opts": [
+      "Fire",
+      "Water",
+      "A mountain"
+     ],
+     "answer": 1,
+     "explain": "Water, which adapts its course to the ground.",
+     "src": [
+      "giles"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Adapt to the situation, like water",
+      "Go where you’re not expected",
+      "Choose contests you can win"
+     ]
+    }
+   ]
+  }
+ ]
+}

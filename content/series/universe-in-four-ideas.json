@@ -1,0 +1,362 @@
+{
+ "id": "universe-in-four-ideas",
+ "title": "The universe in four big ideas",
+ "kind": "idea",
+ "topic": "space",
+ "interests": [
+  "space",
+  "physics",
+  "future"
+ ],
+ "colours": [
+  "#312E81",
+  "#DB2777"
+ ],
+ "blurb": "Where everything came from, what it’s made of, and what’s out there.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "bigbang",
+   "title": "Big Bang",
+   "url": "https://en.wikipedia.org/wiki/Big_Bang"
+  },
+  {
+   "id": "hubble",
+   "title": "Hubble's law",
+   "url": "https://en.wikipedia.org/wiki/Hubble%27s_law"
+  },
+  {
+   "id": "cmb",
+   "title": "Cosmic microwave background",
+   "url": "https://en.wikipedia.org/wiki/Cosmic_microwave_background"
+  },
+  {
+   "id": "bbn",
+   "title": "Big Bang nucleosynthesis",
+   "url": "https://en.wikipedia.org/wiki/Big_Bang_nucleosynthesis"
+  },
+  {
+   "id": "stellar",
+   "title": "Stellar nucleosynthesis",
+   "url": "https://en.wikipedia.org/wiki/Stellar_nucleosynthesis"
+  },
+  {
+   "id": "supernova",
+   "title": "Supernova",
+   "url": "https://en.wikipedia.org/wiki/Supernova"
+  },
+  {
+   "id": "rproc",
+   "title": "R-process",
+   "url": "https://en.wikipedia.org/wiki/R-process"
+  },
+  {
+   "id": "bh",
+   "title": "Black hole",
+   "url": "https://en.wikipedia.org/wiki/Black_hole"
+  },
+  {
+   "id": "gr",
+   "title": "General relativity",
+   "url": "https://en.wikipedia.org/wiki/General_relativity"
+  },
+  {
+   "id": "eht",
+   "title": "Event Horizon Telescope",
+   "url": "https://en.wikipedia.org/wiki/Event_Horizon_Telescope"
+  },
+  {
+   "id": "sgra",
+   "title": "Sagittarius A*",
+   "url": "https://en.wikipedia.org/wiki/Sagittarius_A*"
+  },
+  {
+   "id": "exo",
+   "title": "Exoplanet",
+   "url": "https://en.wikipedia.org/wiki/Exoplanet"
+  },
+  {
+   "id": "51peg",
+   "title": "51 Pegasi b",
+   "url": "https://en.wikipedia.org/wiki/51_Pegasi_b"
+  },
+  {
+   "id": "kepler",
+   "title": "Kepler space telescope",
+   "url": "https://en.wikipedia.org/wiki/Kepler_space_telescope"
+  },
+  {
+   "id": "jwst",
+   "title": "James Webb Space Telescope",
+   "url": "https://en.wikipedia.org/wiki/James_Webb_Space_Telescope"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "It all started hot",
+   "cards": [
+    {
+     "type": "title",
+     "big": "13.8 billion years",
+     "text": "The universe began about 13.8 billion years ago in a hot, dense state, and has been expanding ever since. This is the Big Bang theory.",
+     "src": [
+      "bigbang"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Everything is moving apart",
+     "text": "In 1929 Edwin Hubble showed that distant galaxies are moving away from us, and the further away they are, the faster they go.",
+     "src": [
+      "hubble"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "The afterglow",
+     "text": "In 1965 Arno Penzias and Robert Wilson found faint microwaves coming from every direction: leftover heat from the early universe. It won them a Nobel prize.",
+     "src": [
+      "cmb"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "2.7 degrees",
+     "text": "That afterglow, the cosmic microwave background, is now only about 2.7 degrees above absolute zero.",
+     "src": [
+      "cmb"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "About how old is the universe?",
+     "opts": [
+      "4.5 billion years",
+      "13.8 billion years",
+      "100 billion years"
+     ],
+     "answer": 1,
+     "explain": "About 13.8 billion years. The Earth is about 4.5 billion years old.",
+     "src": [
+      "bigbang"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The universe began about 13.8 billion years ago",
+      "It has been expanding ever since",
+      "Its leftover heat still fills the sky"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Made in stars",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Hydrogen and helium",
+     "text": "The Big Bang made almost nothing but hydrogen and helium. Nearly every other element was made later.",
+     "src": [
+      "bbn"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Fusion",
+     "text": "Stars shine by fusing light elements into heavier ones in their cores. The Sun turns hydrogen into helium, releasing huge amounts of energy.",
+     "src": [
+      "stellar"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Up to iron",
+     "text": "Bigger stars go further, building carbon, oxygen and eventually iron. Fusing iron takes energy instead of releasing it, so it stops there.",
+     "src": [
+      "stellar"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Scattered",
+     "text": "When a massive star explodes as a supernova, it scatters these elements into space, where they end up in new stars, planets and people.",
+     "src": [
+      "supernova"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Heavier still",
+     "text": "Many elements heavier than iron, such as gold, are made in the most violent events of all, including collisions of neutron stars.",
+     "src": [
+      "rproc"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "Where were most elements heavier than helium made?",
+     "opts": [
+      "In the Big Bang",
+      "Inside stars",
+      "On Earth"
+     ],
+     "answer": 1,
+     "explain": "Inside stars, and in their explosions and collisions.",
+     "src": [
+      "stellar"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The Big Bang made hydrogen and helium",
+      "Stars fuse them into heavier elements",
+      "Explosions spread those elements into new worlds"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Black holes",
+   "cards": [
+    {
+     "type": "title",
+     "big": "No way out",
+     "text": "A black hole is a region where gravity is so strong that nothing, not even light, can escape. Its edge is called the event horizon.",
+     "src": [
+      "bh"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Einstein’s gravity",
+     "text": "Black holes come out of Einstein’s general theory of relativity (1915), which describes gravity as mass bending space and time.",
+     "src": [
+      "gr",
+      "bh"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Collapse",
+     "text": "Many form when a very massive star runs out of fuel and its core collapses under its own weight.",
+     "src": [
+      "bh"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "2019",
+     "text": "In April 2019 the Event Horizon Telescope, a network of radio telescopes around the world, released the first image of a black hole, in the galaxy M87.",
+     "src": [
+      "eht"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Our own",
+     "text": "The Milky Way has a black hole at its centre, Sagittarius A*, about four million times the mass of the Sun. It was pictured in 2022.",
+     "src": [
+      "sgra"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What can’t escape a black hole?",
+     "opts": [
+      "Only matter",
+      "Not even light",
+      "Only sound"
+     ],
+     "answer": 1,
+     "explain": "Not even light, which is why they look black.",
+     "src": [
+      "bh"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Nothing escapes past the event horizon",
+      "They come from Einstein’s theory of gravity",
+      "The first images came in 2019 and 2022"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Other worlds",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Exoplanets",
+     "text": "An exoplanet is a planet orbiting a star other than the Sun. The first ones were confirmed in the early 1990s.",
+     "src": [
+      "exo"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "1995",
+     "text": "Michel Mayor and Didier Queloz found 51 Pegasi b, the first planet around a Sun-like star, in 1995. They shared the 2019 Nobel prize in physics.",
+     "src": [
+      "51peg"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "A tiny dip",
+     "text": "Many are found by watching a star dim very slightly as a planet passes in front of it. NASA’s Kepler telescope found thousands this way.",
+     "src": [
+      "kepler",
+      "exo"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Over 5,000",
+     "text": "Astronomers have now confirmed more than 5,000 exoplanets.",
+     "src": [
+      "exo"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Reading the air",
+     "text": "The James Webb Space Telescope, launched on 25 December 2021, can study the atmospheres of some of these planets.",
+     "src": [
+      "jwst"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "How are many exoplanets found?",
+     "opts": [
+      "Photographing them directly",
+      "Seeing their star dim as they pass in front",
+      "Hearing radio signals"
+     ],
+     "answer": 1,
+     "explain": "By the dip in starlight as they cross in front of their star.",
+     "src": [
+      "kepler"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The first planet around a Sun-like star was found in 1995",
+      "Most are spotted by the dimming of their star",
+      "Webb can study some of their atmospheres"
+     ]
+    }
+   ]
+  }
+ ]
+}
