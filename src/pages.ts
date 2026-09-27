@@ -3,7 +3,7 @@ import { S, persist, type SavedItem } from './state';
 import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
-import { learnCard, footballFilter, forget } from './edition';
+import { learnCard, forget } from './edition';
 import { PACKS, LANG_CODE, LANG_WIKI, BSL, hasPack, progressLine, phraseOfDay } from './languages';
 import * as srs from './srs';
 import { speakIn } from './audio';
@@ -11,7 +11,6 @@ import { startLesson, startReview } from './lessons';
 import { openChat } from './chat';
 import { onTab, go } from './nav';
 import { suggestions, follow } from './suggest';
-import { fixtureLines } from './live';
 import * as cloud from './cloud';
 import { signSVG } from './scenes';
 import { photo, fixImages, render, type Card } from './cards';
@@ -212,37 +211,6 @@ function searchPage(el: HTMLElement) {
   setTimeout(() => q.focus(), 50);
 }
 
-/* ---------- Sport: every sport and team you follow, in one place ---------- */
-
-function sportPage(el: HTMLElement) {
-  const p = S.profile!;
-  const sp = data.sport;
-  if (!p.sports.length && !p.teams.length) {
-    el.innerHTML = `${head('Sport', 'Scores, fixtures and the latest from the sports and teams you follow.')}
-      <section class="psec"><button class="feature" data-add="sport"><span class="ic">${ICON.ball}</span><span><b>Pick your sports and teams</b><span>Football, rugby, cricket, F1 and more</span></span>${ICON.chev}</button></section>`;
-    el.querySelector('[data-add]')!.addEventListener('click', () => openChat('sport' as any));
-    return;
-  }
-  const stories: Story[] = [];
-  const list = (xs: Story[], n: number) => { const pick = xs.slice(0, n); stories.push(...pick); return pick.length ? `<div class="rows">${pick.map(storyRow).join('')}</div>` : '<p class="note">No new stories right now.</p>'; };
-  const teams = p.teams.map(t => {
-    const fx = fixtureLines(t);
-    const xs = sp?.teams?.[t]?.length ? sp.teams[t] : footballFilter(t);
-    return `<section class="psec"><h2>${esc(t)}</h2>${fx.length ? `<div class="fixtures">${fx.map(f => `<p>${esc(f)}</p>`).join('')}</div>` : ''}${list(xs, 5)}</section>`;
-  }).join('');
-  const f1 = p.sports.includes('Formula 1') ? sp?.f1 : undefined;
-  const f1Html = f1 && (f1.last || f1.next) ? `<section class="psec"><h2>Formula 1</h2><div class="fixtures">
-      ${f1.last ? `<p><b>${esc(f1.last.race)}</b></p>${f1.last.results.slice(0, 5).map(r => `<p>${r.pos}. ${esc(r.driver)}</p>`).join('')}` : ''}
-      ${f1.next ? `<p><b>Next:</b> ${esc(f1.next.race)}, ${new Date(`${f1.next.date}T${f1.next.time || '12:00:00Z'}`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</p>` : ''}
-      <p class="src">Results from Jolpica F1</p></div>${list(sp?.sports?.['Formula 1'] || [], 4)}</section>` : '';
-  const others = p.sports.filter(x => x !== 'Formula 1' && (x !== 'Football' || !p.teams.length) || (x === 'Football' && p.teams.length)).map(x =>
-    `<section class="psec"><h2>${esc(x === 'Football' && p.teams.length ? 'More football' : x)}</h2>${list((sp?.sports?.[x] || []).filter(s => !stories.some(o => o.id === s.id)), 6)}</section>`).join('');
-  el.innerHTML = `${head('Sport', 'Scores, fixtures and the latest from the sports and teams you follow. Big sport stories also appear in your editions.')}
-    ${teams}${f1Html}${others}<p class="pfoot"><button class="linkish" data-add="sport">Change sports and teams</button></p>`;
-  el.querySelector('[data-add]')!.addEventListener('click', () => openChat('sport' as any));
-  wireRows(el, [], stories);
-}
-
 /* ---------- Profile: settings through the chat, and suggestions from your likes ---------- */
 
 const SETTINGS: [string, string, string][] = [
@@ -278,7 +246,6 @@ function profilePage(el: HTMLElement) {
 }
 
 export function initPages() {
-  onTab('sport', sportPage);
   onTab('profile', profilePage);
   onTab('learn', learnPage);
   onTab('langs', langsPage);
