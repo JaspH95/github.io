@@ -1,4 +1,5 @@
-/* The tab bar: Edition, Learn, Languages, Saved, and Search */
+/* The tab bar: Edition, Saved and the menu (Learn, Languages, settings), plus Search.
+   Learning and language cards also turn up inside every edition; the menu is for going deeper. */
 import { close as closeStory, isOpen } from './story';
 import { stopAudio } from './audio';
 
@@ -15,7 +16,7 @@ export function go(t: Tab) {
   if (t !== 'edition') stopAudio();
   tab = t;
   document.body.dataset.tab = t;
-  document.querySelectorAll<HTMLButtonElement>('.tab, .search').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  document.querySelectorAll<HTMLButtonElement>('.tab, .search').forEach(b => { const on = b.dataset.tab === t || (!!b.dataset.menu && (t === 'learn' || t === 'langs')); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   if (t === 'edition') { page.hidden = true; feed.hidden = false; return; }
   feed.hidden = true; page.hidden = false;
   page.innerHTML = '';
@@ -23,12 +24,15 @@ export function go(t: Tab) {
   renderers[t]?.(page);
 }
 
+let menuFn: () => void = () => {};
+export const onMenu = (fn: () => void) => { menuFn = fn; };
 export function refreshTab() { if (tab !== 'edition') go(tab); }
 
 export function initNav() {
-  document.querySelectorAll<HTMLButtonElement>('.tab, .search').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll<HTMLButtonElement>('.tab[data-tab], .search').forEach(b => b.addEventListener('click', () => {
     // Tapping Edition again goes back to the top
     if (b.dataset.tab === 'edition' && tab === 'edition') { document.getElementById('feed')!.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     go(b.dataset.tab as Tab);
   }));
+  document.querySelector('.tab[data-menu]')?.addEventListener('click', () => menuFn());
 }

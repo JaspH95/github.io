@@ -44,7 +44,8 @@ export const DEFAULT_EDITIONS: Profile['editions'] = { morning: { on: true, time
 export const DEFAULT_QUIET: Profile['quiet'] = { on: true, weekdays: [['09:00', '12:00'], ['13:30', '17:30']] };
 
 /* A card kept whole when saved, since the live data moves on */
-export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub' | 'skill'; title: string; topic: TopicKey; at: string; story?: Story; learn?: LearnCard; quiz?: Quiz; hub?: HubItem; skill?: { id: string; label: string } }
+/* Phrases and skills are kept as references, so Saved always shows their latest version and your progress */
+export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub' | 'skill' | 'phrase'; title: string; topic: TopicKey; at: string; story?: Story; learn?: LearnCard; quiz?: Quiz; hub?: HubItem; skill?: { id: string; label: string }; phrase?: { lang: string; id: string } }
 export interface FollowedStory { id: string; title: string; urls: string[]; names: string[]; at: string; seenCount: number }
 export interface DayStats { read: number; learned: number; quizRight: number; quizDone: number; secs: number; opened: number; finished: number }
 export interface Feedback { at: string; item?: string; title?: string; text: string }

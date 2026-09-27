@@ -116,7 +116,7 @@ function storyView(given: Story) {
   const el = story();
   el.dataset.kind = 'story';
   el.innerHTML = `
-    <div class="hero">${photo(s.image?.url, { ...card, label: card.label }, s.image, 'scene')}${s.image?.credit ? `<span class="hero-credit">${esc(s.image.source === 'article' ? 'Photo: ' : '')}${esc(s.image.credit)}</span>` : ''}</div>
+    <div class="hero"${s.image?.w && s.image.h ? ` style="--ar:${Math.max(1.2, Math.min(2, s.image.w / s.image.h)).toFixed(3)}"` : ''}>${photo(s.image?.url, { ...card, label: card.label }, s.image, 'scene')}${s.image?.credit ? `<span class="hero-credit">${esc(s.image.source === 'article' ? 'Photo: ' : '')}${esc(s.image.credit)}</span>` : ''}</div>
     <div class="sbody">
       <div class="meta">${ICON.bolt}<span>${esc(card.label.toUpperCase())} · ${ago(s.first, true)}${developing ? ` · UPDATED ${ago(s.updated, true)}` : ''}</span></div>
       <h1>${hl(s.title, s.entities)}</h1>
