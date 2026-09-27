@@ -173,6 +173,36 @@ export async function growPools(interests: Interest[], pool0: LearnPool, date: D
   return pools;
 }
 
+/* Many summaries in one request: Wikipedia's Action API gives up to 20 intros at a time (far kinder than 300 separate calls) */
+async function wikiBatch(titles: string[]): Promise<Map<string, WikiSummary>> {
+  const out = new Map<string, WikiSummary>();
+  const uniq = [...new Set(titles)];
+  for (let i = 0; i < uniq.length; i += 20) {
+    const chunk = uniq.slice(i, i + 20);
+    const q = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&prop=extracts|pageimages|info|description|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&exlimit=20&piprop=thumbnail|original&pithumbsize=960&pilimit=20&inprop=url&titles=${encodeURIComponent(chunk.join('|'))}`;
+    let r: any = null;
+    for (let attempt = 0; attempt < 3 && !r; attempt++) { try { r = await fetchJSON<any>(q); } catch { await sleep(1500 * (attempt + 1)); } }
+    if (!r?.query) continue;
+    // Requested titles may come back normalised or redirected: map them back
+    const back = new Map<string, string>();
+    for (const n of r.query.normalized || []) back.set(n.to, n.from);
+    for (const d of r.query.redirects || []) back.set(d.to, back.get(d.from) || d.from);
+    for (const p of r.query.pages || []) {
+      if (p.missing || !p.extract || p.pageprops?.disambiguation !== undefined) continue;
+      const s: WikiSummary = {
+        title: p.title, extract: p.extract, ...(p.description ? { description: p.description } : {}),
+        ...(p.thumbnail ? { thumbnail: { source: p.thumbnail.source, width: p.thumbnail.width } } : {}),
+        ...(p.original ? { originalimage: { source: p.original.source, width: p.original.width } } : {}),
+        content_urls: { desktop: { page: p.fullurl } },
+      };
+      out.set(p.title, s);
+      const asked = back.get(p.title); if (asked) out.set(asked, s);
+    }
+    await sleep(250);
+  }
+  return out;
+}
+
 export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, pools: LearnPool = {}, perTopic = 5): Promise<LearnCard[]> {
   const jobs: { topic: TopicKey; interest?: string; title: string }[] = [];
   const day = dayNum(date);
@@ -181,20 +211,27 @@ export async function topicCards(interests: Interest[], extra: Record<string, st
     ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: [...i.wiki, ...(pools[i.id]?.titles || [])], n: perTopic })),
     ...Object.entries(extra).filter(([k, v]) => !k.startsWith('_') && Array.isArray(v)).map(([k, v]) => ({ topic: k as TopicKey, titles: v as string[], n: 3 })),
   ];
+  // Twice as many titles as needed, so a short or missing article doesn't leave a gap
+  const want = new Map<string, number>();
   for (const l of lists) {
     if (!l.titles.length) continue;
-    for (let k = 0; k < Math.min(l.n, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
+    const key = l.interest || l.topic;
+    want.set(key, l.n);
+    for (let k = 0; k < Math.min(l.n * 2, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
   }
+  const found = await wikiBatch(jobs.map(j => j.title));
   let ok = 0; const missing: string[] = [];
-  const out = await pool(jobs, 4, async j => {
-    const s = await wikiSummary(j.title);
-    await sleep(80);
+  const have = new Map<string, number>();
+  const out = jobs.map(j => {
+    const key = j.interest || j.topic;
+    if ((have.get(key) || 0) >= (want.get(key) || 0)) return null;
+    const s = found.get(j.title);
     // Only articles with enough to learn from
     if (!s || s.extract.length < 280) { missing.push(j.title); return null; }
-    ok++;
+    ok++; have.set(key, (have.get(key) || 0) + 1);
     return wikiCard(s, 'topic', j.topic, j.interest ? { interest: j.interest } : {});
   });
-  record('Wikipedia topic summaries', 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}', ok > 0, ok, missing.length ? `skipped ${missing.length}: ${missing.slice(0, 12).join('; ')}` : undefined);
+  record('Wikipedia topic summaries', 'https://en.wikipedia.org/w/api.php?action=query&prop=extracts (20 at a time)', ok > 0, ok, missing.length ? `skipped ${missing.length}: ${missing.slice(0, 12).join('; ')}` : undefined);
   // The same article can sit in two lists: keep one card
   const seen = new Set<string>();
   return (out.filter(Boolean) as LearnCard[]).filter(c => (seen.has(c.id) ? false : (seen.add(c.id), true)));
