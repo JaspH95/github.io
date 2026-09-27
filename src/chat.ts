@@ -522,7 +522,7 @@ export async function startOnboarding() {
 /* ---------- The settings chat ---------- */
 
 let chatOpen = false;
-type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account';
+type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'voice';
 
 export async function openChat(jump?: Section) {
   if (running || !S.profile) return;
@@ -535,7 +535,7 @@ export async function openChat(jump?: Section) {
     const pick = await askOne([
       ['suggest', 'Suggest something new', 'spark'], ['interests', 'My interests', 'heart'], ['city', 'My city', 'pin'], ['skills', 'My work and skills', 'job'],
       ['languages', 'Languages', 'globe'], ['sport', 'Sports and teams', 'ball'], ['editions', 'Editions and times', 'time'], ['avoid', 'Topics to avoid', 'shield'],
-      ['wellbeing', 'Reading goal and limit', 'book'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
+      ['wellbeing', 'Reading goal and limit', 'book'], ['voice', 'Listening voice', 'spark'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
     ]);
     if (!chatOpen) break;
     pastAll();
@@ -628,6 +628,19 @@ async function section(k: Section) {
       if (c === 'new') { closeScreen(); setTimeout(() => feedback(), 500); }
       if (c === 'see') { const box = document.createElement('div'); box.className = 'previewbox'; box.innerHTML = S.feedback.slice(0, 20).map(f => `<p class="prev"><b>${esc(new Date(f.at).toLocaleDateString('en-GB'))}</b> ${f.title ? `(${esc(f.title)}) ` : ''}${esc(f.text)}</p>`).join(''); lines().appendChild(box); toBottom(); }
       return;
+    }
+    case 'voice': {
+      const { voicesFor, setVoice, sample, currentVoice, goodVoice } = await import('./audio');
+      const vs = voicesFor('en-GB').slice(0, 6);
+      if (!vs.length) { await say("This phone doesn't have an English voice I can use."); return; }
+      await say(goodVoice() ? `I'm reading with ${currentVoice()!.name}. Tap a voice to hear it.` : "The voices that come with an iPhone sound robotic, but it has natural ones you can download free: Settings → Accessibility → Spoken Content → Voices → English, then pick one marked Enhanced or Premium. After that, choose it here.");
+      for (;;) {
+        const k = await askOne([...vs.map(v => [v.voiceURI, `${v.name}${v.voiceURI === currentVoice()?.voiceURI ? ' (in use)' : ''}`, 'spark'] as [string, string, string]), ['done', 'Done', 'back']]);
+        pastAll();
+        if (k === 'done') return;
+        const v = vs.find(x => x.voiceURI === k)!; setVoice(k); sample(v);
+        await say(`Now using ${v.name}.`);
+      }
     }
     case 'account': {
       const u = cloud.signedIn();

@@ -391,4 +391,9 @@ Decisions that differ slightly from the brief:
 - **London Tube status stays out** (removed on purpose earlier).
 - **Series** aren't built yet: they need drafting from cited sources and Jasper's review before they can appear.
 
-Next (phase 2, needs Jasper's Supabase keys): accounts (email link and Google), sync, the events table, tester invites, feedback upload, the admin page, and web push (VAPID) with quiet hours. Then Series, and phrase packs for the other languages.
+- **Accounts (phase 2 started):** Supabase with `supabase/schema.sql` (profiles, user_state, events, feedback, invites; RLS on all). Sign-in is an emailed **code** (`{{ .Token }}` in the Magic Link template), not the link, because links open Safari rather than the Home Screen app. Sync (`src/cloud.ts`) stores each part of local state with a timestamp in one `user_state` document and merges newest-wins. Only `SUPABASE_URL` and `SUPABASE_ANON_KEY` reach the app (via `vite.config.ts`).
+- **Navigation:** tab bar is Edition, Saved and a Menu (Learn, Languages, Review, Settings, Feedback) plus Search. Learning and language cards still appear in every edition. Saved keeps stories, learning and phrases, and shows their latest version.
+- **Onboarding work step:** areas of work first (`src/workareas.ts`), then job title or a description, six matches with "None of these" to try again, and area-based skills if no job fits. Sport is asked once; picked sports become news interests.
+- **Feed images:** wide photos show whole at the top over a blurred copy of themselves, instead of being zoomed to fill a tall card.
+
+Next: Google sign-in, custom SMTP for testers' emails, tester invites, the admin page, and web push (VAPID) with quiet hours. Then Series, and phrase packs for the other languages.
