@@ -209,3 +209,10 @@ Team feeds follow the pattern https://feeds.bbci.co.uk/sport/football/teams/{tea
   - **HubSpot blog: fixed.** The feed has more XML entities than the parser allows, so entities are now decoded separately. It returns 50 items.
   - **HubSpot developer changelog: working** at `https://developers.hubspot.com/changelog/rss.xml`.
   - **World cities (Toronto, Dublin, Singapore, Dubai, Sydney): few or no stories** until `GUARDIAN_API_KEY` is set. The BBC regional feeds rarely mention those cities by name.
+- 2026-09-27, pipeline v2 on GitHub Actions: 151 of 151 sources OK.
+  - **BBC Derby: replaced** by `england/derbyshire` (the old path returns 404).
+  - **NASA news feed:** its "APOD:" items are skipped, because the picture of the day has its own card.
+  - **Guardian:** 21 sections, plus a search for each of 20 world cities. About 750 calls a day, well within the free developer limit.
+  - **Gemini:** the newest Flash model can hit its daily free quota; the pipeline then moves to the next Flash or Flash-Lite model.
+  - **ESCO:** the API works for walking ISCO groups to occupations (2,909 occupations).
+  - **GeoNames `cities15000`:** works (13,036 cities kept).

@@ -366,3 +366,29 @@ Jasper wants a version he can run and change on his MacBook, using the real conn
 - British English, plain, friendly and neutral on politics.
 - Test on a 390×844 iPhone screen at every step, including the keyboard during onboarding.
 - Before calling any step done, search the UI for "sample", "placeholder", "lorem", "Rivals FC" and "Driver A".
+
+## Build status and decisions (keep this up to date)
+
+Done (build order 1 to 7, local-first parts, on free services already connected):
+- **Hosting:** Vercel (already connected to this repo) and the hourly GitHub Actions pipeline. The repo is public, so Actions minutes are unlimited.
+- **Pipeline:** stories persist between runs (`pipeline/cache/stories.json`) with first seen, coverage growth, timeline and importance. Grouping uses rare shared words and numbers.
+- **Gemini:** tries free-tier Flash models in turn and handles daily and per-minute quotas. Transient failures are never cached. It gets one retry with feedback if the checks fail.
+- **Images:** article → og:image → Wikipedia entity → Unsplash/Pexels (if keys) → designed cover. Every image gets size and logo checks, a blurred preview and a focal point.
+- **App:**
+  - editions, catch-up, Earlier today and Just in
+  - story page
+  - onboarding with ESCO and GeoNames
+  - Learn, Languages, Saved and Search tabs
+  - lessons and spaced repetition
+  - sports page and live football banner
+  - Listen, wellbeing, dev menu, feedback notes, export and delete
+- **Phrase packs:** Spanish, French, German, Italian and Portuguese (European), about 135 each, all `checked: false`.
+
+Decisions that differ slightly from the brief:
+- **Editions are built on the phone** from the hourly static data, not in `/api/edition`. The result is the same, it's free, and it works offline. The ranking weights are the same.
+- **Blurred placeholders** are a tiny WebP preview made in the pipeline, instead of BlurHash. It looks the same and needs no decoder on the phone.
+- **Local news:** BBC regions cover UK towns (nearest region by distance); 20 world cities are covered by the pipeline; anywhere else uses `/api/local` (Guardian search).
+- **London Tube status stays out** (removed on purpose earlier).
+- **Series** aren't built yet: they need drafting from cited sources and Jasper's review before they can appear.
+
+Next (phase 2, needs Jasper's Supabase keys): accounts (email link and Google), sync, the events table, tester invites, feedback upload, the admin page, and web push (VAPID) with quiet hours. Then Series, and phrase packs for the other languages.

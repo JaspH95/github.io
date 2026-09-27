@@ -6,3 +6,4 @@ dist
 *.log
 tmp-tests
 fixtures
+!.env.example
