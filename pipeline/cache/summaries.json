@@ -454,5 +454,117 @@
  "https://www.bbc.co.uk/news/articles/cm86xn6775z3o": {
   "failed": true,
   "at": "2026-09-26T22:57:54.426Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cky9zzre1259o": {
+  "failed": true,
+  "at": "2026-09-27T01:31:41.979Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c6pwl9g9ne1lo": {
+  "failed": true,
+  "at": "2026-09-27T01:31:45.204Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cqn4knlj9v81o": {
+  "failed": true,
+  "at": "2026-09-27T01:31:49.011Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cvp8d0nezkeko": {
+  "failed": true,
+  "at": "2026-09-27T01:31:56.351Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cv5yjzz803edo": {
+  "failed": true,
+  "at": "2026-09-27T01:32:01.998Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cklye5e40531o": {
+  "failed": true,
+  "at": "2026-09-27T01:32:08.506Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/c6j4jjg5qxero": {
+  "failed": true,
+  "at": "2026-09-27T01:32:15.006Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/cqx2zz6d5716o": {
+  "failed": true,
+  "at": "2026-09-27T01:32:21.498Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cq70dgdndr46o": {
+  "failed": true,
+  "at": "2026-09-27T01:32:32.820Z"
+ },
+ "https://www.righto.com/2026/09/8087-tangent-cordic.html": {
+  "failed": true,
+  "at": "2026-09-27T01:32:34.501Z"
+ },
+ "https://www.privatemode.ai/blog/system-one-from-glm-flash": {
+  "failed": true,
+  "at": "2026-09-27T01:32:41.024Z"
+ },
+ "https://antonz.org/go-concurrency-distilled/": {
+  "failed": true,
+  "at": "2026-09-27T01:32:47.517Z"
+ },
+ "https://www.fu-berlin.de/en/presse/informationen/fup/2026/fup_26_116-enceladus-cassini-mikroben-science-postberg/index.html": {
+  "failed": true,
+  "at": "2026-09-27T01:32:54.027Z"
+ },
+ "https://arstechnica.com/health/2026/09/can-trump-ever-be-wrong-his-pick-to-lead-fda-refused-to-say/": {
+  "failed": true,
+  "at": "2026-09-27T01:33:00.526Z"
+ },
+ "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/": {
+  "failed": true,
+  "at": "2026-09-27T01:33:07.020Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cm5ydvww0erdo": {
+  "failed": true,
+  "at": "2026-09-27T01:33:13.550Z"
+ },
+ "https://www.theguardian.com/technology/2026/sep/25/trump-xi-ai-arms-race": {
+  "failed": true,
+  "at": "2026-09-27T01:33:20.018Z"
+ },
+ "https://www.nasa.gov/news-release/nasa-boeing-to-provide-update-on-starliner-development/": {
+  "failed": true,
+  "at": "2026-09-27T01:33:26.547Z"
+ },
+ "https://arstechnica.com/tech-policy/2026/09/court-rules-trump-can-blacklist-anthropic-for-refusing-to-enable-claude-features/": {
+  "summary": {
+   "sections": [
+    {
+     "heading": "What happened",
+     "text": "The DC Circuit appeals court ruled that the US government can blacklist Anthropic. A lower court had previously found the blacklisting illegal under one statute because Anthropic showed no bad motive. However, the appeals court decided the matter under a separate, more permissive statute."
+    },
+    {
+     "heading": "Why it matters",
+     "text": "The appeals court has exclusive jurisdiction under this second law. This broader statute allows a supply chain risk designation without requiring bad motive or malicious actions by an adversary."
+    }
+   ],
+   "model": "gemini-3.8-flash"
+  },
+  "at": "2026-09-27T01:33:49.612Z"
+ },
+ "https://arstechnica.com/ai/2026/09/tesla-workers-balk-at-training-optimus-humanoid-robots-as-replacements/": {
+  "failed": true,
+  "at": "2026-09-27T01:33:50.275Z"
+ },
+ "https://www.bbc.co.uk/news/articles/c84gkwgk7d06o": {
+  "failed": true,
+  "at": "2026-09-27T01:33:56.796Z"
+ },
+ "https://techcrunch.com/2026/09/25/meta-opens-early-access-program-for-new-muse-features/": {
+  "failed": true,
+  "at": "2026-09-27T01:34:03.321Z"
+ },
+ "https://www.bbc.co.uk/sport/football/articles/cr89jjwy4nqpo": {
+  "failed": true,
+  "at": "2026-09-27T01:34:09.812Z"
+ },
+ "https://www.bbc.co.uk/news/articles/cjn5ddzekwnro": {
+  "failed": true,
+  "at": "2026-09-27T01:34:16.333Z"
+ },
+ "https://www.nasa.gov/organizations/oiir/nasa-welcomes-san-marino-signing-the-artemis-accords/": {
+  "failed": true,
+  "at": "2026-09-27T01:34:22.828Z"
  }
 }
