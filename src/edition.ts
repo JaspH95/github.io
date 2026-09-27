@@ -1,9 +1,9 @@
 /* Editions: Morning, Midday and Evening. Each is a finite set, built on the phone from the latest data
    and kept for that slot so it doesn't reshuffle while you read. If you've missed earlier editions today,
    they're merged into one catch-up ("While you were away"). Anything below the cut goes to "Earlier today". */
-import { S, load, save, now, ymd, addDays, weight, type Slot, type Profile } from './state';
+import { S, load, save, now, ymd, addDays, weight, dismissed, type Slot, type Profile } from './state';
 import { data, localStories, interestById, storyLabel, TOPIC_LABEL } from './data';
-import { tokens, similar } from './similar';
+import { heads, sameEvent, type Heads } from './similar';
 import { matcher, matches } from './match';
 import * as srs from './srs';
 import { phraseOfDay, hasPack, PACKS } from './languages';
@@ -79,6 +79,27 @@ function shownIds(): Set<string> {
   return out;
 }
 
+/* Stories you've already had (seen, opened, marked as read, or said no to), and the same news from any other
+   outlet: same id, same link, or a headline about the same event. None of these come back in a later edition. */
+const headCache = new Map<string, Heads>();
+export const headsOf = (s: { id: string; title: string }) => { let h = headCache.get(s.id); if (!h) { h = heads(s.title); headCache.set(s.id, h); } return h; };
+export function hadBefore(): (s: Story) => boolean {
+  const past = Object.entries(S.history).map(([id, g]) => ({ id, u: g.u, h: headsOf({ id: 'h:' + id, title: g.t }) }));
+  const urls = new Set(past.map(x => x.u).filter(Boolean));
+  const memo = new Map<string, boolean>();
+  return (s: Story) => {
+    if (S.history[s.id] || S.read[s.id] || S.seen[s.id]) return true;
+    let v = memo.get(s.id);
+    if (v === undefined) {
+      const h = headsOf(s);
+      v = s.articles.some(a => urls.has(a.url)) || urls.has(s.url) || past.some(x => sameEvent(x.h, h));
+      memo.set(s.id, v);
+    }
+    return v;
+  };
+}
+const sameStory = (a: Story, b: Story) => a.id === b.id || (!!a.url && a.url === b.url) || a.articles.some(x => b.articles.some(y => y.url === x.url)) || sameEvent(headsOf(a), headsOf(b));
+
 /* ---------- Scoring (weights from PRODUCT.md) ---------- */
 
 interface Ctx {
@@ -152,8 +173,7 @@ function dedupe(list: Story[]): Story[] {
   const urls = new Set<string>();
   for (const s of list) {
     if (s.articles.some(a => urls.has(a.url))) continue;
-    const t = tokens(s.title);
-    if (out.some(o => similar(tokens(o.title), t))) continue;
+    if (out.some(o => sameEvent(headsOf(o), headsOf(s)))) continue;
     s.articles.forEach(a => urls.add(a.url));
     out.push(s);
   }
@@ -256,14 +276,14 @@ export function learnCard(c: LearnCard): Card {
 }
 
 /* Sport stories go in the feed like any other story: a story from each of your teams, then each of your sports */
-function sportStories(p: Profile, since: Date, shown: Set<string>, max: number): Story[] {
+function sportStories(p: Profile, since: Date, shown: Set<string>, max: number, had: (s: Story) => boolean): Story[] {
   const sp = data.sport; if (!sp) return [];
   const groups = [...p.teams.map(t => (sp.teams?.[t]?.length ? sp.teams[t] : footballFilter(t))), ...p.sports.map(x => sp.sports?.[x] || [])];
-  const ok = (s: Story) => !shown.has(s.id) && !S.read[s.id] && +new Date(s.updated || s.published) >= +since - 24 * 3600_000;
+  const ok = (s: Story) => !shown.has(s.id) && !had(s) && +new Date(s.updated || s.published) >= +since - 24 * 3600_000;
   const out: Story[] = [];
   for (let round = 0; round < 3 && out.length < max; round++) {
     for (const g of groups) {
-      const s = g.filter(ok).filter(x => !out.some(o => o.id === x.id || similar(tokens(o.title), tokens(x.title))))[round];
+      const s = g.filter(ok).filter(x => !out.some(o => sameStory(o, x)))[round];
       if (s && out.length < max) out.push(s);
     }
   }
@@ -291,21 +311,22 @@ export function build(p: Profile, force = false): Edition {
 
   const c = context(p);
   const shown = force && store[key] ? new Set<string>() : shownIds();
+  const had = hadBefore();
   const followedUpdates: Card[] = [];
   // Updates on followed stories come first
   const all = dedupe([...(data.news?.stories || []), ...localStories()]);
   for (const f of S.follows) {
     const s = all.find(x => x.id === f.id || x.articles.some(a => f.urls.includes(a.url)));
-    if (s && s.articles.length > f.seenCount && !shown.has(`upd-${s.id}-${s.articles.length}`)) followedUpdates.push(storyCard(s, { id: `upd-${s.id}-${s.articles.length}`, followed: true, label: 'Update · Following' }));
+    if (s && s.articles.length > f.seenCount && !dismissed(s.id) && !shown.has(`upd-${s.id}-${s.articles.length}`)) followedUpdates.push(storyCard(s, { id: `upd-${s.id}-${s.articles.length}`, followed: true, label: 'Update · Following' }));
   }
   const followedIds = new Set(followedUpdates.map(x => x.story!.id));
 
   // Knowfeed is a learning app first. News is only what you asked for: breaking headlines, outlets you follow,
   // topics you follow, your area and your sport. Everything else is left out.
-  const fresh = (s: Story) => +new Date(s.updated) >= +since && !shown.has(s.id) && !S.read[s.id] && !followedIds.has(s.id) && !avoided(s, c);
+  const fresh = (s: Story) => +new Date(s.updated) >= +since && !shown.has(s.id) && !followedIds.has(s.id) && !had(s) && !avoided(s, c);
   const live = data.live;
   const taken: Story[] = [...followedUpdates.map(x => x.story!)];
-  const isNew = (s: Story) => !taken.some(o => o.id === s.id || o.url === s.url || similar(tokens(o.title), tokens(s.title)));
+  const isNew = (s: Story) => !taken.some(o => sameStory(o, s));
   const take = (list: Story[], n: number) => { const out: Story[] = []; for (const s of list) { if (out.length >= n) break; if (isNew(s)) { out.push(s); taken.push(s); } } return out; };
 
   // 1. Breaking: the big headlines several outlets lead with (the hourly top stories if offline)
@@ -331,7 +352,7 @@ export function build(p: Profile, force = false): Edition {
   }
   // 4. Your area, and 5. your sport
   const localPicks = take(localStories().filter(fresh).sort((a, b) => +new Date(b.updated) - +new Date(a.updated)), catchup ? 2 : 1);
-  const sportPicks = sportStories(p, since, shown, catchup ? 2 : 1).filter(isNew);
+  const sportPicks = take(sportStories(p, since, shown, catchup ? 2 : 1, had), 2);
 
   const newsCards = [
     ...followedUpdates,
@@ -346,7 +367,11 @@ export function build(p: Profile, force = false): Edition {
   const cut = newsCards.length > cap ? newsCards.splice(cap) : [];
 
   const cards = weave(newsCards, learning, light);
-  const earlier = [...cut.map(x => x.story!).filter(Boolean), ...[...scored.map(x => x.s), ...outletLists.flat()].filter(s => !taken.includes(s) && isNew(s))].slice(0, 12).map(s => storyCard(s));
+  const earlierList: Story[] = [];
+  for (const s of [...cut.map(x => x.story!).filter(Boolean), ...[...scored.map(x => x.s), ...outletLists.flat()].filter(s => !taken.includes(s) && isNew(s))]) {
+    if (earlierList.length < 12 && !earlierList.some(o => sameStory(o, s))) earlierList.push(s);
+  }
+  const earlier = earlierList.map(s => storyCard(s));
   const e: Edition = { key, date, slot, builtAt: d.toISOString(), since: since.toISOString(), catchup, merged, cards, earlier };
   store[key] = e;
   persist();
@@ -356,11 +381,12 @@ export function build(p: Profile, force = false): Edition {
 /* Between editions: a big story that matches your interests appears as "Just in" */
 export function justIn(e: Edition, p: Profile): Story | null {
   const c = context(p);
+  const had = hadBefore();
   const inEdition = new Set(e.cards.map(x => x.story?.id).filter(Boolean));
   // Breaking news that several outlets started leading with after this edition was made
-  const br = p.breaking === false ? null : (data.live?.breaking || []).find(s => s.via === 'Breaking' && +new Date(s.published) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && !avoided(s, c));
+  const br = p.breaking === false ? null : (data.live?.breaking || []).find(s => s.via === 'Breaking' && +new Date(s.published) > +new Date(e.builtAt) && !inEdition.has(s.id) && !had(s) && !avoided(s, c));
   if (br) return br;
-  return (data.news?.stories || []).filter(s => +new Date(s.first) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && s.importance >= 0.5 && (s.top || relevance(s, c) >= 0.7) && !avoided(s, c))
+  return (data.news?.stories || []).filter(s => +new Date(s.first) > +new Date(e.builtAt) && !inEdition.has(s.id) && !had(s) && s.importance >= 0.5 && (s.top || relevance(s, c) >= 0.7) && !avoided(s, c))
     .sort((a, b) => b.importance - a.importance)[0] || null;
 }
 

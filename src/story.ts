@@ -1,7 +1,8 @@
 /* The story page (Particle-style) and the learning article view. One overlay with a small back stack,
    so "Related stories" and "Learn the background" can go deeper and the back button steps out again. */
-import { S, persist, isSaved, isFollowing, markRead, bump, now } from './state';
+import { S, persist, isSaved, isFollowing, markRead, bump, now, remember } from './state';
 import { esc, safeUrl, ago, age, toast, options, ICON, outletBadge, $, plural } from './ui';
+import { notInterested } from './dismiss';
 import { hl, photo, fixImages, storyMeta, toggleSave, toggleLike, sync, fewerLikeThis, share, loadSkill, type Card } from './cards';
 import { findStory, allStories, storyLabel, interestById } from './data';
 import { playQueue, stopAudio, isPlaying } from './audio';
@@ -106,6 +107,7 @@ function storyView(given: Story) {
   const s = findStory(given.id) || given;       // the latest version, which may now have a summary
   const card: Card = { id: s.id, kind: 'story', topic: s.topic, label: storyLabel(s), story: s };
   if (markRead(s.id)) bump('read');
+  remember(s, 'read');
   // Following a story: you've now seen its coverage
   const f = S.follows.find(x => x.id === s.id); if (f) { f.seenCount = s.articles.length; f.urls = [...new Set([...f.urls, ...s.articles.map(a => a.url)])]; persist.follows(); }
   const sum = s.summary;
@@ -301,7 +303,7 @@ export function initStory() {
     const c = current.card;
     options([
       ['report', 'Report a problem with this', () => feedback(c.id, current?.title)],
-      ...(c.kind === 'story' ? [['less', 'Show fewer stories like this', () => fewerLikeThis(c)] as [string, string, () => void]] : []),
+      ...(c.kind === 'story' ? [['less', 'Show fewer stories like this', () => fewerLikeThis(c)] as [string, string, () => void], ['not', 'Not interested…', () => notInterested(c)] as [string, string, () => void]] : []),
       ['sources', "About Knowfeed's sources", () => toast('Summaries are written only from the linked articles')],
     ], 'Story options');
   });

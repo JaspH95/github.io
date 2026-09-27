@@ -54,6 +54,10 @@ export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub
 export interface FollowedStory { id: string; title: string; urls: string[]; names: string[]; at: string; seenCount: number }
 export interface DayStats { read: number; learned: number; quizRight: number; quizDone: number; secs: number; opened: number; finished: number }
 export interface Feedback { at: string; item?: string; title?: string; text: string }
+/* Stories you've already had: seen in a feed, opened, marked as read, or said no to. Kept with the headline,
+   so the same news from another outlet (a different id) is recognised and left out too. */
+export type GoneWhy = 'seen' | 'read' | 'done' | 'know' | 'hide';
+export interface Gone { t: string; d: string; k: GoneWhy; u?: string }
 
 export const S = {
   profile: load<Profile | null>('profile', null),
@@ -66,6 +70,7 @@ export const S = {
   read: load<Record<string, string>>('read', {}),                 // story ids opened -> date
   stats: load<Record<string, DayStats>>('stats', {}),
   feedback: load<Feedback[]>('feedback', []),
+  history: load<Record<string, Gone>>('history', {}),
 };
 
 export const persist = {
@@ -79,6 +84,7 @@ export const persist = {
   read: () => save('read', S.read),
   stats: () => save('stats', S.stats),
   feedback: () => save('feedback', S.feedback),
+  history: () => save('history', S.history),
 };
 
 /* ---------- Time (the dev menu can fake it) ---------- */
@@ -112,6 +118,21 @@ export function markRead(id: string) {
   persist.read();
   return first;
 }
+
+/* Remember a story as had. A stronger reason replaces a weaker one; seen stories are kept 7 days, the rest 21. */
+const RANK: Record<GoneWhy, number> = { seen: 0, read: 1, done: 2, know: 3, hide: 3 };
+export function remember(s: { id: string; title: string; url?: string }, k: GoneWhy) {
+  const had = S.history[s.id];
+  if (had && RANK[had.k] >= RANK[k] && had.d === today()) return;
+  S.history[s.id] = { t: s.title, d: today(), k: had && RANK[had.k] > RANK[k] ? had.k : k, ...(s.url ? { u: s.url } : {}) };
+  const seenCut = addDays(today(), -7), cut = addDays(today(), -21);
+  for (const [id, g] of Object.entries(S.history)) if (g.d < (g.k === 'seen' ? seenCut : cut)) delete S.history[id];
+  const ids = Object.keys(S.history);
+  if (ids.length > 900) ids.sort((a, b) => S.history[a].d.localeCompare(S.history[b].d)).slice(0, ids.length - 900).forEach(id => delete S.history[id]);
+  persist.history();
+}
+/* Said no to, or marked as read: these never show again, even in an edition you've already opened */
+export const dismissed = (id: string) => ['done', 'know', 'hide'].includes(S.history[id]?.k || '');
 
 export const isSaved = (id: string) => S.saved.some(x => x.id === id);
 export const isFollowing = (id: string) => S.follows.some(f => f.id === id);
