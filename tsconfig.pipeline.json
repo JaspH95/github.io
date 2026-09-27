@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["pipeline", "api", "src/types.ts", "src/match.ts", "src/similar.ts"]
+}

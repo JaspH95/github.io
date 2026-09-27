@@ -1,6 +1,6 @@
 import { fetchJSON, record, hash, clip, pool, sleep } from './util';
 import { getFeed } from './rss';
-import type { LearnCard, Quiz, HubItem, TopicKey, QuizArticle } from '../src/types';
+import type { LearnCard, Quiz, HubItem, TopicKey, QuizArticle, Interest } from '../src/types';
 
 /* ---------- Wikipedia ---------- */
 
@@ -54,6 +54,7 @@ function wikiCard(s: WikiSummary, kind: LearnCard['kind'], topic: TopicKey, extr
     id: `${kind}-${hash(s.title + (extra.event || ''))}`,
     kind, topic,
     title: titleOf(s),
+    ...(s.description ? { description: s.description } : {}),
     extract: clip(s.extract, 900),
     ...(image ? { image } : {}),
     url: pageUrl(s),
@@ -142,23 +143,30 @@ export async function wikipediaDaily(date: Date): Promise<{ cards: LearnCard[]; 
   return { cards, quizzes };
 }
 
-export async function topicCards(topics: Record<string, string[]>, date: Date, perTopic = 4): Promise<LearnCard[]> {
-  const jobs: { topic: TopicKey; title: string }[] = [];
+/* Learning cards for every interest (and extra topics like BSL): a few titles a day, rotating through each list */
+export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, perTopic = 2): Promise<LearnCard[]> {
+  const jobs: { topic: TopicKey; interest?: string; title: string }[] = [];
   const day = dayNum(date);
-  for (const [topic, titles] of Object.entries(topics)) {
-    if (topic.startsWith('_') || !Array.isArray(titles) || !titles.length) continue;
-    for (let k = 0; k < Math.min(perTopic, titles.length); k++) jobs.push({ topic: topic as TopicKey, title: titles[(day * perTopic + k) % titles.length] });
+  const lists: { topic: TopicKey; interest?: string; titles: string[]; n: number }[] = [
+    ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: i.wiki, n: perTopic })),
+    ...Object.entries(extra).filter(([k, v]) => !k.startsWith('_') && Array.isArray(v)).map(([k, v]) => ({ topic: k as TopicKey, titles: v as string[], n: 3 })),
+  ];
+  for (const l of lists) {
+    if (!l.titles.length) continue;
+    for (let k = 0; k < Math.min(l.n, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
   }
   let ok = 0; const missing: string[] = [];
-  const out = await pool(jobs, 2, async j => {
+  const out = await pool(jobs, 3, async j => {
     const s = await wikiSummary(j.title);
-    await sleep(150);
+    await sleep(100);
     if (!s) { missing.push(j.title); return null; }
     ok++;
-    return wikiCard(s, 'topic', j.topic);
+    return wikiCard(s, 'topic', j.topic, j.interest ? { interest: j.interest } : {});
   });
   record('Wikipedia topic summaries', 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}', ok > 0, ok, missing.length ? `not found: ${missing.join('; ')}` : undefined);
-  return out.filter(Boolean) as LearnCard[];
+  // The same article can sit in two lists: keep one card
+  const seen = new Set<string>();
+  return (out.filter(Boolean) as LearnCard[]).filter(c => (seen.has(c.id) ? false : (seen.add(c.id), true)));
 }
 
 /* ---------- NASA Astronomy Picture of the Day ---------- */

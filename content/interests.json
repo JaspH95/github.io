@@ -1,0 +1,1901 @@
+{
+ "_note": "The starter interests. Edit freely. 'match' terms tag news stories (terms with capitals match case-sensitively, lower-case terms match any case). 'guardian' lists Guardian sections or tags whose stories count for this interest. 'wiki' lists Wikipedia article titles for learning cards: each day the pipeline fetches the live summary for a couple of them. Titles it can't find are listed in public/data/status.json.",
+ "categories": {
+  "news": "News",
+  "tech": "Tech",
+  "science": "Science",
+  "money": "Money & work",
+  "culture": "Culture",
+  "life": "Life",
+  "sport": "Sport"
+ },
+ "interests": [
+  {
+   "id": "world",
+   "label": "World",
+   "cat": "news",
+   "guardian": [
+    "world"
+   ],
+   "match": [
+    "United Nations",
+    "Nato",
+    "NATO",
+    "Gaza",
+    "Ukraine",
+    "ceasefire"
+   ],
+   "wiki": [
+    "United Nations",
+    "United Nations Security Council",
+    "NATO",
+    "European Union",
+    "G20",
+    "International Criminal Court",
+    "World Health Organization",
+    "Geneva Conventions"
+   ]
+  },
+  {
+   "id": "ukpolitics",
+   "label": "UK politics",
+   "cat": "news",
+   "guardian": [
+    "politics"
+   ],
+   "match": [
+    "Starmer",
+    "Labour",
+    "Conservative",
+    "Tory",
+    "Tories",
+    "Reform UK",
+    "Lib Dem",
+    "Liberal Democrats",
+    "Downing Street",
+    "Westminster",
+    "MPs",
+    "chancellor",
+    "Commons",
+    "Lords",
+    "Home Office",
+    "Treasury"
+   ],
+   "wiki": [
+    "Parliament of the United Kingdom",
+    "House of Commons of the United Kingdom",
+    "House of Lords",
+    "Prime Minister of the United Kingdom",
+    "Cabinet of the United Kingdom",
+    "Chancellor of the Exchequer",
+    "First-past-the-post voting",
+    "Devolution in the United Kingdom",
+    "Budget of the United Kingdom",
+    "Whip (politics)"
+   ]
+  },
+  {
+   "id": "uspolitics",
+   "label": "US politics",
+   "cat": "news",
+   "guardian": [
+    "us-news"
+   ],
+   "match": [
+    "Trump",
+    "White House",
+    "Congress",
+    "Senate",
+    "Republican",
+    "Democrat",
+    "Supreme Court",
+    "Pentagon",
+    "Washington"
+   ],
+   "wiki": [
+    "United States Congress",
+    "Supreme Court of the United States",
+    "Electoral College (United States)",
+    "Filibuster in the United States Senate",
+    "Executive order",
+    "Midterm election",
+    "United States Senate",
+    "Separation of powers"
+   ]
+  },
+  {
+   "id": "europe",
+   "label": "Europe",
+   "cat": "news",
+   "guardian": [
+    "world/europe-news"
+   ],
+   "match": [
+    "European Union",
+    "Brussels",
+    "European Commission",
+    "France",
+    "Germany",
+    "Macron",
+    "Italy",
+    "Spain",
+    "Poland",
+    "Netherlands"
+   ],
+   "wiki": [
+    "European Union",
+    "European Commission",
+    "European Parliament",
+    "Schengen Area",
+    "Eurozone",
+    "Council of Europe",
+    "Treaty of Rome",
+    "European Court of Human Rights"
+   ]
+  },
+  {
+   "id": "business",
+   "label": "Business",
+   "cat": "news",
+   "guardian": [
+    "business"
+   ],
+   "match": [
+    "shares",
+    "profits",
+    "chief executive",
+    "takeover",
+    "merger",
+    "FTSE",
+    "Wall Street",
+    "retailer",
+    "stock market",
+    "investors"
+   ],
+   "wiki": [
+    "Limited company",
+    "Initial public offering",
+    "Mergers and acquisitions",
+    "Private equity",
+    "Supply chain",
+    "FTSE 100 Index",
+    "Shareholder",
+    "Corporate governance"
+   ]
+  },
+  {
+   "id": "economy",
+   "label": "Economy",
+   "cat": "news",
+   "guardian": [
+    "business/economics"
+   ],
+   "match": [
+    "inflation",
+    "interest rates",
+    "Bank of England",
+    "GDP",
+    "recession",
+    "unemployment",
+    "economy",
+    "economic growth",
+    "tariffs",
+    "borrowing"
+   ],
+   "wiki": [
+    "Inflation",
+    "Interest rate",
+    "Gross domestic product",
+    "Recession",
+    "Quantitative easing",
+    "Monetary Policy Committee",
+    "Fiscal policy",
+    "Stagflation",
+    "Tariff",
+    "Consumer price index"
+   ]
+  },
+  {
+   "id": "climate",
+   "label": "Climate",
+   "cat": "news",
+   "guardian": [
+    "environment/climate-crisis",
+    "environment"
+   ],
+   "match": [
+    "climate",
+    "net zero",
+    "emissions",
+    "carbon",
+    "global warming",
+    "COP",
+    "heatwave",
+    "renewable",
+    "fossil fuel"
+   ],
+   "wiki": [
+    "Climate change",
+    "Paris Agreement",
+    "Greenhouse effect",
+    "Net zero",
+    "Carbon dioxide in Earth's atmosphere",
+    "Renewable energy",
+    "Intergovernmental Panel on Climate Change",
+    "Carbon capture and storage"
+   ]
+  },
+  {
+   "id": "health",
+   "label": "Health",
+   "cat": "news",
+   "guardian": [
+    "society/health",
+    "society/nhs"
+   ],
+   "match": [
+    "NHS",
+    "hospital",
+    "patients",
+    "doctors",
+    "nurses",
+    "GP",
+    "A&E",
+    "vaccine",
+    "cancer"
+   ],
+   "wiki": [
+    "National Health Service",
+    "Vaccine",
+    "Antibiotic resistance",
+    "Public health",
+    "Mental health",
+    "Epidemiology",
+    "Life expectancy",
+    "Placebo"
+   ]
+  },
+  {
+   "id": "education",
+   "label": "Education",
+   "cat": "news",
+   "guardian": [
+    "education"
+   ],
+   "match": [
+    "schools",
+    "pupils",
+    "teachers",
+    "university",
+    "universities",
+    "students",
+    "Ofsted",
+    "exams",
+    "GCSE",
+    "A-level",
+    "tuition"
+   ],
+   "wiki": [
+    "Education in England",
+    "GCSE",
+    "A-level",
+    "Ofsted",
+    "Montessori education",
+    "Student loans in the United Kingdom",
+    "Russell Group",
+    "Spaced repetition"
+   ]
+  },
+  {
+   "id": "crime",
+   "label": "Crime and justice",
+   "cat": "news",
+   "guardian": [
+    "law",
+    "uk/ukcrime"
+   ],
+   "match": [
+    "police",
+    "trial",
+    "jury",
+    "sentenced",
+    "murder",
+    "charged",
+    "prison",
+    "Crown Prosecution Service",
+    "inquest"
+   ],
+   "wiki": [
+    "Crown Court",
+    "Jury trial",
+    "Crown Prosecution Service",
+    "Presumption of innocence",
+    "Habeas corpus",
+    "Metropolitan Police",
+    "Magna Carta",
+    "Supreme Court of the United Kingdom"
+   ]
+  },
+  {
+   "id": "housing",
+   "label": "Housing",
+   "cat": "news",
+   "guardian": [
+    "society/housing"
+   ],
+   "match": [
+    "housing",
+    "house prices",
+    "renters",
+    "landlords",
+    "mortgage",
+    "homeless",
+    "housebuilding",
+    "planning permission"
+   ],
+   "wiki": [
+    "Affordable housing",
+    "Mortgage loan",
+    "Renting",
+    "Green belt",
+    "Stamp duty in the United Kingdom",
+    "Social housing",
+    "Leasehold estate",
+    "Homelessness"
+   ]
+  },
+  {
+   "id": "ai",
+   "label": "AI",
+   "cat": "tech",
+   "guardian": [
+    "technology/artificialintelligenceai"
+   ],
+   "match": [
+    "AI",
+    "artificial intelligence",
+    "chatbot",
+    "ChatGPT",
+    "OpenAI",
+    "Anthropic",
+    "Gemini",
+    "DeepMind",
+    "large language model",
+    "machine learning",
+    "Nvidia"
+   ],
+   "wiki": [
+    "Large language model",
+    "Transformer (deep learning architecture)",
+    "Generative artificial intelligence",
+    "Retrieval-augmented generation",
+    "Neural network (machine learning)",
+    "Machine learning",
+    "Reinforcement learning from human feedback",
+    "Hallucination (artificial intelligence)",
+    "AI alignment",
+    "Prompt engineering",
+    "Diffusion model",
+    "Turing test",
+    "Alan Turing",
+    "Deep learning",
+    "Backpropagation",
+    "Intelligent agent",
+    "Artificial general intelligence",
+    "ELIZA",
+    "AlphaGo",
+    "Geoffrey Hinton"
+   ]
+  },
+  {
+   "id": "gadgets",
+   "label": "Gadgets",
+   "cat": "tech",
+   "guardian": [
+    "technology/gadgets"
+   ],
+   "match": [
+    "iPhone",
+    "Apple",
+    "Samsung",
+    "Pixel",
+    "smartphone",
+    "laptop",
+    "headphones",
+    "smartwatch",
+    "gadget",
+    "Android"
+   ],
+   "wiki": [
+    "Smartphone",
+    "Lithium-ion battery",
+    "OLED",
+    "Touchscreen",
+    "Bluetooth",
+    "USB-C",
+    "Smartwatch",
+    "Moore's law"
+   ]
+  },
+  {
+   "id": "cyber",
+   "label": "Cybersecurity",
+   "cat": "tech",
+   "guardian": [
+    "technology/data-computer-security",
+    "technology/hacking"
+   ],
+   "match": [
+    "cyber",
+    "hackers",
+    "hacked",
+    "ransomware",
+    "data breach",
+    "malware",
+    "phishing",
+    "cyber-attack",
+    "cyberattack"
+   ],
+   "wiki": [
+    "Ransomware",
+    "Phishing",
+    "Two-factor authentication",
+    "Public-key cryptography",
+    "Zero-day vulnerability",
+    "Social engineering (security)",
+    "Password manager",
+    "National Cyber Security Centre (United Kingdom)"
+   ]
+  },
+  {
+   "id": "startups",
+   "label": "Startups",
+   "cat": "tech",
+   "guardian": [
+    "business/start-ups"
+   ],
+   "match": [
+    "startup",
+    "start-up",
+    "venture capital",
+    "funding round",
+    "Series A",
+    "Series B",
+    "unicorn",
+    "valuation",
+    "Y Combinator"
+   ],
+   "wiki": [
+    "Startup company",
+    "Venture capital",
+    "Unicorn (finance)",
+    "Y Combinator",
+    "Minimum viable product",
+    "Lean startup",
+    "Angel investor",
+    "Bootstrapping"
+   ]
+  },
+  {
+   "id": "software",
+   "label": "Software",
+   "cat": "tech",
+   "guardian": [
+    "technology/software"
+   ],
+   "match": [
+    "software",
+    "Microsoft",
+    "Google",
+    "open source",
+    "developers",
+    "Windows",
+    "GitHub"
+   ],
+   "wiki": [
+    "Open-source software",
+    "Cloud computing",
+    "Application programming interface",
+    "Git",
+    "Agile software development",
+    "Linux",
+    "Software as a service",
+    "Python (programming language)"
+   ]
+  },
+  {
+   "id": "social",
+   "label": "Social media",
+   "cat": "tech",
+   "guardian": [
+    "technology/socialnetworking",
+    "media/social-media"
+   ],
+   "match": [
+    "TikTok",
+    "Instagram",
+    "Facebook",
+    "Meta",
+    "X, formerly Twitter",
+    "YouTube",
+    "social media",
+    "influencer",
+    "Snapchat",
+    "Bluesky",
+    "Reddit",
+    "Online Safety Act"
+   ],
+   "wiki": [
+    "Social media",
+    "Online Safety Act 2023",
+    "Filter bubble",
+    "Algorithmic curation",
+    "Attention economy",
+    "Doomscrolling",
+    "Content moderation",
+    "Echo chamber (media)"
+   ]
+  },
+  {
+   "id": "gaming",
+   "label": "Gaming",
+   "cat": "tech",
+   "guardian": [
+    "games"
+   ],
+   "match": [
+    "video game",
+    "gaming",
+    "PlayStation",
+    "Xbox",
+    "Nintendo",
+    "esports",
+    "Grand Theft Auto",
+    "games console"
+   ],
+   "wiki": [
+    "Video game",
+    "History of video games",
+    "Nintendo",
+    "PlayStation",
+    "Tetris",
+    "Minecraft",
+    "Esports",
+    "Game engine"
+   ]
+  },
+  {
+   "id": "crypto",
+   "label": "Crypto",
+   "cat": "tech",
+   "guardian": [
+    "technology/cryptocurrencies",
+    "technology/bitcoin"
+   ],
+   "match": [
+    "crypto",
+    "cryptocurrency",
+    "Bitcoin",
+    "Ethereum",
+    "blockchain",
+    "stablecoin",
+    "Coinbase",
+    "Binance"
+   ],
+   "wiki": [
+    "Bitcoin",
+    "Blockchain",
+    "Ethereum",
+    "Stablecoin",
+    "Proof of work",
+    "Proof of stake",
+    "Satoshi Nakamoto",
+    "Central bank digital currency"
+   ]
+  },
+  {
+   "id": "future",
+   "label": "Future tech",
+   "cat": "tech",
+   "guardian": [],
+   "match": [
+    "fusion",
+    "quantum computing",
+    "humanoid",
+    "robot",
+    "robots",
+    "robotics",
+    "battery",
+    "batteries",
+    "driverless",
+    "self-driving"
+   ],
+   "wiki": [
+    "Solid-state battery",
+    "Humanoid robot",
+    "Quantum computing",
+    "Fusion power",
+    "Self-driving car",
+    "Brain–computer interface",
+    "CRISPR gene editing",
+    "Perovskite solar cell",
+    "Vertical farming",
+    "3D printing",
+    "Augmented reality",
+    "Powered exoskeleton",
+    "Cultured meat",
+    "Smart grid",
+    "Graphene",
+    "Direct air capture",
+    "Small modular reactor",
+    "Delivery drone",
+    "Starlink",
+    "Neuromorphic computing",
+    "Heat pump",
+    "Lidar",
+    "Space-based solar power",
+    "Carbon capture and storage"
+   ]
+  },
+  {
+   "id": "space",
+   "label": "Space",
+   "cat": "science",
+   "guardian": [
+    "science/space"
+   ],
+   "match": [
+    "Nasa",
+    "NASA",
+    "space",
+    "SpaceX",
+    "rocket",
+    "astronaut",
+    "telescope",
+    "Moon",
+    "Mars",
+    "orbit",
+    "Artemis",
+    "asteroid",
+    "galaxy"
+   ],
+   "wiki": [
+    "James Webb Space Telescope",
+    "Black hole",
+    "Andromeda Galaxy",
+    "Mars",
+    "Jupiter",
+    "Europa (moon)",
+    "Titan (moon)",
+    "International Space Station",
+    "Apollo 11",
+    "Voyager 1",
+    "Exoplanet",
+    "Big Bang",
+    "Dark matter",
+    "Neutron star",
+    "Artemis program",
+    "Speed of light",
+    "Solar eclipse",
+    "Aurora"
+   ]
+  },
+  {
+   "id": "physics",
+   "label": "Physics",
+   "cat": "science",
+   "guardian": [
+    "science/physics"
+   ],
+   "match": [
+    "physics",
+    "physicists",
+    "quantum",
+    "particle",
+    "CERN",
+    "Large Hadron Collider",
+    "fusion"
+   ],
+   "wiki": [
+    "Quantum mechanics",
+    "Higgs boson",
+    "General relativity",
+    "Large Hadron Collider",
+    "Nuclear fusion",
+    "Entropy",
+    "Standard Model",
+    "Schrödinger's cat",
+    "Quantum entanglement",
+    "Absolute zero"
+   ]
+  },
+  {
+   "id": "biology",
+   "label": "Biology",
+   "cat": "science",
+   "guardian": [
+    "science/biology",
+    "science/evolution"
+   ],
+   "match": [
+    "biology",
+    "evolution",
+    "DNA",
+    "genes",
+    "wildlife",
+    "biologists"
+   ],
+   "wiki": [
+    "DNA",
+    "Evolution",
+    "Natural selection",
+    "Photosynthesis",
+    "Octopus",
+    "Tardigrade",
+    "Mitochondrion",
+    "CRISPR gene editing",
+    "Microbiome",
+    "Charles Darwin"
+   ]
+  },
+  {
+   "id": "medicine",
+   "label": "Medicine",
+   "cat": "science",
+   "guardian": [
+    "science/medical-research"
+   ],
+   "match": [
+    "medical research",
+    "clinical trial",
+    "Alzheimer's",
+    "dementia",
+    "gene therapy"
+   ],
+   "wiki": [
+    "Penicillin",
+    "Clinical trial",
+    "mRNA vaccine",
+    "Gene therapy",
+    "Alzheimer's disease",
+    "Immunotherapy",
+    "Randomized controlled trial",
+    "Edward Jenner",
+    "Germ theory of disease"
+   ]
+  },
+  {
+   "id": "environment",
+   "label": "Environment",
+   "cat": "science",
+   "guardian": [
+    "environment"
+   ],
+   "match": [
+    "wildlife",
+    "pollution",
+    "sewage",
+    "biodiversity",
+    "conservation",
+    "rewilding"
+   ],
+   "wiki": [
+    "Biodiversity",
+    "Rewilding (conservation biology)",
+    "Great Barrier Reef",
+    "Carbon cycle",
+    "Coral bleaching",
+    "Deforestation",
+    "Plastic pollution",
+    "Beaver reintroduction in Great Britain",
+    "Ocean acidification"
+   ]
+  },
+  {
+   "id": "psychology",
+   "label": "Psychology",
+   "cat": "science",
+   "guardian": [
+    "science/psychology"
+   ],
+   "match": [
+    "psychology",
+    "psychologists",
+    "behaviour",
+    "wellbeing",
+    "loneliness",
+    "habits"
+   ],
+   "wiki": [
+    "Anchoring effect",
+    "Zeigarnik effect",
+    "Confirmation bias",
+    "Dunning–Kruger effect",
+    "Loss aversion",
+    "Cognitive dissonance",
+    "Flow (psychology)",
+    "Availability heuristic",
+    "Bystander effect",
+    "Spacing effect",
+    "Forgetting curve",
+    "Impostor syndrome",
+    "Peak–end rule",
+    "Decision fatigue",
+    "Halo effect",
+    "Planning fallacy",
+    "Parkinson's law"
+   ]
+  },
+  {
+   "id": "neuro",
+   "label": "Neuroscience",
+   "cat": "science",
+   "guardian": [
+    "science/neuroscience"
+   ],
+   "match": [
+    "brain",
+    "neuroscience",
+    "neurons",
+    "neuroscientists"
+   ],
+   "wiki": [
+    "Neuron",
+    "Neuroplasticity",
+    "Hippocampus",
+    "Prefrontal cortex",
+    "Dopamine",
+    "Sleep",
+    "Brain–computer interface",
+    "Phineas Gage",
+    "Working memory"
+   ]
+  },
+  {
+   "id": "archaeology",
+   "label": "Archaeology",
+   "cat": "science",
+   "guardian": [
+    "science/archaeology"
+   ],
+   "match": [
+    "archaeologists",
+    "archaeology",
+    "excavation",
+    "ancient",
+    "Roman",
+    "Bronze Age",
+    "Neolithic",
+    "fossil",
+    "tomb"
+   ],
+   "wiki": [
+    "Stonehenge",
+    "Sutton Hoo",
+    "Pompeii",
+    "Rosetta Stone",
+    "Tutankhamun",
+    "Göbekli Tepe",
+    "Terracotta Army",
+    "Hadrian's Wall",
+    "Radiocarbon dating",
+    "Vindolanda"
+   ]
+  },
+  {
+   "id": "personalfinance",
+   "label": "Personal finance",
+   "cat": "money",
+   "guardian": [
+    "money"
+   ],
+   "match": [
+    "savings",
+    "pensions",
+    "Isa",
+    "ISA",
+    "energy bills",
+    "council tax",
+    "credit card",
+    "savers",
+    "state pension"
+   ],
+   "wiki": [
+    "Compound interest",
+    "Individual savings account",
+    "Pension",
+    "Credit score",
+    "Emergency fund",
+    "Budget",
+    "Rule of 72",
+    "Inflation"
+   ]
+  },
+  {
+   "id": "investing",
+   "label": "Investing",
+   "cat": "money",
+   "guardian": [
+    "business/stock-markets"
+   ],
+   "match": [
+    "stocks",
+    "shares",
+    "investors",
+    "index fund",
+    "stock market",
+    "FTSE",
+    "S&P 500",
+    "bond",
+    "gilts",
+    "dividends"
+   ],
+   "wiki": [
+    "Index fund",
+    "Bond (finance)",
+    "Dividend",
+    "Diversification (finance)",
+    "Dollar cost averaging",
+    "Price–earnings ratio",
+    "Efficient-market hypothesis",
+    "Warren Buffett",
+    "Gilt-edged securities"
+   ]
+  },
+  {
+   "id": "property",
+   "label": "Property",
+   "cat": "money",
+   "guardian": [
+    "money/property"
+   ],
+   "match": [
+    "property",
+    "house prices",
+    "mortgage",
+    "estate agents",
+    "homebuyers",
+    "first-time buyers",
+    "Rightmove",
+    "Nationwide"
+   ],
+   "wiki": [
+    "Mortgage loan",
+    "Stamp duty in the United Kingdom",
+    "Leasehold estate",
+    "Freehold (law)",
+    "Conveyancing",
+    "Buy to let",
+    "Loan-to-value ratio"
+   ]
+  },
+  {
+   "id": "careers",
+   "label": "Careers",
+   "cat": "money",
+   "guardian": [
+    "money/work-and-careers"
+   ],
+   "match": [
+    "careers",
+    "employees",
+    "working from home",
+    "four-day week",
+    "hiring",
+    "layoffs"
+   ],
+   "wiki": [
+    "Four-day workweek",
+    "Remote work",
+    "Continuing professional development",
+    "Performance appraisal",
+    "Mentorship",
+    "Impostor syndrome",
+    "Emotional intelligence",
+    "Pomodoro Technique"
+   ]
+  },
+  {
+   "id": "entrepreneurship",
+   "label": "Entrepreneurship",
+   "cat": "money",
+   "guardian": [
+    "business/smallbusiness"
+   ],
+   "match": [
+    "small business",
+    "small businesses",
+    "founder",
+    "entrepreneur",
+    "self-employed",
+    "start-up"
+   ],
+   "wiki": [
+    "Entrepreneurship",
+    "Business model canvas",
+    "Product–market fit",
+    "Bootstrapping",
+    "Cash flow",
+    "Minimum viable product",
+    "Lean startup",
+    "Business plan"
+   ]
+  },
+  {
+   "id": "marketing",
+   "label": "Marketing",
+   "cat": "money",
+   "guardian": [
+    "media/advertising",
+    "business/marketing-and-pr"
+   ],
+   "match": [
+    "marketing",
+    "advertising",
+    "advert",
+    "HubSpot",
+    "CRM"
+   ],
+   "wiki": [
+    "Marketing",
+    "Inbound marketing",
+    "Search engine optimization",
+    "Content marketing",
+    "A/B testing",
+    "Customer relationship management",
+    "HubSpot",
+    "Marketing automation",
+    "Customer lifetime value",
+    "Net promoter score",
+    "Account-based marketing",
+    "Email marketing",
+    "Conversion rate optimization"
+   ]
+  },
+  {
+   "id": "sales",
+   "label": "Sales",
+   "cat": "money",
+   "guardian": [
+    "business/retail"
+   ],
+   "match": [
+    "retail sales",
+    "salespeople",
+    "HubSpot",
+    "Salesforce",
+    "CRM",
+    "B2B"
+   ],
+   "wiki": [
+    "Sales",
+    "Sales process",
+    "Customer relationship management",
+    "Salesforce",
+    "Lead scoring",
+    "Lead generation",
+    "Purchase funnel",
+    "Customer acquisition cost",
+    "Churn rate",
+    "Customer success",
+    "Solution selling",
+    "Key performance indicator"
+   ]
+  },
+  {
+   "id": "film",
+   "label": "Film",
+   "cat": "culture",
+   "guardian": [
+    "film"
+   ],
+   "match": [
+    "movie",
+    "cinema",
+    "Oscars",
+    "Bafta",
+    "BAFTA",
+    "box office"
+   ],
+   "wiki": [
+    "Academy Awards",
+    "Citizen Kane",
+    "Alfred Hitchcock",
+    "Pinewood Studios",
+    "Cinematography",
+    "Studio Ghibli",
+    "British Film Institute",
+    "Special effects"
+   ]
+  },
+  {
+   "id": "tv",
+   "label": "TV",
+   "cat": "culture",
+   "guardian": [
+    "tv-and-radio"
+   ],
+   "match": [
+    "television",
+    "BBC One",
+    "ITV",
+    "Netflix",
+    "Channel 4",
+    "sitcom",
+    "Strictly"
+   ],
+   "wiki": [
+    "Television",
+    "BBC",
+    "Doctor Who",
+    "Coronation Street",
+    "Streaming television",
+    "Situation comedy",
+    "The Great British Bake Off",
+    "Attenborough"
+   ]
+  },
+  {
+   "id": "music",
+   "label": "Music",
+   "cat": "culture",
+   "guardian": [
+    "music"
+   ],
+   "match": [
+    "album",
+    "singer",
+    "Glastonbury",
+    "rapper",
+    "Mercury prize",
+    "concert"
+   ],
+   "wiki": [
+    "The Beatles",
+    "Glastonbury Festival",
+    "The Proms",
+    "Mercury Prize",
+    "Vinyl revival",
+    "Hip hop music",
+    "Abbey Road Studios",
+    "Music theory"
+   ]
+  },
+  {
+   "id": "books",
+   "label": "Books",
+   "cat": "culture",
+   "guardian": [
+    "books"
+   ],
+   "match": [
+    "novel",
+    "author",
+    "Booker",
+    "novelist",
+    "poet",
+    "memoir"
+   ],
+   "wiki": [
+    "Booker Prize",
+    "Shakespeare's Globe",
+    "Jane Austen",
+    "George Orwell",
+    "Nineteen Eighty-Four",
+    "Meditations",
+    "The Art of War",
+    "British Library"
+   ]
+  },
+  {
+   "id": "art",
+   "label": "Art",
+   "cat": "culture",
+   "guardian": [
+    "artanddesign"
+   ],
+   "match": [
+    "artist",
+    "painting",
+    "gallery",
+    "exhibition",
+    "Tate",
+    "sculpture",
+    "Turner prize"
+   ],
+   "wiki": [
+    "Mona Lisa",
+    "Banksy",
+    "Tate Modern",
+    "Impressionism",
+    "J. M. W. Turner",
+    "Turner Prize",
+    "National Gallery",
+    "Van Gogh"
+   ]
+  },
+  {
+   "id": "design",
+   "label": "Design",
+   "cat": "culture",
+   "guardian": [
+    "artanddesign/design"
+   ],
+   "match": [
+    "typography",
+    "Design Museum"
+   ],
+   "wiki": [
+    "Graphic design",
+    "Bauhaus",
+    "Helvetica",
+    "Design Museum",
+    "Swiss Style (design)",
+    "User experience design",
+    "Dieter Rams",
+    "Typography"
+   ]
+  },
+  {
+   "id": "architecture",
+   "label": "Architecture",
+   "cat": "culture",
+   "guardian": [
+    "artanddesign/architecture"
+   ],
+   "match": [
+    "architecture",
+    "architect",
+    "architects",
+    "skyscraper",
+    "Stirling prize"
+   ],
+   "wiki": [
+    "Brutalist architecture",
+    "Gothic architecture",
+    "The Shard",
+    "St Paul's Cathedral",
+    "Zaha Hadid",
+    "Le Corbusier",
+    "Stirling Prize",
+    "Barbican Estate"
+   ]
+  },
+  {
+   "id": "fashion",
+   "label": "Fashion",
+   "cat": "culture",
+   "guardian": [
+    "fashion"
+   ],
+   "match": [
+    "fashion",
+    "catwalk",
+    "designer",
+    "London Fashion Week",
+    "Vogue",
+    "clothing"
+   ],
+   "wiki": [
+    "London Fashion Week",
+    "Fast fashion",
+    "Vivienne Westwood",
+    "Savile Row",
+    "Haute couture",
+    "Coco Chanel",
+    "Mary Quant"
+   ]
+  },
+  {
+   "id": "food",
+   "label": "Food and drink",
+   "cat": "culture",
+   "guardian": [
+    "food"
+   ],
+   "match": [
+    "restaurant",
+    "chef",
+    "recipe",
+    "Michelin",
+    "cooking"
+   ],
+   "wiki": [
+    "Fish and chips",
+    "Afternoon tea",
+    "Maillard reaction",
+    "Fermentation in food processing",
+    "Umami",
+    "Sourdough",
+    "Michelin Guide",
+    "Sunday roast"
+   ]
+  },
+  {
+   "id": "travel",
+   "label": "Travel",
+   "cat": "culture",
+   "guardian": [
+    "travel"
+   ],
+   "match": [
+    "holiday",
+    "holidays",
+    "flights",
+    "airline",
+    "airport",
+    "tourists",
+    "tourism",
+    "passport"
+   ],
+   "wiki": [
+    "Channel Tunnel",
+    "Orient Express",
+    "Inca Trail to Machu Picchu",
+    "Schengen Area",
+    "Jet lag",
+    "Trans-Siberian Railway",
+    "UNESCO World Heritage Site",
+    "National Trust"
+   ]
+  },
+  {
+   "id": "history",
+   "label": "History",
+   "cat": "culture",
+   "guardian": [
+    "world/second-world-war",
+    "culture/history"
+   ],
+   "match": [
+    "historian",
+    "historians",
+    "war memorial"
+   ],
+   "wiki": [
+    "Magna Carta",
+    "Tower of London",
+    "Great Fire of London",
+    "Battle of Hastings",
+    "Industrial Revolution",
+    "Roman Britain",
+    "Black Death",
+    "Battle of Britain",
+    "Suffragette",
+    "Printing press",
+    "Fall of the Berlin Wall"
+   ]
+  },
+  {
+   "id": "philosophy",
+   "label": "Philosophy",
+   "cat": "culture",
+   "guardian": [
+    "world/philosophy"
+   ],
+   "match": [
+    "philosophy",
+    "philosopher",
+    "ethics",
+    "Stoicism",
+    "stoic"
+   ],
+   "wiki": [
+    "Stoicism",
+    "Marcus Aurelius",
+    "Socrates",
+    "Trolley problem",
+    "Utilitarianism",
+    "Existentialism",
+    "Occam's razor",
+    "Ship of Theseus",
+    "Plato's allegory of the cave",
+    "Epistemology"
+   ]
+  },
+  {
+   "id": "fitness",
+   "label": "Fitness",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/fitness"
+   ],
+   "match": [
+    "fitness",
+    "exercise",
+    "gym",
+    "workout",
+    "strength training"
+   ],
+   "wiki": [
+    "Physical fitness",
+    "High-intensity interval training",
+    "Strength training",
+    "VO2 max",
+    "Aerobic exercise",
+    "Stretching",
+    "Resting heart rate"
+   ]
+  },
+  {
+   "id": "running",
+   "label": "Running",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/running",
+    "sport/athletics"
+   ],
+   "match": [
+    "running",
+    "marathon",
+    "parkrun",
+    "runners",
+    "London Marathon",
+    "half marathon"
+   ],
+   "wiki": [
+    "Marathon",
+    "Parkrun",
+    "London Marathon",
+    "Eliud Kipchoge",
+    "Roger Bannister",
+    "Fartlek",
+    "Barefoot running",
+    "Ultramarathon"
+   ]
+  },
+  {
+   "id": "cycling",
+   "label": "Cycling",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/cycling",
+    "sport/cycling"
+   ],
+   "match": [
+    "cycling",
+    "cyclists",
+    "bike",
+    "Tour de France",
+    "e-bike",
+    "cycle lane"
+   ],
+   "wiki": [
+    "Tour de France",
+    "Bicycle",
+    "Electric bicycle",
+    "Velodrome",
+    "Chris Hoy",
+    "Bradley Wiggins",
+    "Derailleur"
+   ]
+  },
+  {
+   "id": "triathlon",
+   "label": "Triathlon",
+   "cat": "life",
+   "guardian": [
+    "sport/triathlon"
+   ],
+   "match": [
+    "triathlon",
+    "Ironman",
+    "triathlete"
+   ],
+   "wiki": [
+    "Triathlon",
+    "Ironman Triathlon",
+    "Brownlee brothers",
+    "Open water swimming",
+    "Duathlon",
+    "Ironman World Championship"
+   ]
+  },
+  {
+   "id": "nutrition",
+   "label": "Nutrition",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/diets"
+   ],
+   "match": [
+    "diet",
+    "nutrition",
+    "ultra-processed",
+    "vitamin",
+    "protein",
+    "calories",
+    "obesity"
+   ],
+   "wiki": [
+    "Ultra-processed food",
+    "Dietary fiber",
+    "Vitamin D",
+    "Mediterranean diet",
+    "Protein (nutrient)",
+    "Glycemic index",
+    "Intermittent fasting",
+    "Gut microbiota"
+   ]
+  },
+  {
+   "id": "wellbeing",
+   "label": "Mental wellbeing",
+   "cat": "life",
+   "guardian": [
+    "society/mental-health",
+    "lifeandstyle/health-and-wellbeing"
+   ],
+   "match": [
+    "mental health",
+    "anxiety",
+    "depression",
+    "wellbeing",
+    "loneliness",
+    "burnout",
+    "mindfulness",
+    "therapy"
+   ],
+   "wiki": [
+    "Mindfulness",
+    "Cognitive behavioral therapy",
+    "Burnout (psychology)",
+    "Loneliness",
+    "Sleep hygiene",
+    "Resilience (psychology)",
+    "Gratitude",
+    "Circadian rhythm"
+   ]
+  },
+  {
+   "id": "parenting",
+   "label": "Parenting",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/parents-and-parenting",
+    "lifeandstyle/family"
+   ],
+   "match": [
+    "parents",
+    "parenting",
+    "childcare",
+    "toddlers",
+    "nursery"
+   ],
+   "wiki": [
+    "Parenting styles",
+    "Attachment theory",
+    "Child development",
+    "Early childhood education",
+    "Screen time",
+    "Sleep training",
+    "Montessori education"
+   ]
+  },
+  {
+   "id": "pets",
+   "label": "Pets",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/pets"
+   ],
+   "match": [
+    "dogs",
+    "cats",
+    "vets",
+    "RSPCA",
+    "puppy"
+   ],
+   "wiki": [
+    "Dog",
+    "Cat",
+    "Domestication",
+    "Dog breed",
+    "Crufts",
+    "RSPCA",
+    "Guide dog",
+    "Cat intelligence"
+   ]
+  },
+  {
+   "id": "gardening",
+   "label": "Gardening",
+   "cat": "life",
+   "guardian": [
+    "lifeandstyle/gardens"
+   ],
+   "match": [
+    "garden",
+    "gardening",
+    "gardeners",
+    "Chelsea flower show",
+    "RHS",
+    "plants",
+    "allotment"
+   ],
+   "wiki": [
+    "Chelsea Flower Show",
+    "Royal Horticultural Society",
+    "Kew Gardens",
+    "Compost",
+    "Allotment (gardening)",
+    "Companion planting",
+    "Capability Brown",
+    "Permaculture"
+   ]
+  },
+  {
+   "id": "cars",
+   "label": "Cars",
+   "cat": "life",
+   "guardian": [
+    "technology/motoring",
+    "money/motoring"
+   ],
+   "match": [
+    "cars",
+    "electric vehicles",
+    "EV",
+    "EVs",
+    "Tesla",
+    "drivers",
+    "motorists",
+    "MOT"
+   ],
+   "wiki": [
+    "Electric car",
+    "Internal combustion engine",
+    "Self-driving car",
+    "Hybrid vehicle",
+    "Mini (marque)",
+    "Charging station",
+    "Regenerative braking",
+    "Jaguar Land Rover"
+   ]
+  },
+  {
+   "id": "football",
+   "label": "Football",
+   "cat": "sport",
+   "sport": "Football",
+   "guardian": [
+    "football"
+   ],
+   "match": [
+    "Premier League",
+    "football",
+    "Champions League"
+   ],
+   "wiki": [
+    "Premier League",
+    "FA Cup",
+    "Offside (association football)",
+    "Video assistant referee",
+    "Wembley Stadium",
+    "UEFA Champions League",
+    "FIFA World Cup"
+   ]
+  },
+  {
+   "id": "rugby",
+   "label": "Rugby",
+   "cat": "sport",
+   "sport": "Rugby",
+   "guardian": [
+    "sport/rugby-union"
+   ],
+   "match": [
+    "rugby",
+    "Six Nations",
+    "Premiership Rugby"
+   ],
+   "wiki": [
+    "Rugby union",
+    "Six Nations Championship",
+    "Rugby World Cup",
+    "Scrum (rugby)",
+    "Twickenham Stadium",
+    "Rugby league"
+   ]
+  },
+  {
+   "id": "cricket",
+   "label": "Cricket",
+   "cat": "sport",
+   "sport": "Cricket",
+   "guardian": [
+    "sport/cricket"
+   ],
+   "match": [
+    "cricket",
+    "Test match",
+    "Ashes",
+    "wicket",
+    "The Hundred"
+   ],
+   "wiki": [
+    "Cricket",
+    "The Ashes",
+    "Lord's",
+    "Leg before wicket",
+    "Duckworth–Lewis–Stern method",
+    "Test cricket",
+    "The Hundred (cricket)"
+   ]
+  },
+  {
+   "id": "tennis",
+   "label": "Tennis",
+   "cat": "sport",
+   "sport": "Tennis",
+   "guardian": [
+    "sport/tennis"
+   ],
+   "match": [
+    "tennis",
+    "Wimbledon",
+    "US Open",
+    "ATP",
+    "WTA",
+    "grand slam"
+   ],
+   "wiki": [
+    "Wimbledon Championships",
+    "Grand Slam (tennis)",
+    "Tennis scoring system",
+    "Hawk-Eye",
+    "Davis Cup",
+    "Andy Murray"
+   ]
+  },
+  {
+   "id": "f1",
+   "label": "Formula 1",
+   "cat": "sport",
+   "sport": "Formula 1",
+   "guardian": [
+    "sport/formulaone"
+   ],
+   "match": [
+    "Formula 1",
+    "Formula One",
+    "F1",
+    "grand prix",
+    "Verstappen",
+    "Hamilton",
+    "Norris"
+   ],
+   "wiki": [
+    "Formula One",
+    "Drag reduction system",
+    "Pit stop",
+    "Silverstone Circuit",
+    "Monaco Grand Prix",
+    "Formula One car",
+    "Ayrton Senna"
+   ]
+  },
+  {
+   "id": "golf",
+   "label": "Golf",
+   "cat": "sport",
+   "sport": "Golf",
+   "guardian": [
+    "sport/golf"
+   ],
+   "match": [
+    "golf",
+    "Ryder Cup",
+    "The Open",
+    "PGA",
+    "Masters",
+    "LIV Golf"
+   ],
+   "wiki": [
+    "Golf",
+    "Ryder Cup",
+    "The Open Championship",
+    "St Andrews Links",
+    "Handicap (golf)",
+    "Masters Tournament"
+   ]
+  },
+  {
+   "id": "boxing",
+   "label": "Boxing and MMA",
+   "cat": "sport",
+   "sport": "Boxing & MMA",
+   "guardian": [
+    "sport/boxing",
+    "sport/mixed-martial-arts"
+   ],
+   "match": [
+    "boxing",
+    "boxer",
+    "UFC",
+    "MMA",
+    "heavyweight",
+    "title fight"
+   ],
+   "wiki": [
+    "Boxing",
+    "Mixed martial arts",
+    "Queensberry Rules",
+    "Ultimate Fighting Championship",
+    "Muhammad Ali",
+    "Weight class (boxing)"
+   ]
+  },
+  {
+   "id": "athletics",
+   "label": "Athletics",
+   "cat": "sport",
+   "sport": "Athletics",
+   "guardian": [
+    "sport/athletics"
+   ],
+   "match": [
+    "athletics",
+    "sprinter",
+    "world record",
+    "Diamond League",
+    "Olympic"
+   ],
+   "wiki": [
+    "Athletics (sport)",
+    "Usain Bolt",
+    "Diamond League",
+    "Decathlon",
+    "Four-minute mile",
+    "World Athletics Championships"
+   ]
+  },
+  {
+   "id": "nfl",
+   "label": "NFL",
+   "cat": "sport",
+   "sport": "NFL",
+   "guardian": [
+    "sport/nfl"
+   ],
+   "match": [
+    "NFL",
+    "Super Bowl",
+    "quarterback",
+    "touchdown"
+   ],
+   "wiki": [
+    "National Football League",
+    "Super Bowl",
+    "American football",
+    "NFL International Series",
+    "Quarterback",
+    "NFL Draft"
+   ]
+  },
+  {
+   "id": "basketball",
+   "label": "Basketball",
+   "cat": "sport",
+   "sport": "Basketball",
+   "guardian": [
+    "sport/nba",
+    "sport/basketball"
+   ],
+   "match": [
+    "basketball",
+    "NBA",
+    "LeBron",
+    "WNBA"
+   ],
+   "wiki": [
+    "Basketball",
+    "National Basketball Association",
+    "Michael Jordan",
+    "Three-point field goal",
+    "James Naismith",
+    "Harlem Globetrotters"
+   ]
+  }
+ ]
+}

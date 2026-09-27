@@ -1,0 +1,31 @@
+name: Health check
+
+# Tests every key, source and serverless function. Run it from the Actions tab any time.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - 'pipeline/check.ts'
+      - 'api/**'
+      - '.github/workflows/check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GUARDIAN_API_KEY: ${{ secrets.GUARDIAN_API_KEY }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}

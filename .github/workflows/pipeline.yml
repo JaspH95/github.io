@@ -2,12 +2,13 @@ name: Refresh feed data
 
 on:
   schedule:
-    - cron: '17 * * * *'   # hourly
+    - cron: '17 * * * *'   # hourly (GitHub may run scheduled jobs a little late)
   workflow_dispatch:
   push:
     branches: ['**']
     paths:
       - 'pipeline/**'
+      - 'content/interests.json'
       - 'content/topics.json'
       - '.github/workflows/pipeline.yml'
 
@@ -15,13 +16,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: pipeline-${{ github.ref }}
+  group: data-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +36,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GUARDIAN_API_KEY: ${{ secrets.GUARDIAN_API_KEY }}
           NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          PRIORITY_REGIONS: ${{ vars.PRIORITY_REGIONS }}
       - name: Commit if something changed
         run: |
           git config user.name "knowfeed-bot"
@@ -42,4 +47,4 @@ jobs:
           git add public/data pipeline/cache
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
           git commit -m "Refresh feed data"
-          for i in 1 2 3; do git pull --rebase -X theirs && git push && break; sleep 5; done
+          for i in 1 2 3 4; do git pull --rebase -X theirs && git push && break; sleep $((i * 5)); done

@@ -1,0 +1,41 @@
+name: Refresh jobs and cities
+
+# ESCO occupations and skills, and the GeoNames city list, for onboarding. They change rarely.
+on:
+  schedule:
+    - cron: '41 3 1 * *'   # monthly
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - 'pipeline/seed.ts'
+      - '.github/workflows/seed.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run seed
+      - name: Commit if something changed
+        if: always()
+        run: |
+          git config user.name "knowfeed-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Refresh jobs and cities"
+          for i in 1 2 3 4; do git pull --rebase -X theirs && git push && break; sleep $((i * 5)); done
