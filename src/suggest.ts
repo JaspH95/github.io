@@ -3,7 +3,7 @@
 import { S, persist, load, save } from './state';
 import { INTERESTS, interestById, allStories, data } from './data';
 import type { Story, Entity } from './types';
-import { esc, toast } from './ui';
+import { esc, toast, ICON } from './ui';
 
 export type Suggestion =
   | { kind: 'interest'; key: string; id: string; label: string; because?: string }
@@ -87,16 +87,16 @@ export function follow(s: Suggestion) {
   }
 }
 
-/* A small card above the tab bar: "Follow AI to see more of it?" */
+/* A small pill above the tab bar after a like: "+ Follow AI". It fades away on its own */
 let hideTimer: ReturnType<typeof setTimeout> | undefined;
 export function offer(s: Suggestion) {
   const el = document.getElementById('suggest'); if (!el) return;
   markAsked(s.key);   // asked once, whatever the answer
-  const what = s.kind === 'interest' ? `stories about <b>${esc(s.label)}</b>` : `<b>${esc(s.label)}</b> in the news`;
-  el.innerHTML = `<p>Liked that? Follow ${what} to see more in your editions.</p><div><button class="sg-yes">Follow</button><button class="sg-no" aria-label="Not now">Not now</button></div>`;
+  el.innerHTML = `<button class="sg-yes">${ICON.plus}<span>Follow <b>${esc(s.label)}</b></span></button><button class="sg-no" aria-label="Not now">${ICON.close}</button>`;
+  el.setAttribute('aria-label', `Follow ${s.label}?`);
   el.classList.add('show');
   const close = () => { el.classList.remove('show'); clearTimeout(hideTimer); };
-  el.querySelector('.sg-yes')!.addEventListener('click', () => { follow(s); close(); toast(`Following ${s.label}. It'll shape your next edition`); });
+  el.querySelector('.sg-yes')!.addEventListener('click', () => { follow(s); close(); toast(`Following ${s.label}`); });
   el.querySelector('.sg-no')!.addEventListener('click', close);
-  clearTimeout(hideTimer); hideTimer = setTimeout(close, 9000);
+  clearTimeout(hideTimer); hideTimer = setTimeout(close, 6000);
 }
