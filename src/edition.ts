@@ -353,6 +353,9 @@ export function build(p: Profile, force = false): Edition {
 export function justIn(e: Edition, p: Profile): Story | null {
   const c = context(p);
   const inEdition = new Set(e.cards.map(x => x.story?.id).filter(Boolean));
+  // Breaking news that several outlets started leading with after this edition was made
+  const br = p.breaking === false ? null : (data.live?.breaking || []).find(s => s.via === 'Breaking' && +new Date(s.published) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && !avoided(s, c));
+  if (br) return br;
   return (data.news?.stories || []).filter(s => +new Date(s.first) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && s.importance >= 0.5 && (s.top || relevance(s, c) >= 0.7) && !avoided(s, c))
     .sort((a, b) => b.importance - a.importance)[0] || null;
 }
