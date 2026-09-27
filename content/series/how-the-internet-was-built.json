@@ -1,0 +1,361 @@
+{
+ "id": "how-the-internet-was-built",
+ "title": "How the internet was built",
+ "kind": "history",
+ "topic": "tech",
+ "interests": [
+  "software",
+  "gadgets",
+  "history",
+  "social",
+  "ai",
+  "future",
+  "cyber"
+ ],
+ "colours": [
+  "#0EA5E9",
+  "#6366F1"
+ ],
+ "blurb": "From a two-letter message in 1969 to the phone in your hand.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "arpa",
+   "title": "ARPANET",
+   "url": "https://en.wikipedia.org/wiki/ARPANET"
+  },
+  {
+   "id": "packet",
+   "title": "Packet switching",
+   "url": "https://en.wikipedia.org/wiki/Packet_switching"
+  },
+  {
+   "id": "davies",
+   "title": "Donald Davies",
+   "url": "https://en.wikipedia.org/wiki/Donald_Davies"
+  },
+  {
+   "id": "email",
+   "title": "Ray Tomlinson",
+   "url": "https://en.wikipedia.org/wiki/Ray_Tomlinson"
+  },
+  {
+   "id": "tcpip",
+   "title": "Internet protocol suite",
+   "url": "https://en.wikipedia.org/wiki/Internet_protocol_suite"
+  },
+  {
+   "id": "cerf",
+   "title": "Vint Cerf",
+   "url": "https://en.wikipedia.org/wiki/Vint_Cerf"
+  },
+  {
+   "id": "dns",
+   "title": "Domain Name System",
+   "url": "https://en.wikipedia.org/wiki/Domain_Name_System"
+  },
+  {
+   "id": "www",
+   "title": "World Wide Web",
+   "url": "https://en.wikipedia.org/wiki/World_Wide_Web"
+  },
+  {
+   "id": "tbl",
+   "title": "Tim Berners-Lee",
+   "url": "https://en.wikipedia.org/wiki/Tim_Berners-Lee"
+  },
+  {
+   "id": "mosaic",
+   "title": "Mosaic (web browser)",
+   "url": "https://en.wikipedia.org/wiki/Mosaic_(web_browser)"
+  },
+  {
+   "id": "pagerank",
+   "title": "PageRank",
+   "url": "https://en.wikipedia.org/wiki/PageRank"
+  },
+  {
+   "id": "mobile",
+   "title": "Mobile web",
+   "url": "https://en.wikipedia.org/wiki/Mobile_web"
+  },
+  {
+   "id": "iphone",
+   "title": "iPhone (1st generation)",
+   "url": "https://en.wikipedia.org/wiki/IPhone_(1st_generation)"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "A network built to share",
+   "cards": [
+    {
+     "type": "title",
+     "big": "1969",
+     "text": "On 29 October 1969 a computer at UCLA sent the first message over ARPANET to one at the Stanford Research Institute. The network was funded by the US defence research agency, ARPA.",
+     "src": [
+      "arpa"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "LO",
+     "text": "The message was meant to be “LOGIN”. The system crashed after two letters, so the first word sent was “LO”.",
+     "src": [
+      "arpa"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Packets",
+     "text": "Instead of one fixed line, messages are chopped into small packets that travel separately and are put back together at the end. If one route fails, packets take another.",
+     "src": [
+      "packet"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Made in London too",
+     "text": "British computer scientist Donald Davies, at the National Physical Laboratory, came up with the same idea independently and gave packets their name.",
+     "src": [
+      "davies",
+      "packet"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "@",
+     "text": "In 1971 Ray Tomlinson sent the first email between computers on ARPANET, and picked the @ sign to separate the person from the machine.",
+     "src": [
+      "email"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What was the first word sent over ARPANET?",
+     "opts": [
+      "LOGIN",
+      "LO",
+      "HELLO"
+     ],
+     "answer": 1,
+     "explain": "“LO”: the system crashed before “LOGIN” was finished.",
+     "src": [
+      "arpa"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "ARPANET sent its first message in 1969",
+      "Data travels in small packets that can take any route",
+      "Email and the @ sign arrived in 1971"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "One language for every network",
+   "cards": [
+    {
+     "type": "title",
+     "big": "TCP/IP",
+     "text": "By the 1970s there were many separate networks. Vint Cerf and Bob Kahn designed TCP/IP, shared rules that let any network talk to any other.",
+     "src": [
+      "tcpip",
+      "cerf"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "1 January 1983",
+     "text": "ARPANET switched to TCP/IP on 1 January 1983. Many count this as the start of the internet: a network of networks.",
+     "src": [
+      "arpa",
+      "tcpip"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Addresses",
+     "text": "Every device on the internet has an IP address. The Domain Name System, from 1983, turns names such as bbc.co.uk into those numbers.",
+     "src": [
+      "dns"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Fathers of the internet",
+     "text": "Cerf and Kahn shared the 2004 Turing Award, computing’s top prize, and received the US Presidential Medal of Freedom in 2005.",
+     "src": [
+      "cerf"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What did TCP/IP make possible?",
+     "opts": [
+      "Faster chips",
+      "Different networks talking to each other",
+      "Colour screens"
+     ],
+     "answer": 1,
+     "explain": "It gave every network the same rules, so they could connect into one internet.",
+     "src": [
+      "tcpip"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "TCP/IP is the internet’s shared language",
+      "The switch-over happened on 1 January 1983",
+      "DNS turns names into numeric addresses"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "The web is not the internet",
+   "cards": [
+    {
+     "type": "title",
+     "big": "1989",
+     "text": "In March 1989 Tim Berners-Lee, a British scientist at CERN in Switzerland, proposed a way to link documents across computers. It became the World Wide Web.",
+     "src": [
+      "www",
+      "tbl"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Three building blocks",
+     "text": "He created HTML to write pages, URLs to find them and HTTP to fetch them, along with the first web browser and web server.",
+     "src": [
+      "tbl",
+      "www"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "1991",
+     "text": "The first website went public at CERN in 1991. It explained what the web was and how to use it.",
+     "src": [
+      "www"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Free for everyone",
+     "text": "In April 1993 CERN put the web’s software in the public domain, so anyone could use and build on it without paying.",
+     "src": [
+      "www"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Internet vs web",
+     "text": "The internet is the network of connected computers. The web is one service that runs on it, alongside things like email.",
+     "src": [
+      "www"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "Where did Tim Berners-Lee invent the web?",
+     "opts": [
+      "MIT",
+      "CERN",
+      "Apple"
+     ],
+     "answer": 1,
+     "explain": "At CERN, the physics laboratory near Geneva.",
+     "src": [
+      "tbl"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The web was proposed in 1989 at CERN",
+      "HTML, URLs and HTTP are its building blocks",
+      "The internet is the network; the web runs on it"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "The web in your pocket",
+   "cards": [
+    {
+     "type": "title",
+     "big": "1993",
+     "text": "Mosaic, released in 1993, showed pictures and text together and made the web easy to use. Its co-creator Marc Andreessen went on to co-found Netscape.",
+     "src": [
+      "mosaic"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Links as votes",
+     "text": "As the web grew, finding things got hard. Google’s founders ranked pages by how many other pages linked to them, an idea called PageRank.",
+     "src": [
+      "pagerank"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "2007",
+     "text": "Apple’s first iPhone, released in 2007, put a full web browser in a phone.",
+     "src": [
+      "iphone"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "2016",
+     "text": "Around 2016, more web browsing worldwide began happening on phones and tablets than on computers.",
+     "src": [
+      "mobile"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Still the same ideas",
+     "text": "Small packets, shared rules and open standards from decades ago still carry everything from video calls to this card.",
+     "src": [
+      "packet",
+      "tcpip",
+      "www"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What did PageRank use to rank pages?",
+     "opts": [
+      "How new they were",
+      "How many other pages linked to them",
+      "How long they were"
+     ],
+     "answer": 1,
+     "explain": "Links from other pages, treated like votes.",
+     "src": [
+      "pagerank"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Mosaic made the web visual in 1993",
+      "PageRank treated links as votes",
+      "Phones overtook computers for browsing around 2016"
+     ]
+    }
+   ]
+  }
+ ]
+}

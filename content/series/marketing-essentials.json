@@ -1,0 +1,339 @@
+{
+ "id": "marketing-essentials",
+ "title": "Marketing essentials",
+ "kind": "skill",
+ "topic": "work",
+ "interests": [
+  "marketing",
+  "sales",
+  "entrepreneurship",
+  "startups",
+  "business",
+  "careers"
+ ],
+ "areas": [
+  "marketing",
+  "sales",
+  "customer",
+  "leadership",
+  "product"
+ ],
+ "colours": [
+  "#F97316",
+  "#E11D48"
+ ],
+ "blurb": "The ideas every marketer uses, from the four Ps to lifetime value.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "mix",
+   "title": "Marketing mix",
+   "url": "https://en.wikipedia.org/wiki/Marketing_mix"
+  },
+  {
+   "id": "seg",
+   "title": "Market segmentation",
+   "url": "https://en.wikipedia.org/wiki/Market_segmentation"
+  },
+  {
+   "id": "pos",
+   "title": "Positioning (marketing)",
+   "url": "https://en.wikipedia.org/wiki/Positioning_(marketing)"
+  },
+  {
+   "id": "aida",
+   "title": "AIDA (marketing)",
+   "url": "https://en.wikipedia.org/wiki/AIDA_(marketing)"
+  },
+  {
+   "id": "funnel",
+   "title": "Purchase funnel",
+   "url": "https://en.wikipedia.org/wiki/Purchase_funnel"
+  },
+  {
+   "id": "conv",
+   "title": "Conversion rate optimization",
+   "url": "https://en.wikipedia.org/wiki/Conversion_rate_optimization"
+  },
+  {
+   "id": "ret",
+   "title": "Customer retention",
+   "url": "https://en.wikipedia.org/wiki/Customer_retention"
+  },
+  {
+   "id": "crm",
+   "title": "Customer relationship management",
+   "url": "https://en.wikipedia.org/wiki/Customer_relationship_management"
+  },
+  {
+   "id": "clv",
+   "title": "Customer lifetime value",
+   "url": "https://en.wikipedia.org/wiki/Customer_lifetime_value"
+  },
+  {
+   "id": "nps",
+   "title": "Net promoter score",
+   "url": "https://en.wikipedia.org/wiki/Net_promoter_score"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "The four Ps",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Product, price, place, promotion",
+     "text": "The marketing mix, or four Ps, is a classic way to plan how you take something to market. E. Jerome McCarthy popularised it in 1960.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Product",
+     "text": "What you sell and the problem it solves: its features, quality, design and packaging.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Price",
+     "text": "What customers pay, how that compares with rivals, and the value they feel they get. Price also signals quality.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Place and promotion",
+     "text": "Place is where and how people can buy. Promotion is how they hear about you: advertising, PR, social media and sales.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Seven Ps",
+     "text": "For services, three more are often added: people, process and physical evidence.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "Which is NOT one of the original four Ps?",
+     "opts": [
+      "Price",
+      "People",
+      "Place"
+     ],
+     "answer": 1,
+     "explain": "People was added later, in the seven Ps for services.",
+     "src": [
+      "mix"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Product, price, place and promotion",
+      "Services add people, process and physical evidence",
+      "Plan all of them together"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Who is it for?",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Segmentation",
+     "text": "Market segmentation splits a market into groups of people with shared needs, so you can serve each group better.",
+     "src": [
+      "seg"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Four ways to slice",
+     "text": "Common bases are demographic (age, income), geographic (where people live), psychographic (values, lifestyle) and behavioural (how people buy and use).",
+     "src": [
+      "seg"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Targeting",
+     "text": "Then choose which segments to focus on, weighing their size, their growth and how well you can serve them.",
+     "src": [
+      "seg"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Positioning",
+     "text": "Positioning is the place you want to hold in customers’ minds compared with rivals: the cheapest, the safest or the most premium, for example.",
+     "src": [
+      "pos"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "STP",
+     "text": "Together it’s called STP: segment, target, position. It comes before you decide the four Ps.",
+     "src": [
+      "seg",
+      "pos"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What does STP stand for?",
+     "opts": [
+      "Sell, test, price",
+      "Segment, target, position",
+      "Strategy, tactics, plan"
+     ],
+     "answer": 1,
+     "explain": "Segment, target, position.",
+     "src": [
+      "seg"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Split the market into groups with shared needs",
+      "Pick the groups you can serve best",
+      "Decide how you want them to see you"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "From stranger to customer",
+   "cards": [
+    {
+     "type": "title",
+     "big": "AIDA",
+     "text": "One of the oldest models of how people buy: attention, interest, desire, action. It’s credited to advertising pioneer E. St. Elmo Lewis in the 1890s.",
+     "src": [
+      "aida"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "The funnel",
+     "text": "It’s often drawn as a funnel: many people become aware of you, fewer consider you, and fewer still buy. Each stage needs a different message.",
+     "src": [
+      "funnel"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "3%",
+     "text": "If 1,000 people visit a page and 30 sign up, the conversion rate is 3%.",
+     "src": [
+      "conv"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Fix the leak",
+     "text": "Measuring each stage shows where people drop out, so you can fix the weakest step instead of just shouting louder at the top.",
+     "src": [
+      "conv",
+      "funnel"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "1,000 visitors and 30 sign-ups. What’s the conversion rate?",
+     "opts": [
+      "0.3%",
+      "3%",
+      "30%"
+     ],
+     "answer": 1,
+     "explain": "30 out of 1,000 is 3%.",
+     "src": [
+      "conv"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Attention, interest, desire, action",
+      "Fewer people reach each stage of the funnel",
+      "Find and fix where people drop out"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Keeping customers",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Retention",
+     "text": "Winning a new customer usually costs more than keeping one you already have, so strong businesses look after existing customers.",
+     "src": [
+      "ret"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "CRM",
+     "text": "Customer relationship management is the practice, and the software, for keeping track of every interaction with customers, from first contact to repeat purchase.",
+     "src": [
+      "crm"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Lifetime value",
+     "text": "Customer lifetime value estimates what a customer is worth over the whole relationship. It helps decide how much to spend winning and keeping them.",
+     "src": [
+      "clv"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Net Promoter Score",
+     "text": "NPS asks how likely customers are to recommend you, from 0 to 10. The score is the percentage of 9s and 10s minus the percentage of 0s to 6s.",
+     "src": [
+      "nps"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "In NPS, who counts as a promoter?",
+     "opts": [
+      "Anyone scoring 7 or more",
+      "People scoring 9 or 10",
+      "Anyone who buys twice"
+     ],
+     "answer": 1,
+     "explain": "Only 9s and 10s. 7s and 8s are passives; 0 to 6 are detractors.",
+     "src": [
+      "nps"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Keeping customers usually beats finding new ones",
+      "CRM tracks every interaction",
+      "Lifetime value and NPS show how you’re doing"
+     ]
+    }
+   ]
+  }
+ ]
+}

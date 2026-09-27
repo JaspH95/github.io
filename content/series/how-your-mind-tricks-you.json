@@ -1,0 +1,345 @@
+{
+ "id": "how-your-mind-tricks-you",
+ "title": "How your mind tricks you",
+ "kind": "idea",
+ "topic": "science",
+ "interests": [
+  "psychology",
+  "neuro",
+  "philosophy",
+  "business"
+ ],
+ "colours": [
+  "#5B4BFF",
+  "#19B6D9"
+ ],
+ "blurb": "The shortcuts your brain takes, and the mistakes they cause.",
+ "reviewed": false,
+ "sources": [
+  {
+   "id": "tfs",
+   "title": "Thinking, Fast and Slow",
+   "url": "https://en.wikipedia.org/wiki/Thinking,_Fast_and_Slow"
+  },
+  {
+   "id": "dual",
+   "title": "Dual process theory",
+   "url": "https://en.wikipedia.org/wiki/Dual_process_theory"
+  },
+  {
+   "id": "crt",
+   "title": "Cognitive reflection test",
+   "url": "https://en.wikipedia.org/wiki/Cognitive_reflection_test"
+  },
+  {
+   "id": "anch",
+   "title": "Anchoring effect",
+   "url": "https://en.wikipedia.org/wiki/Anchoring_effect"
+  },
+  {
+   "id": "conf",
+   "title": "Confirmation bias",
+   "url": "https://en.wikipedia.org/wiki/Confirmation_bias"
+  },
+  {
+   "id": "avail",
+   "title": "Availability heuristic",
+   "url": "https://en.wikipedia.org/wiki/Availability_heuristic"
+  },
+  {
+   "id": "loss",
+   "title": "Loss aversion",
+   "url": "https://en.wikipedia.org/wiki/Loss_aversion"
+  },
+  {
+   "id": "pros",
+   "title": "Prospect theory",
+   "url": "https://en.wikipedia.org/wiki/Prospect_theory"
+  },
+  {
+   "id": "frame",
+   "title": "Framing effect (psychology)",
+   "url": "https://en.wikipedia.org/wiki/Framing_effect_(psychology)"
+  },
+  {
+   "id": "surv",
+   "title": "Survivorship bias",
+   "url": "https://en.wikipedia.org/wiki/Survivorship_bias"
+  }
+ ],
+ "episodes": [
+  {
+   "n": 1,
+   "title": "Two ways of thinking",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Fast and slow",
+     "text": "Your brain runs two kinds of thinking: one quick and automatic, one slow and effortful. Many mistakes happen when the quick one answers a question meant for the slow one.",
+     "src": [
+      "tfs",
+      "dual"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "System 1",
+     "text": "Fast, automatic and always on. It reads a face, finishes “2 + 2 =” and swerves round a pothole before you’ve decided anything.",
+     "src": [
+      "tfs"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "System 2",
+     "text": "Slow and deliberate. It works out 17 × 24, fills in a form and checks an argument. Because it takes effort, it often lets System 1 lead.",
+     "src": [
+      "tfs"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "$1.10",
+     "text": "A bat and a ball cost $1.10 in total. The bat costs $1 more than the ball. How much is the ball? Most people’s first answer is 10 cents.",
+     "src": [
+      "crt"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Kahneman and Tversky",
+     "text": "The ideas come from psychologists Daniel Kahneman and Amos Tversky. Kahneman won the 2002 Nobel prize in economics and wrote Thinking, Fast and Slow (2011).",
+     "src": [
+      "tfs"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "So how much is the ball?",
+     "opts": [
+      "10 cents",
+      "5 cents",
+      "$1"
+     ],
+     "answer": 1,
+     "explain": "5 cents. The bat is then $1.05, which is $1 more, and together they make $1.10.",
+     "src": [
+      "crt"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "System 1 is fast and automatic",
+      "System 2 is slow and takes effort",
+      "An answer that feels right can still be wrong"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "The first number wins",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Anchoring",
+     "text": "The first number you see pulls your judgement towards it, even when it has nothing to do with the question. It’s called the anchoring effect.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "The wheel",
+     "text": "In a 1974 study, Tversky and Kahneman spun a wheel rigged to land on 10 or 65, then asked what percentage of African countries were in the UN.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "25% or 45%",
+     "text": "People who saw 10 gave a median guess of 25%. People who saw 65 guessed 45%. A random number had moved their answer.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Everywhere",
+     "text": "Anchors show up in prices (“was £99, now £49”), salary talks and first offers in any negotiation. The first figure sets what feels reasonable.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Hard to shake",
+     "text": "Knowing about anchoring doesn’t make you immune: studies find experts are pulled by anchors too, and warnings only partly help.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "People who saw 65 on the wheel…",
+     "opts": [
+      "guessed lower",
+      "guessed higher",
+      "ignored it"
+     ],
+     "answer": 1,
+     "explain": "They guessed higher: a median of 45%, against 25% for people who saw 10.",
+     "src": [
+      "anch"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "The first number you see sticks",
+      "Anchors work even when they’re random",
+      "Decide your own number before you see theirs"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Seeing what you expect",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Confirmation bias",
+     "text": "We look for, remember and favour information that fits what we already believe, and skim past what doesn’t.",
+     "src": [
+      "conf"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "2, 4, 6",
+     "text": "In Peter Wason’s 1960 test, people had to find the rule behind 2, 4, 6. Most only tried numbers that fitted their guess, like 8, 10, 12.",
+     "src": [
+      "conf"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "Any rising numbers",
+     "text": "The rule was simply numbers in ascending order. Few found it, because few tried a sequence that might prove them wrong.",
+     "src": [
+      "conf"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Availability",
+     "text": "We judge how likely something is by how easily examples come to mind. Vivid, recent or widely reported events feel more common than they are.",
+     "src": [
+      "avail"
+     ]
+    },
+    {
+     "type": "tip",
+     "big": "Try to disprove it",
+     "text": "A useful habit: ask “what would show I’m wrong?” and go looking for exactly that.",
+     "src": [
+      "conf"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "What was the hidden rule in Wason’s test?",
+     "opts": [
+      "Even numbers",
+      "Going up by 2",
+      "Any numbers going up"
+     ],
+     "answer": 2,
+     "explain": "Any ascending numbers. Testing 1, 2, 3 or 5, 20, 99 would have shown it.",
+     "src": [
+      "conf"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "We favour what we already believe",
+      "Easy-to-recall events feel more likely",
+      "Look for the evidence that would prove you wrong"
+     ]
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Losses loom larger",
+   "cards": [
+    {
+     "type": "title",
+     "big": "Loss aversion",
+     "text": "Losing something hurts more than gaining the same thing feels good. Studies suggest losses weigh roughly twice as much as equal gains.",
+     "src": [
+      "loss"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Prospect theory",
+     "text": "Kahneman and Tversky’s 1979 prospect theory describes how people actually choose under risk: from a reference point, with losses felt more than gains.",
+     "src": [
+      "pros"
+     ]
+    },
+    {
+     "type": "fact",
+     "big": "72% or 22%",
+     "text": "In a 1981 study, 72% chose a plan described as saving 200 of 600 people. Described as 400 of 600 dying, the same plan won 22%.",
+     "src": [
+      "frame"
+     ]
+    },
+    {
+     "type": "idea",
+     "big": "Framing",
+     "text": "The same choice, worded as a gain or a loss, leads to different decisions. That’s the framing effect.",
+     "src": [
+      "frame"
+     ]
+    },
+    {
+     "type": "example",
+     "big": "The missing planes",
+     "text": "In the Second World War, statistician Abraham Wald saw that bullet holes on returning planes showed where a plane could be hit and survive. Armour was needed where they had none.",
+     "src": [
+      "surv"
+     ]
+    },
+    {
+     "type": "check",
+     "q": "Roughly how much stronger do losses feel than equal gains?",
+     "opts": [
+      "About the same",
+      "About twice as strong",
+      "Ten times stronger"
+     ],
+     "answer": 1,
+     "explain": "About twice as strong, in many studies.",
+     "src": [
+      "loss"
+     ]
+    },
+    {
+     "type": "recap",
+     "points": [
+      "Losses hurt more than gains please",
+      "How a choice is worded changes the answer",
+      "Think about what you can’t see, not just what you can"
+     ]
+    }
+   ]
+  }
+ ]
+}

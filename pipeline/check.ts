@@ -8,6 +8,7 @@ import { GET as skill } from '../api/skill';
 import { GET as local } from '../api/local';
 import { GET as live } from '../api/live';
 import { GET as news, OUTLETS, outletItems } from '../api/news';
+import { readdir, readFile } from 'node:fs/promises';
 
 type Row = [string, boolean | null, string];
 const rows: Row[] = [];
@@ -78,6 +79,27 @@ async function main() {
     const b = await call(skill, `/api/skill?id=${id}`); return `${b.label}: ${String(b.description).slice(0, 60)}… wiki: ${b.wiki?.title || 'none'}`; });
   if (process.env.GUARDIAN_API_KEY) await test('/api/local', async () => { const b = await call(local, '/api/local?city=Lisbon'); return `${b.stories.length} stories`; });
   if (process.env.API_FOOTBALL_KEY) await test('/api/live', async () => { const b = await call(live, '/api/live?team=Arsenal'); return `${b.team?.name}: next ${b.next?.home?.name} v ${b.next?.away?.name}`; });
+
+  // Series: every cited source must exist, and every quote from a book must appear word for word in the book
+  await test('Series sources and quotes', async () => {
+    const files = (await readdir('content/series')).filter(f => f.endsWith('.json'));
+    const bad: string[] = []; let urls = 0, quotes = 0;
+    const norm = (t: string) => t.replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').toLowerCase();
+    for (const f of files) {
+      const s = JSON.parse(await readFile(`content/series/${f}`, 'utf8'));
+      for (const src of s.sources) {
+        if (src.url.includes('knowfeed')) continue;
+        urls++;
+        try { await fetchText(src.url); } catch (e: any) { bad.push(`${s.id}: ${src.title} (${e?.message})`); }
+      }
+      if (s.book?.text) {
+        const book = norm(await fetchText(s.book.text));
+        for (const e of s.episodes) for (const c of e.cards) if (c.type === 'quote') { quotes++; if (!book.includes(norm(c.text))) bad.push(`${s.id}: quote not found: "${c.text.slice(0, 60)}"`); }
+      }
+    }
+    if (bad.length) throw new Error(bad.join(' | '));
+    return `${files.length} series, ${urls} sources, ${quotes} quotes checked`;
+  });
 
   const w = Math.max(...rows.map(r => r[0].length));
   console.log('\nKnowfeed health check\n');
