@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: data-${{ github.ref }}
+  group: seed-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

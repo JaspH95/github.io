@@ -98,9 +98,9 @@ export function checkText(all: string, source: string): string | null {
     if (bare && !srcDigits.includes(bare)) return `number ${n} not in text`;
   }
   // Capitalised words that aren't starting a sentence must appear in the articles
-  const ws = all.split(/\s+/);
+  const ws = all.split(/[\s\u2013\u2014]+|(?<=\p{L})-(?=\p{L})/u);
   for (let i = 1; i < ws.length; i++) {
-    const w = ws[i].replace(/^[^\p{L}]+|[^\p{L}'’-]+$/gu, '');
+    const w = ws[i].replace(/^[^\p{L}]+|[^\p{L}'’-]+$/gu, '').replace(/['’]$/, '');
     const prev = ws[i - 1];
     if (!w || !/^\p{Lu}/u.test(w) || /[.!?:"“]$/.test(prev)) continue;
     const base = norm(w).replace(/['’]s$/, '');
@@ -182,6 +182,7 @@ export class Summariser {
     const body = sources.map((s, i) => `--- Article ${i + 1}: ${s.outlet} ---\nHeadline: ${s.title}\n${s.text.slice(0, per)}`).join('\n\n');
     const source = sources.map(s => `${s.outlet}. ${s.title}. ${s.text}`).join('\n');
     const prompt = `${PROMPT}\n\nStory: ${title}\n\n${body}`;
+    let retryNote = '';
     for (const model of this.available) {
       for (let attempt = 0; attempt < 3; attempt++) {
         // Free tier limits are per minute: space calls out
@@ -189,13 +190,21 @@ export class Summariser {
         const wait = this.lastCall + gap - Date.now();
         if (wait > 0) await sleep(wait);
         this.lastCall = Date.now();
-        const r = await call(this.key, model, prompt);
+        const r = await call(this.key, model, retryNote ? `${prompt}\n\n${retryNote}` : prompt);
         if (r.ok) {
           this.busy.set(model, 0);
           let parsed: any;
           try { parsed = JSON.parse(r.text); } catch { console.log(`  ${model}: reply wasn't JSON`); return 'failed'; }
           const c = check(parsed, `${title}\n${source}`);
-          if (typeof c === 'string') { console.log(`  summary rejected (${c}): ${title}`); return 'failed'; }
+          if (typeof c === 'string') {
+            console.log(`  summary rejected (${c}): ${title}`);
+            // One more try, telling the model exactly what went wrong
+            if (!retryNote && /quotes more than|not in text|too long/.test(c)) {
+              retryNote = `Your previous answer was rejected because it ${c.startsWith('quotes') ? 'copied more than 10 words in a row from an article. Rewrite everything in your own words' : c === 'too long' ? 'was too long. Keep the sections under 150 words' : `used ${c.replace(' not in text', '')}, which isn't in the articles. Use only names and numbers exactly as they appear`}.`;
+              attempt--; continue;
+            }
+            return 'failed';
+          }
           this.used.add(model);
           return { summary: { ...c.summary, model, at: new Date().toISOString(), n: sources.length }, entities: c.entities };
         }
