@@ -130,7 +130,7 @@ function body(c: Card): string {
       if (l.kind === 'onthisday') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><div class="big">${l.year}</div><h2 class="h-sm">${esc(l.event)}</h2>
         <button class="readbtn glass open">About ${esc(l.title)} ${ICON.chev}</button>${attrib('Wikipedia', l.url, lic)}`;
       const know = `<div class="dismiss"><button class="dz know-it" aria-label="I know this: skip it and go deeper">${ICON.check}<span>I know this</span></button></div>`;
-      if (l.kind === 'fact') return `<div class="meta"><span>DID YOU KNOW? · WIKIPEDIA</span></div><h2 class="h-sm">${esc(l.hook || l.title)}</h2>
+      if (l.kind === 'fact') return `<div class="meta"><span>DID YOU KNOW? · WIKIPEDIA</span></div><h2 class="h-sm${(l.hook || '').length > 140 ? ' h-xs' : ''}">${esc(l.hook || l.title)}</h2>
         <button class="readbtn solid open">Learn the story ${ICON.chev}</button>${know}${attrib('Wikipedia', l.url, lic)}${credit(c)}`;
       if (l.kind === 'potd') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><p class="lead">${esc(sentences(l.extract, 2))}</p>${attrib('Wikimedia Commons', l.url)}${credit(c)}`;
       return `<div class="meta"><span>${esc(c.label.toUpperCase())} · ${esc(src.toUpperCase())}</span></div><h2>${esc(l.title)}</h2>

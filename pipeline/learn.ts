@@ -311,7 +311,7 @@ export function parseHooks(html: string): { hook: string; title: string }[] {
 }
 
 async function parsed(page: string): Promise<string> {
-  const url = `https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&disablelimitreport=1&page=${encodeURIComponent(page)}`;
+  const url = `https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&redirects=1&disablelimitreport=1&page=${encodeURIComponent(page)}`;
   const r = await fetchJSON<any>(url, { timeout: 30000 });
   return String(r?.parse?.text || '');
 }
@@ -338,10 +338,10 @@ export async function didYouKnow(pool0: FactPool, date: Date): Promise<{ pool: F
   const lastMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
   const archive = `Wikipedia:Recent additions/${lastMonth.getUTCFullYear()}/${MONTHS[lastMonth.getUTCMonth()]}`;
   if (pool0.archived !== archive) pages.push(archive);
-  let ok = 0; const errs: string[] = [];
+  let ok = 0, fromArchive = 0; const errs: string[] = [];
   for (const pg of pages) {
     try {
-      const html = await parsed(pg); const hs = parseHooks(html); ok += hs.length; add(hs);
+      const html = await parsed(pg); const hs = parseHooks(html); ok += hs.length; if (pg === archive) fromArchive = hs.length; add(hs);
       // Nothing found: note what the page looks like, so the parser can be fixed
       if (!hs.length) { const i = html.search(/that\b/); errs.push(`${pg}: no facts in ${html.length} chars; sample ${JSON.stringify(html.slice(Math.max(0, i - 160), i + 80))}`); }
     } catch (e: any) { errs.push(`${pg}: ${e?.message}`); }
@@ -349,7 +349,7 @@ export async function didYouKnow(pool0: FactPool, date: Date): Promise<{ pool: F
   }
   record('Wikipedia: Did you know', 'https://en.wikipedia.org/wiki/Wikipedia:Recent_additions', ok > 0, ok, errs.length ? errs.join('; ') : `${fresh.length} new`);
   const hooks = [...fresh, ...pool0.hooks].slice(0, 2000);
-  const pool: FactPool = { hooks, archived: pages.includes(archive) && ok ? archive : pool0.archived };
+  const pool: FactPool = { hooks, archived: fromArchive ? archive : pool0.archived };
   // Today: the newest facts first, then a slow rotation through the rest, so nothing repeats for months
   const newest = hooks.filter(h => h.added >= new Date(+date - 2 * 86400_000).toISOString().slice(0, 10)).slice(0, 12);
   const rest = hooks.filter(h => !newest.includes(h));
