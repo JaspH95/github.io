@@ -1,8 +1,10 @@
 /* Accounts and sync, through Supabase. Optional: without the two public settings (SUPABASE_URL and
    SUPABASE_ANON_KEY at build time) the app works exactly as before, with everything on the phone.
 
-   Sign-in is by a code sent by email, because on iPhone a Home Screen app can't receive a magic link:
-   the link opens in Safari, which keeps separate storage.
+   Sign-in is by email and password. (Supabase's free email sender can't be changed to include a code,
+   and a magic link would open Safari, which keeps separate storage from the Home Screen app.
+   With "Confirm email" switched off in Supabase, no email is sent at all.)
+   Sign-in by emailed code is kept too, for when a custom email sender is set up (SUPABASE_EMAIL_CODES=1).
 
    Sync: each stored part (profile, likes, saves, learning progress…) carries the time it last changed.
    Pulling takes any part that's newer in the account; pushing sends any part that's newer here.
@@ -13,6 +15,8 @@ import type { Event } from './events';
 
 declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_ANON_KEY__: string;
+declare const __SUPABASE_EMAIL_CODES__: boolean;
+export const emailCodes = __SUPABASE_EMAIL_CODES__;
 export const cloudOn = !!(__SUPABASE_URL__ && __SUPABASE_ANON_KEY__);
 
 const SYNCED = ['profile', 'liked', 'saved', 'follows', 'entities', 'weights', 'seen', 'read', 'stats', 'feedback', 'srs', 'srs-shown', 'pod'];
@@ -56,6 +60,34 @@ export async function start(): Promise<boolean> {
     user = { id: u.id, email: u.email || '' };
     return await withTimeout(pull(), 5000, false);
   } catch { return false; }
+}
+
+const setUser = (u: { id: string; email?: string }, email: string) => { user = { id: u.id, email: u.email || email }; };
+
+/* Returns null when signed in, or a message to show */
+export async function signInPassword(email: string, password: string): Promise<string | null> {
+  const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
+  const { data, error } = await c.auth.signInWithPassword({ email, password });
+  if (data.user && !error) { setUser(data.user, email); return null; }
+  if (/confirm/i.test(error?.message || '')) return 'That account is waiting for an email confirmation, which Knowfeed doesn’t send yet. Ask the Knowfeed team to switch it on for you.';
+  if (/invalid login|credentials/i.test(error?.message || '')) return 'That email and password don’t match an account. If you’ve forgotten your password, ask the Knowfeed team to reset it.';
+  return error?.message || 'Couldn’t sign in just now.';
+}
+
+export async function signUp(email: string, password: string): Promise<{ ok: true } | { ok: false; exists?: boolean; msg: string }> {
+  const c = await sb(); if (!c) return { ok: false, msg: 'Accounts aren’t switched on yet.' };
+  const { data, error } = await c.auth.signUp({ email, password });
+  if (error) {
+    if (/already|registered|exists/i.test(error.message)) return { ok: false, exists: true, msg: 'There’s already an account with that email.' };
+    if (/password/i.test(error.message)) return { ok: false, msg: 'That password is too weak. Try a longer one.' };
+    return { ok: false, msg: error.message };
+  }
+  if (data.session && data.user) { setUser(data.user, email); return { ok: true }; }
+  // No session: either the email is taken (Supabase hides that) or email confirmation is switched on
+  const again = await signInPassword(email, password);
+  if (!again) return { ok: true };
+  if (data.user && !data.user.identities?.length) return { ok: false, exists: true, msg: 'There’s already an account with that email.' };
+  return { ok: false, msg: 'The account was made, but Supabase wants the email confirmed first. Switch off "Confirm email" in Supabase (see SETUP.md), then sign in.' };
 }
 
 export async function sendCode(email: string): Promise<string | null> {

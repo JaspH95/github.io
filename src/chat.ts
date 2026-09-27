@@ -70,7 +70,7 @@ function showQ(box: HTMLElement) {
   stream().scrollTop = Math.min(max, Math.max(0, q.offsetTop - 64));
 }
 function makeForm(placeholder: string, cls = '') {
-  const f = document.createElement('form'); f.className = 'oform inline ' + cls;
+  const f = document.createElement('form'); f.className = 'oform inline ' + cls; f.noValidate = true;   // Knowfeed's own messages, not the browser's
   f.innerHTML = `<input aria-label="Your answer" autocomplete="off" autocapitalize="sentences" enterkeyhint="send" maxlength="80"><button class="osend" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`;
   const input = f.querySelector('input')!;
   input.placeholder = placeholder;
@@ -88,7 +88,7 @@ function askText(placeholder: string, max = 40, setup?: (i: HTMLInputElement) =>
   return new Promise(res => {
     const f = makeForm(placeholder); lines().appendChild(f); toBottom();
     const input = f.querySelector('input')!; input.maxLength = max; setup?.(input);
-    f.addEventListener('submit', e => { e.preventDefault(); const v = input.value.trim(); if (!v) return; blurAll(); f.remove(); answer(v); res(v); });
+    f.addEventListener('submit', e => { e.preventDefault(); const secret = input.type === 'password'; const v = secret ? input.value : input.value.trim(); if (!v) return; blurAll(); f.remove(); answer(secret ? '•'.repeat(8) : v); res(v); });
     setTimeout(() => showQ(f), 30);
   });
 }
@@ -385,21 +385,64 @@ function askEditions(p: Pick<Profile, 'editions' | 'quiet'>): Promise<Pick<Profi
   });
 }
 
-/* ---------- Account: sign in with a code sent by email ---------- */
+/* ---------- Account: email and password (or an emailed code, once Supabase has its own email sender) ---------- */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const emailInput = (i: HTMLInputElement) => { i.type = 'email'; i.inputMode = 'email'; i.autocapitalize = 'off'; i.autocomplete = 'email'; i.spellcheck = false; };
+const emailInput = (i: HTMLInputElement) => { i.type = 'email'; i.inputMode = 'email'; i.autocapitalize = 'off'; i.autocomplete = 'username'; i.spellcheck = false; };
 const codeInput = (i: HTMLInputElement) => { i.inputMode = 'numeric'; i.autocomplete = 'one-time-code'; i.pattern = '[0-9]*'; };
+/* A hidden username next to the password lets iPhone offer a strong password and save both to Passwords */
+const passwordInput = (email: string, isNew: boolean) => (i: HTMLInputElement) => {
+  i.type = 'password'; i.autocapitalize = 'off'; i.spellcheck = false; i.autocomplete = isNew ? 'new-password' : 'current-password';
+  const u = document.createElement('input'); u.type = 'email'; u.autocomplete = 'username'; u.value = email; u.className = 'sr'; u.tabIndex = -1; u.setAttribute('aria-hidden', 'true');
+  i.before(u);
+};
 
-/* Returns true once signed in, false if they chose to skip */
-async function signInFlow(): Promise<boolean> {
-  await say("What's your email? I'll send you a code. No password needed.");
-  let email = '';
+async function askEmail(): Promise<string> {
   for (;;) {
-    email = (await askText('you@example.com', 120, emailInput)).trim().toLowerCase();
-    if (EMAIL.test(email)) break;
+    const email = (await askText('you@example.com', 120, emailInput)).trim().toLowerCase();
+    if (EMAIL.test(email)) return email;
     pastAll(); await say("That doesn't look like an email address. Try again?");
   }
+}
+
+/* Returns true once signed in, false if they chose to skip */
+async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
+  if (cloud.emailCodes) return codeFlow();
+  await say(mode === 'new' ? "What's your email? It's only used to sign you in." : "What's the email for your Knowfeed account?");
+  let email = await askEmail();
+  for (;;) {
+    pastAll();
+    await say(mode === 'new' ? 'Now choose a password, at least 8 characters.' : 'And your password?');
+    const pw = await askText('Password', 72, passwordInput(email, mode === 'new'));
+    pastAll();
+    if (mode === 'new') {
+      if (pw.length < 8) { await say("That's a bit short. Use at least 8 characters."); continue; }
+      await say('Setting up your account…');
+      const r = await cloud.signUp(email, pw);
+      if (r.ok) return true;
+      pastAll(); await say(r.exists ? "There's already an account with that email. Is it yours?" : r.msg);
+      const c = await askOne(r.exists ? [['in', 'Yes, sign me in', 'heart'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']] : [['again', 'Try again', 'time'], ['skip', 'Skip for now', 'back']]);
+      pastAll();
+      if (c === 'skip') return false;
+      if (c === 'in') mode = 'existing';
+      if (c === 'email') { await say("What's the email?"); email = await askEmail(); }
+      continue;
+    }
+    await say('Signing in…');
+    const err = await cloud.signInPassword(email, pw);
+    if (!err) return true;
+    pastAll(); await say(err);
+    const c = await askOne([['again', 'Try the password again', 'time'], ['new', 'Make a new account with this email', 'spark'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']]);
+    pastAll();
+    if (c === 'skip') return false;
+    if (c === 'new') mode = 'new';
+    if (c === 'email') { await say("What's the email?"); email = await askEmail(); }
+  }
+}
+
+async function codeFlow(): Promise<boolean> {
+  await say("What's your email? I'll send you a code. No password needed.");
+  const email = await askEmail();
   for (;;) {
     pastAll();
     const err = await cloud.sendCode(email);
@@ -455,7 +498,7 @@ export async function startOnboarding() {
     await say('New here, or have you set up Knowfeed before?');
     const k = await askOne([['new', "I'm new", 'spark'], ['back', 'Sign in and bring back my answers', 'heart']]);
     pastAll();
-    if (k === 'back' && await signInFlow()) {
+    if (k === 'back' && await accountFlow('existing')) {
       await say('Signed in. Looking for your answers…');
       const got = await cloud.pull().catch(() => false);
       if (got && load('profile', null)) { await say('Found them. Opening your feed…'); await wait(600); location.reload(); return; }
@@ -508,12 +551,12 @@ export async function startOnboarding() {
     lines().appendChild(box); toBottom();
   }
   if (cloud.cloudOn && !cloud.signedIn()) {
-    await say("Want me to keep your answers safe? With your email they come back if you add Knowfeed to your Home Screen or change phones.", 'small');
-    const k = await askOne([['yes', 'Save them with my email', 'heart'], ['no', 'Not now', 'dots']]);
+    await say("Want me to keep your answers safe? With an account (just an email and a password) they come back if you add Knowfeed to your Home Screen or change phones.", 'small');
+    const k = await askOne([['yes', 'Make an account', 'heart'], ['have', 'I already have one', 'shield'], ['no', 'Not now', 'dots']]);
     pastAll();
-    if (k === 'yes' && await signInFlow()) { await cloud.push().catch(() => {}); await say('Saved to your account.', 'small'); }
+    if (k !== 'no' && await accountFlow(k === 'yes' ? 'new' : 'existing')) { await cloud.push().catch(() => {}); await say('Saved to your account.', 'small'); }
   } else if (cloud.signedIn()) cloud.push().catch(() => {});
-  if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
+  if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email and password.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
   await say('You can change anything later from the button at the top right.', 'small');
   const go = tray('Show my feed');
   go.addEventListener('click', () => { clearTray(); closeScreen(); });
@@ -645,7 +688,15 @@ async function section(k: Section) {
     case 'account': {
       const u = cloud.signedIn();
       if (!u) {
-        const ok = await signInFlow();
+        let ok = false;
+        if (cloud.emailCodes) ok = await codeFlow();
+        else {
+          await say('Do you already have a Knowfeed account?');
+          const h = await askOne([['existing', 'Yes, sign me in', 'heart'], ['new', 'No, make one', 'spark'], ['back', 'Back', 'back']]);
+          pastAll();
+          if (h === 'back') return;
+          ok = await accountFlow(h as 'existing' | 'new');
+        }
         if (!ok) { await say('No problem. Everything stays on this phone.'); return; }
         await say('Signed in. Syncing…');
         const got = await cloud.pull().catch(() => false);

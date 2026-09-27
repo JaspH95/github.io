@@ -58,16 +58,12 @@ npm run dev -- --host        # open the Network link on your iPhone, same Wi-Fi
 
 ## 6. Accounts: so Knowfeed remembers you (Supabase, free)
 
-Without this, everything is kept only in the browser you used. On iPhone, Safari and the Home Screen app keep **separate** storage, so answers given in Safari don't appear in the Home Screen app. With accounts switched on, you sign in with a code sent to your email and everything comes back, on any phone.
+Without this, everything is kept only in the browser you used. On iPhone, Safari and the Home Screen app keep **separate** storage, so answers given in Safari don't appear in the Home Screen app. With accounts switched on, you sign in with an email and password and everything comes back, on any phone.
 
 You've already made the Supabase project (Knowfeed, London). Four steps:
 
 1. **Create the tables.** Supabase → your project → **SQL Editor** → **New query**. Open `supabase/schema.sql` in this repo, copy all of it in, press **Run**. You should see "Success. No rows returned".
-2. **Put the code in the sign-in email.** Supabase → **Authentication** → **Emails** (or Email Templates) → **Magic Link**. In the message body, add this line and save:
-   ```
-   <p>Your Knowfeed code: <strong>{{ .Token }}</strong></p>
-   ```
-   (The app asks for the code rather than using the link, because a link would open Safari instead of the Home Screen app.)
+2. **Switch off confirmation emails.** Supabase → **Authentication** → **Sign In / Providers** → **Email** → turn **Confirm email** off → **Save**. Knowfeed then never needs to send an email, which matters because Supabase's free email sender is very limited and its emails can't be changed on the free plan.
 3. **Set the site address.** Supabase → **Authentication** → **URL Configuration** → **Site URL**: your Vercel address (for example `https://knowfeed.vercel.app`).
 4. **Give Vercel the two public values.** Supabase → **Project Settings** → **API Keys** (and **Data API** for the URL). In Vercel → your project → **Settings** → **Environment Variables**, add:
    - `SUPABASE_URL` = `https://nujdjtrmulzgnwcijpqw.supabase.co`
@@ -76,10 +72,12 @@ You've already made the Supabase project (Knowfeed, London). Four steps:
 
 The **secret** / **service_role** key is never needed by the app. Only put it in GitHub secrets (`SUPABASE_SERVICE_ROLE_KEY`) when the admin page is built, and never paste it into a chat.
 
-Then on your iPhone: open Knowfeed → Settings (top right) → **Sign in to save my answers**. On a new phone, or the Home Screen app, choose **Sign in and bring back my answers** at the start.
+Then on your iPhone: open Knowfeed → Settings (top right) → **Sign in to save my answers** → **No, make one**. Your iPhone offers to save the password in Passwords. On a new phone, or the Home Screen app, choose **Sign in and bring back my answers** at the start.
+
+**Forgotten passwords:** there's no reset email yet. In Supabase → **Authentication** → **Users**, find the person and use **⋯** → send a password recovery, or delete the user so they can sign up again (their saved answers go with it).
 
 **Good to know**
-- Supabase's built-in email only sends to members of your Supabase team, and only a few emails an hour. That's fine for you. Before inviting testers, connect a free email sender (Resend's free plan, 3,000 emails a month): Supabase → Authentication → Emails → SMTP Settings.
+- **Emailed sign-in codes later (optional):** if you connect your own email sender (Supabase → Authentication → Emails → SMTP Settings; your iCloud address works with host `smtp.mail.me.com`, port `587` and an app-specific password from appleid.apple.com), you can edit the emails again. Add `<p>Your Knowfeed code: <strong>{{ .Token }}</strong></p>` to the Magic Link email, then add `SUPABASE_EMAIL_CODES` = `1` in Vercel and redeploy. Knowfeed then signs in with a code instead of a password, and password resets work by email.
 - Free Supabase projects pause after 7 days with no use. Daily use keeps it awake; if it pauses, press Restore in Supabase.
 - Each tester's data is private to them (row-level security on every table).
 
