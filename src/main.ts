@@ -24,17 +24,21 @@ import * as cloud from './cloud';
   document.body.appendChild(probe);
   const h = probe.getBoundingClientRect().height; probe.remove();
   if (h < 20) document.documentElement.style.setProperty('--safe-t', `${screen.height >= 812 ? 50 : 20}px`);
-  // Some iPhones give Home Screen apps a page shorter than the screen, leaving a black strip under the tab bar.
-  // Size the app to the whole screen instead (everything is positioned against the body).
-  const fill = () => {
+  // iOS 26 gives Home Screen apps a page shorter than the screen (WebKit bug 301108): a black strip is left at the bottom.
+  // Stretch the page into it, stop anything clipping it, and hold the page still so the extra height can't scroll.
+  const fill = (reset = false) => {
     const portrait = matchMedia('(orientation: portrait)').matches;
     const full = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
-    if (full - window.innerHeight > 20) document.documentElement.style.setProperty('--app-h', `${full}px`);
-    else document.documentElement.style.removeProperty('--app-h');
+    const shim = full - window.innerHeight;
+    const root = document.documentElement;
+    if (shim > 20 && shim < 120) { root.style.setProperty('--shim', `${shim}px`); root.classList.add('ios-shim'); }
+    // Once stretched, the page's own height can change what iOS reports, so only undo it when the phone turns
+    else if (reset) { root.style.removeProperty('--shim'); root.classList.remove('ios-shim'); }
   };
   fill();
-  window.addEventListener('resize', fill);
-  window.addEventListener('orientationchange', () => setTimeout(fill, 300));
+  window.addEventListener('resize', () => fill());
+  window.addEventListener('orientationchange', () => setTimeout(() => fill(true), 300));
+  window.addEventListener('scroll', () => { if (window.scrollY) window.scrollTo(0, 0); }, { passive: true });
 })();
 
 initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();

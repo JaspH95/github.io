@@ -1,9 +1,9 @@
 /* The tab bar: Edition, Search, Chat, Saved and Profile. Learning, language and sport cards live in the edition itself;
-   the Learn, Languages and Sport pages open from those cards and the done screen. Chat opens the settings chat. */
+   the Learn and Languages pages open from those cards and the done screen. Chat opens the settings chat. */
 import { close as closeStory, isOpen } from './story';
 import { stopAudio } from './audio';
 
-export type Tab = 'edition' | 'learn' | 'langs' | 'saved' | 'search' | 'sport' | 'profile';
+export type Tab = 'edition' | 'learn' | 'langs' | 'saved' | 'search' | 'profile';
 let tab: Tab = 'edition';
 const renderers: Partial<Record<Tab, (el: HTMLElement) => void>> = {};
 export const onTab = (t: Tab, fn: (el: HTMLElement) => void) => { renderers[t] = fn; };
@@ -35,6 +35,4 @@ export function initNav() {
   }));
   // Tapping the Knowfeed wordmark always goes back to the top of the edition
   document.getElementById('wordmark')!.addEventListener('click', () => { if (tab !== 'edition') go('edition'); toTop(); });
-  // Cards can ask for a tab (the sports page's "All your sport")
-  document.addEventListener('kf-go', e => go((e as CustomEvent<Tab>).detail));
 }

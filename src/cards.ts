@@ -10,12 +10,10 @@ import * as srs from './srs';
 import { speakIn } from './audio';
 import { openStory, openLearn, openSkill } from './story';
 import { feedback } from './feedback';
-import { fixtureLines } from './live';
 import { storyLabel } from './data';
-import type { Story, LearnCard, Quiz, HubItem, TopicKey, F1Data, Entity } from './types';
+import type { Story, LearnCard, Quiz, HubItem, TopicKey, Entity } from './types';
 
-export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'sports' | 'hub' | 'catchup' | 'done';
-export interface SportsPage { teams: { team: string; stories: Story[] }[]; headlines: Story[]; f1?: F1Data }
+export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'hub' | 'catchup' | 'done';
 export interface Card {
   id: string;
   kind: Kind;
@@ -28,7 +26,6 @@ export interface Card {
   phrase?: { lang: string; id: string };
   review?: string;
   hub?: HubItem;
-  sports?: SportsPage;
   must?: boolean;
   earlier?: boolean;           // shown after the done card
   followed?: boolean;
@@ -95,7 +92,6 @@ function background(c: Card): string {
     case 'hub': return framed(c.hub!.image, c);
     case 'quiz': return framed(c.quiz!.article?.image, { ...c, label: 'Quiz' });
     case 'sign': return signSVG();
-    case 'sports': return cover('sport', seedFor(c.id), 'Sport', 'pitch');
     case 'phrase': case 'review': return cover('lang', seedFor(c.id), undefined, 'lang');
     case 'skill': return cover('work', seedFor(c.id), 'Skill');
     default: return '';
@@ -153,7 +149,6 @@ function body(c: Card): string {
         <div class="choices grade"><button class="choice yes got">Got it</button><button class="choice notyet">Not yet</button></div></div>`;
     }
     case 'sign': return `<div class="meta"><span>SIGN OF THE DAY · BSL</span></div><h2>The BSL vowels</h2><p>Thumb is <b>A</b>, then <b>E, I, O, U</b> across the fingertips. Watch the finger move.</p>`;
-    case 'sports': return sportsBody(c.sports!);
     case 'hub': {
       const h = c.hub!;
       return `<div class="meta"><span>${h.kind === 'changelog' ? 'HUBSPOT DEVELOPER CHANGELOG' : 'HUBSPOT BLOG'} · ${ago(h.published, true)}</span></div>
@@ -165,17 +160,6 @@ function body(c: Card): string {
 }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function sportsBody(sp: SportsPage): string {
-  const rows = sp.teams.map(t => {
-    const fx = fixtureLines(t.team);
-    return `${fx.length ? `<div class="srow static"><b>${esc(t.team)}</b><span>${fx.map(esc).join('<br>')}</span></div>` : ''}<button class="srow" data-story="${esc(t.stories[0].id)}"><b>${esc(t.team)}</b><span>${esc(t.stories[0].title)}</span><i>${ago(t.stories[0].published)}</i></button>`;
-  }).join('');
-  const f1 = sp.f1;
-  const f1Row = f1?.last ? `<div class="srow static"><b>F1 · ${esc(f1.last.race)}</b><span>${f1.last.results.slice(0, 3).map(r => `${r.pos}. ${esc(r.driver)}`).join('  ')}</span></div>` : '';
-  const f1Next = f1?.next ? `<div class="srow static"><b>Next race</b><span>${esc(f1.next.race)}, ${new Date(`${f1.next.date}T${f1.next.time || '12:00:00Z'}`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>` : '';
-  const heads = sp.headlines.map(s => `<button class="srow" data-story="${esc(s.id)}"><b>${esc(s.tag || 'Sport')}</b><span>${esc(s.title)}</span><i>${ago(s.published)}</i></button>`).join('');
-  return `<div class="meta"><span>SPORTS PAGE</span></div><h2>Your sport, in one place</h2><div class="sports">${rows}${f1Row}${f1Next}${heads}</div><button class="readbtn glass see-sport">All your sport ${ICON.chev}</button>${f1 ? '<p class="attrib">Formula 1 results from Jolpica F1</p>' : ''}`;
-}
 
 /* ---------- Actions ---------- */
 
@@ -261,8 +245,8 @@ export function render(c: Card): HTMLElement {
   el.setAttribute('aria-label', c.label);
   (el as any)._card = c;
   const id = likeId(c);
-  const canSave = !!snapshot(c) && !['sign', 'sports'].includes(c.kind);
-  const rail = ['sports', 'sign', 'catchup', 'done'].includes(c.kind) ? '' : `<div class="rail">
+  const canSave = !!snapshot(c) && !['sign'].includes(c.kind);
+  const rail = ['sign', 'catchup', 'done'].includes(c.kind) ? '' : `<div class="rail">
       <button class="rb glass" data-like="${esc(id)}" aria-label="Like" aria-pressed="${S.liked.has(id)}">${ICON.heart}</button>
       ${canSave ? `<button class="rb glass" data-save="${esc(saveId(c))}" aria-label="Save" aria-pressed="${isSaved(saveId(c))}">${ICON.mark}</button>` : ''}
       <button class="rb glass more" aria-label="More options">${ICON.more}</button></div>`;
@@ -287,7 +271,7 @@ function wire(c: Card, el: HTMLElement) {
   el.querySelector('.open')?.addEventListener('click', e => { e.stopPropagation(); open(); });
   // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
   // The single tap waits a moment, so a double tap never opens the story by accident.
-  const canLike = !['sports', 'sign', 'catchup', 'done'].includes(c.kind);
+  const canLike = !['sign', 'catchup', 'done'].includes(c.kind);
   const opens = ['story', 'learn', 'skill'].includes(c.kind) || (c.kind === 'quiz' && !!c.quiz?.article);
   let last = 0, pending: ReturnType<typeof setTimeout> | undefined;
   el.addEventListener('click', e => {
@@ -339,12 +323,6 @@ function wire(c: Card, el: HTMLElement) {
     if (s?.wiki?.image && !el.querySelector('img.photo')) { const t = document.createElement('div'); t.innerHTML = framed(s.wiki.image, c); el.querySelector('.cover')?.replaceWith(t.firstElementChild!); fixImages(el); }
   });
   if (c.kind === 'skill') srs.add(`skill:${c.skill!.id}`, 'skill', { skill: c.skill });
-  el.querySelector('.see-sport')?.addEventListener('click', e => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('kf-go', { detail: 'sport' })); });
-  el.querySelectorAll<HTMLElement>('.srow[data-story]').forEach(r => r.addEventListener('click', e => {
-    e.stopPropagation();
-    const s = [...(c.sports?.headlines || []), ...(c.sports?.teams.flatMap(t => t.stories) || [])].find(x => x.id === r.dataset.story);
-    if (s) openStory(s);
-  }));
 
 }
 

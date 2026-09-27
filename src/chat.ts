@@ -25,7 +25,8 @@ const toBottom = () => { stream().scrollTop = stream().scrollHeight; };
 function setPad() { lines().style.setProperty('--pad', onb().classList.contains('kb') ? '10px' : Math.round(stream().clientHeight * 0.4) + 'px'); }
 function fit() {
   const vv = window.visualViewport;
-  if (vv && onb().classList.contains('open')) { onb().style.height = vv.height + 'px'; onb().style.transform = `translateY(${vv.offsetTop}px)`; }
+  // With the keyboard up, fit the visible area; otherwise fill the whole screen
+  if (vv && onb().classList.contains('open')) { onb().style.height = onb().classList.contains('kb') ? vv.height + 'px' : ''; onb().style.transform = `translateY(${vv.offsetTop}px)`; }
   setPad();
 }
 function keepQuestion() {

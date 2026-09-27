@@ -51,7 +51,7 @@ export function showEdition(force = false) {
   const f = feed();
   f.innerHTML = '';
   if (e.catchup) f.appendChild(catchupCard(e));
-  for (const c of e.cards) { const n = render(c); f.appendChild(n); io?.observe(n); }
+  for (const c of e.cards) { if ((c.kind as string) === 'sports') continue; const n = render(c); f.appendChild(n); io?.observe(n); }   // editions saved before the sports page card was removed
   const done = doneCard(e);
   f.appendChild(done); io?.observe(done);
   // Past the done card: stories from earlier today you haven't seen, each tagged "Earlier today"
@@ -148,7 +148,6 @@ function speechFor(c: Card): string | null {
     case 'quiz': return `Quiz. ${c.quiz!.q} ${c.quiz!.prompt || ''} ${c.quiz!.opts.join(', or ')}? The answer: ${c.quiz!.opts[c.quiz!.answer]}.`;
     case 'hub': return `${c.label}. ${c.hub!.title}. ${c.hub!.summary}`;
     case 'skill': return `Skill of the day: ${c.skill!.label}.`;
-    case 'sports': return `Sports page. ${[...c.sports!.teams.map(t => `${t.team}: ${t.stories[0].title}`), ...c.sports!.headlines.map(s => s.title)].join('. ')}`;
     default: return null;
   }
 }

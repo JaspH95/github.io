@@ -19,8 +19,12 @@
 /* Text size follows the iPhone's setting */
 @supports (font: -apple-system-body){ html{ font:-apple-system-body; } }
 *,*::before,*::after{ box-sizing:inherit; }
-html{ height:var(--app-h, 100%); background:var(--bg); overflow:hidden; overscroll-behavior:none; }
-body{ position:relative; margin:0; height:var(--app-h, 100%); background:var(--bg); color:var(--ink); font-family:var(--ui); -webkit-font-smoothing:antialiased; overflow:hidden; -webkit-tap-highlight-color:transparent; }
+html{ height:100%; background:var(--bg); overflow:hidden; overscroll-behavior:none; }
+/* iOS 26 Home Screen apps report a page shorter than the screen (WebKit bug 301108), leaving a black strip at the bottom.
+   main.ts measures the shortfall; the page is stretched into it and nothing clips it. */
+html.ios-shim{ height:calc(100% + var(--shim, 0px)); overflow:visible; }
+html.ios-shim body{ overflow:visible; }
+body{ position:relative; margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:var(--ui); -webkit-font-smoothing:antialiased; overflow:hidden; -webkit-tap-highlight-color:transparent; }
 button{ font:inherit; color:inherit; }
 a{ color:inherit; }
 [hidden]{ display:none !important; }

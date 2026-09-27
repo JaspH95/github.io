@@ -251,16 +251,6 @@ export function learnCard(c: LearnCard): Card {
   return { id: c.id, kind: 'learn', topic: c.kind === 'apod' ? 'space' : c.topic, label, learn: c };
 }
 
-/* The sports page: your teams' latest, plus a headline or two from your sports */
-function sportsPage(p: Profile): Card | null {
-  if (!p.sports.length && !p.teams.length) return null;
-  const sp = data.sport;
-  const teams = p.teams.map(t => ({ team: t, stories: (sp?.teams?.[t]?.length ? sp.teams[t] : footballFilter(t)).slice(0, 2) })).filter(x => x.stories.length);
-  const heads = p.sports.filter(s => s !== 'Football' || !p.teams.length).flatMap(s => (sp?.sports?.[s] || []).slice(0, 1));
-  const f1 = p.sports.includes('Formula 1') ? sp?.f1 : undefined;
-  if (!teams.length && !heads.length && !f1) return null;
-  return { id: `sports-${ymd(now())}-${currentSlot(p).slot}`, kind: 'sports', topic: 'sport', label: 'Sports page', sports: { teams, headlines: heads.slice(0, 2), ...(f1 ? { f1 } : {}) } };
-}
 /* Sport stories go in the feed like any other story: a story from each of your teams, then each of your sports */
 function sportStories(p: Profile, since: Date, shown: Set<string>, max: number): Story[] {
   const sp = data.sport; if (!sp) return [];
@@ -335,8 +325,6 @@ export function build(p: Profile, force = false): Edition {
   newsCards.push(...sportStories(p, since, shown, catchup ? 5 : 3).map(s => storyCard(s)));
   const used = new Set(newsCards.map(x => x.id));
   const { learning, light } = learningCards(p, firstToday, Math.max(3, Math.round(newsCards.length * 0.6)), used);
-  const sp = sportsPage(p);
-  if (sp) light.unshift(sp);
 
   const cards = weave(newsCards, learning, light);
   const earlier = rest.sort((a, b) => b.base - a.base).slice(0, 15).map(x => storyCard(x.s));
