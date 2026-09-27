@@ -35,30 +35,41 @@ export function names(s: string): Set<string> {
   return out;
 }
 
-function storyTokens(s: Stored): Set<string> {
-  const t = new Set<string>();
-  s.articles.forEach(a => tokens(a.title).forEach(w => t.add(w)));
+/* Words that are rare across today's articles ("Acropolis", "53") say more than common ones ("Trump", "police") */
+const docTokens = (title: string, standfirst = '') => {
+  const t = tokens(title);
+  tokens(standfirst.split(/(?<=[.!?])\s/)[0] || '').forEach(w => t.add(w));
+  // Specific numbers ("53 images", "£210m") are strong clues; the shared tokeniser drops short words
+  for (const m of `${title} ${standfirst}`.matchAll(/\b\d[\d,.]*\d\b/g)) t.add(m[0].replace(/,/g, ''));
   return t;
+};
+interface Idf { df: Map<string, number>; n: number }
+function buildIdf(docs: Set<string>[]): Idf {
+  const df = new Map<string, number>();
+  docs.forEach(d => d.forEach(w => df.set(w, (df.get(w) || 0) + 1)));
+  return { df, n: Math.max(docs.length, 2) };
 }
-function storyNames(s: Stored): Set<string> {
-  const t = new Set<string>();
-  s.articles.forEach(a => names(`${a.title} ${a.standfirst || ''}`).forEach(w => t.add(w)));
-  return t;
+const idfOf = (w: string, x: Idf) => Math.log(x.n / (x.df.get(w) || 1));
+
+/* How strongly two articles look like the same event: shared rare words, relative to the shorter one */
+function overlap(a: Set<string>, b: Set<string>, x: Idf): { score: number; weight: number; number: boolean } {
+  let weight = 0, number = false;
+  a.forEach(w => { if (b.has(w)) { weight += idfOf(w, x); if (/^\d{2,}/.test(w) && !/^(19|20)\d\d$/.test(w)) number = true; } });
+  const wa = [...a].reduce((s, w) => s + idfOf(w, x), 0), wb = [...b].reduce((s, w) => s + idfOf(w, x), 0);
+  return { score: weight / Math.max(1, Math.min(wa, wb)), weight, number };
 }
 
 /* Score how well an article fits a story; 0 means it doesn't */
-function fit(item: FeedItem, s: Stored, cache: Map<string, { t: Set<string>; n: Set<string> }>): number {
-  let c = cache.get(s.id);
-  if (!c) { c = { t: storyTokens(s), n: storyNames(s) }; cache.set(s.id, c); }
+function fit(item: FeedItem, s: Stored, x: Idf): number {
   const t = tokens(item.title);
-  const n = names(`${item.title} ${item.summary}`);
-  let sharedT = 0; t.forEach(w => c!.t.has(w) && sharedT++);
-  let sharedN = 0; n.forEach(w => c!.n.has(w) && sharedN++);
-  // Compare with each article's title too: the union of many titles makes accidental overlap likelier
-  const titleMatch = s.articles.some(a => similar(tokens(a.title), t));
-  if (titleMatch) return 2 + sharedN * 0.1 + sharedT * 0.05;
-  if (sharedN >= 2 && sharedT >= 3) return 1 + sharedN * 0.1;
-  return 0;
+  const d = docTokens(item.title, item.summary);
+  let best = 0;
+  for (const a of s.articles) {
+    if (similar(tokens(a.title), t)) best = Math.max(best, 2);
+    const o = overlap(d, docTokens(a.title, a.standfirst), x);
+    if ((o.score >= 0.25 && o.weight >= 15) || (o.score >= 0.2 && o.number)) best = Math.max(best, 1 + o.score);
+  }
+  return best;
 }
 
 let MATCHERS: Matcher[] = [];
@@ -84,7 +95,7 @@ export function merge(bucket: Bucket, items: FeedItem[], opt: MergeOptions): Sto
   const cutoff = +now - opt.keepHours * 3600_000;
   const byUrl = new Map<string, Stored>();
   bucket.stories.forEach(s => s._.urls.forEach(u => byUrl.set(u, s)));
-  const cache = new Map<string, { t: Set<string>; n: Set<string> }>();
+  const idf = buildIdf([...bucket.stories.flatMap(s => s.articles.map(a => docTokens(a.title, a.standfirst))), ...items.map(i => docTokens(i.title, i.summary))]);
 
   // Oldest first, so a story's first article is its earliest
   const sorted = [...items].filter(i => +new Date(i.published) >= cutoff).sort((a, b) => +new Date(a.published) - +new Date(b.published));
@@ -97,13 +108,12 @@ export function merge(bucket: Bucket, items: FeedItem[], opt: MergeOptions): Sto
       known._.kw = [...new Set([...known._.kw, ...(it.kw || [])])];
       known._.tagsFrom = [...new Set([...known._.tagsFrom, ...(it.tags || [])])];
       if (it.topic && known.topic === opt.topic) known.topic = it.topic;
-      cache.delete(known.id);
       continue;
     }
     let best: Stored | null = null, bestScore = 0;
     for (const s of bucket.stories) {
       if (+new Date(s.updated) < +new Date(it.published) - 36 * 3600_000) continue;
-      const sc = fit(it, s, cache);
+      const sc = fit(it, s, idf);
       if (sc > bestScore) { best = s; bestScore = sc; }
     }
     if (best) {
@@ -122,7 +132,6 @@ export function merge(bucket: Bucket, items: FeedItem[], opt: MergeOptions): Sto
           .sort((a, b) => +new Date(a.at) - +new Date(b.at)).slice(-8);
       }
       if (+new Date(it.published) > +new Date(s.updated)) s.updated = it.published;
-      cache.delete(s.id);
       continue;
     }
     const s: Stored = {
@@ -138,6 +147,7 @@ export function merge(bucket: Bucket, items: FeedItem[], opt: MergeOptions): Sto
 
   // Forget stories that have gone quiet
   bucket.stories = bucket.stories.filter(s => +new Date(s.updated) >= cutoff);
+  consolidate(bucket, idf);
 
   for (const s of bucket.stories) {
     s.articles.sort((a, b) => rank(a) - rank(b) || +new Date(b.published) - +new Date(a.published));
@@ -156,11 +166,44 @@ export function merge(bucket: Bucket, items: FeedItem[], opt: MergeOptions): Sto
   return bucket.stories;
 }
 
+/* Stories that turn out to be the same event (once more coverage arrives) become one */
+function consolidate(bucket: Bucket, idf: Idf) {
+  const list = [...bucket.stories].sort((a, b) => +new Date(a.first) - +new Date(b.first));
+  const gone = new Set<string>();
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i]; if (gone.has(a.id)) continue;
+    for (let j = i + 1; j < list.length; j++) {
+      const b = list[j]; if (gone.has(b.id)) continue;
+      if (Math.abs(+new Date(a.updated) - +new Date(b.updated)) > 36 * 3600_000) continue;
+      const hit = b.articles.some(x => fit({ title: x.title, summary: x.standfirst || '', url: x.url, published: x.published, outlet: x.outlet }, a, idf) > 0);
+      if (!hit) continue;
+      // Fold b into a (the older one keeps its id, so follows and editions still find it)
+      for (const art of b.articles) {
+        const k = a.articles.findIndex(x => x.outlet === art.outlet);
+        if (k < 0) a.articles.push(art);
+        else if (+new Date(art.published) > +new Date(a.articles[k].published)) a.articles[k] = art;
+      }
+      a._.urls = [...new Set([...a._.urls, ...b._.urls])];
+      a._.kw = [...new Set([...a._.kw, ...b._.kw])];
+      a._.tagsFrom = [...new Set([...a._.tagsFrom, ...b._.tagsFrom])];
+      for (const [o, t] of Object.entries(b._.added)) if (!a._.added[o]) a._.added[o] = t;
+      a.timeline = [...(a.timeline || []), ...(b.timeline || [])].filter((t, k, arr) => arr.findIndex(x => x.url === t.url) === k)
+        .sort((x, y) => +new Date(x.at) - +new Date(y.at)).slice(-8);
+      if (+new Date(b.updated) > +new Date(a.updated)) a.updated = b.updated;
+      if (!a.summary && b.summary) { a.summary = b.summary; a.entities = b.entities; }
+      if (!a.image && b.image) a.image = b.image;
+      if (b._.frontAt && (!a._.frontAt || b._.frontAt > a._.frontAt)) a._.frontAt = b._.frontAt;
+      gone.add(b.id);
+    }
+  }
+  if (gone.size) bucket.stories = bucket.stories.filter(s => !gone.has(s.id));
+}
+
 /* How many distinct outlets, how fast coverage is growing, and whether it leads a front page */
 export function importance(s: Stored, now = new Date()): number {
   const outlets = new Set(s.articles.map(a => a.outlet)).size;
   const recent = Object.values(s._.added).filter(t => +new Date(t) > +now - 3 * 3600_000).length;
-  const breadth = Math.min(1, (outlets - 1) / 4);
+  const breadth = Math.min(1, (outlets - 1) / 3);
   const growth = Math.min(1, recent / 3);
   const v = 0.55 * breadth + 0.2 * growth + 0.25 * (s.top ? 1 : 0);
   return Math.round(v * 100) / 100;
