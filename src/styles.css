@@ -10,7 +10,7 @@
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
   /* The top bar sits a little below the status bar, clear of iPhone's fade at the top edge.
      The tab bar is a floating glass pill near the bottom edge; --tabh is the space it takes. */
-  --top:calc(var(--safe-t) + 22px); --tabgap:max(calc(var(--safe-b) - 12px), 12px); --tabh:calc(64px + var(--tabgap));
+  --top:calc(var(--safe-t) + 30px); --tabgap:max(calc(var(--safe-b) - 12px), 12px); --tabh:calc(64px + var(--tabgap));
   /* Pages (Learn, Languages, Saved, Search) follow the phone's light or dark setting */
   --p-bg:#F6F5FA; --p-ink:#15132A; --p-muted:#5E5A78; --p-card:#FFFFFF; --p-line:rgba(21,19,42,.1); --p-accent:#5B4BFF;
 }
