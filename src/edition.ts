@@ -261,7 +261,21 @@ function sportsPage(p: Profile): Card | null {
   if (!teams.length && !heads.length && !f1) return null;
   return { id: `sports-${ymd(now())}-${currentSlot(p).slot}`, kind: 'sports', topic: 'sport', label: 'Sports page', sports: { teams, headlines: heads.slice(0, 2), ...(f1 ? { f1 } : {}) } };
 }
-function footballFilter(team: string): Story[] {
+/* Sport stories go in the feed like any other story: a story from each of your teams, then each of your sports */
+function sportStories(p: Profile, since: Date, shown: Set<string>, max: number): Story[] {
+  const sp = data.sport; if (!sp) return [];
+  const groups = [...p.teams.map(t => (sp.teams?.[t]?.length ? sp.teams[t] : footballFilter(t))), ...p.sports.map(x => sp.sports?.[x] || [])];
+  const ok = (s: Story) => !shown.has(s.id) && !S.read[s.id] && +new Date(s.updated || s.published) >= +since - 24 * 3600_000;
+  const out: Story[] = [];
+  for (let round = 0; round < 3 && out.length < max; round++) {
+    for (const g of groups) {
+      const s = g.filter(ok).filter(x => !out.some(o => o.id === x.id || similar(tokens(o.title), tokens(x.title))))[round];
+      if (s && out.length < max) out.push(s);
+    }
+  }
+  return out;
+}
+export function footballFilter(team: string): Story[] {
   const re = new RegExp(`\\b${escapeRe(team)}\\b`, 'i');
   return (data.sport?.sports?.Football || []).filter(s => re.test(s.title));
 }
@@ -318,6 +332,7 @@ export function build(p: Profile, force = false): Edition {
     if (x.s.topic === 'local') localCount++;
   }
   const newsCards = [...followedUpdates, ...picked.map(s => storyCard(s, must.includes(s) ? { must: true } : {}))];
+  newsCards.push(...sportStories(p, since, shown, catchup ? 5 : 3).map(s => storyCard(s)));
   const used = new Set(newsCards.map(x => x.id));
   const { learning, light } = learningCards(p, firstToday, Math.max(3, Math.round(newsCards.length * 0.6)), used);
   const sp = sportsPage(p);

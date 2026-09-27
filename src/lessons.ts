@@ -23,6 +23,9 @@ let kind: 'lesson' | 'review' = 'lesson';
 
 function shuffle<T>(xs: T[]): T[] { const a = xs.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
 
+/* Cards in the feed ask for a lesson with an event, so they don't need to import this file */
+document.addEventListener('kf-lesson', e => startLesson((e as CustomEvent<string>).detail));
+
 export function startLesson(lang: string) {
   const l = S.profile?.languages.find(x => x.name === lang);
   const pack = PACKS[lang] || [];

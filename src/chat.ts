@@ -2,7 +2,7 @@
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
 import { S, persist, load, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
-import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data, allStories } from './data';
+import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
 import { wait, esc, toast } from './ui';
 import { preview, forget, SLOT_LABEL } from './edition';
@@ -13,6 +13,7 @@ import { log } from './events';
 import type { Occupation, OccupationsFile, TopicKey } from './types';
 import { makeMatcher } from './jobmatch';
 import * as cloud from './cloud';
+import { suggestions, follow, markAsked } from './suggest';
 import { AREAS, areaById } from './workareas';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -557,7 +558,8 @@ export async function startOnboarding() {
     if (k !== 'no' && await accountFlow(k === 'yes' ? 'new' : 'existing')) { await cloud.push().catch(() => {}); await say('Saved to your account.', 'small'); }
   } else if (cloud.signedIn()) cloud.push().catch(() => {});
   if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email and password.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
-  await say('You can change anything later from the button at the top right.', 'small');
+  await say("Double tap anything you like. I learn from your likes, show you more of what you enjoy and suggest topics to follow.", 'small');
+  await say('You can change anything later in Profile, at the bottom right.', 'small');
   const go = tray('Show my feed');
   go.addEventListener('click', () => { clearTray(); closeScreen(); });
 }
@@ -593,12 +595,14 @@ async function section(k: Section) {
   const saveP = (msg: string) => { persist.profile(); forget(); return say(msg); };
   switch (k) {
     case 'suggest': {
-      const s = suggest();
-      if (!s) { await say("You're already following most of what's around today. Keep liking things and I'll keep tuning."); return; }
-      await say(s.from ? `You've been enjoying ${s.from}. People who like that often enjoy ${s.to.label}. Want to add it?` : `How about ${s.to.label}? It's something different from your usual.`);
-      const yn = await askOne([['y', 'Yes, add it', 'spark'], ['n', 'No thanks', 'dots']]);
+      const list = suggestions(6);
+      if (!list.length) { await say("You're already following most of what's around today. Keep double tapping things you like and I'll keep tuning."); return; }
+      const fromLikes = S.liked.size > 0;
+      await say(fromLikes ? "From what you've liked, you might want to follow these. Pick any." : "Double tap stories you like and I'll learn what to suggest. For now, these have the most going on today:");
+      const picked = await askMany(list.map(x => [x.key, x.kind === 'entity' && x.desc ? `${x.label} · ${x.desc}` : x.label]), { btn: 'Follow', none: 'Not now', compact: true });
       pastAll();
-      if (yn === 'y') { p.interests.push({ id: s.to.id, label: s.to.label, cat: s.to.cat, mode: 'both' }); p.avoid = p.avoid.filter(a => a !== s.to.id); await saveP(`Added ${s.to.label}. It'll show from your next edition.`); }
+      list.forEach(x => (picked.includes(x.key) ? follow(x) : markAsked(x.key)));
+      if (picked.length) { forget(); await say(`Following ${picked.length === 1 ? list.find(x => x.key === picked[0])!.label : `${picked.length} new things`}. You'll see more from your next edition.`); }
       else await say('No problem.');
       return;
     }
@@ -733,24 +737,6 @@ async function section(k: Section) {
 }
 
 function feedbackNote(text: string) { S.feedback.unshift({ at: now().toISOString(), text }); persist.feedback(); toast('Noted'); }
-
-/* Rule-based suggestions: interests in the same family as the ones you like, with something to show today */
-function suggest(): { from: string | null; to: (typeof INTERESTS)[number] } | null {
-  const p = S.profile!;
-  const mine = new Set(p.interests.map(i => i.id));
-  const liked = new Map<string, number>();
-  for (const s of allStories()) if (S.liked.has(s.id)) s.tags.forEach(t => liked.set(t, (liked.get(t) || 0) + 1));
-  for (const [k, v] of Object.entries(S.weights)) if (interestById.has(k) && v > 0) liked.set(k, (liked.get(k) || 0) + v);
-  const has = (id: string) => allStories().some(s => s.tags.includes(id)) || (data.learn?.cards || []).some(c => c.interest === id);
-  const ok = (i: (typeof INTERESTS)[number]) => !mine.has(i.id) && !p.avoid.includes(i.id) && has(i.id);
-  for (const [id] of [...liked.entries()].sort((a, b) => b[1] - a[1])) {
-    const from = interestById.get(id); if (!from) continue;
-    const to = INTERESTS.find(i => i.cat === from.cat && ok(i));
-    if (to) return { from: from.label, to };
-  }
-  const any = INTERESTS.filter(ok);
-  return any.length ? { from: null, to: any[Math.floor(Math.random() * any.length)] } : null;
-}
 
 export function initChat() {
   stream().addEventListener('click', e => { if (!(e.target as HTMLElement).closest('button,input')) fast = true; });

@@ -1,15 +1,18 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
 import { S, persist, type SavedItem } from './state';
-import { esc, ago, ICON, plural, toast, openSheet, closeSheet, sentences } from './ui';
+import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
-import { learnCard } from './edition';
+import { learnCard, footballFilter, forget } from './edition';
 import { PACKS, LANG_CODE, LANG_WIKI, BSL, hasPack, progressLine, phraseOfDay } from './languages';
 import * as srs from './srs';
 import { speakIn } from './audio';
 import { startLesson, startReview } from './lessons';
 import { openChat } from './chat';
-import { onTab, onMenu, go } from './nav';
+import { onTab, go } from './nav';
+import { suggestions, follow } from './suggest';
+import { fixtureLines } from './live';
+import * as cloud from './cloud';
 import { signSVG } from './scenes';
 import { photo, fixImages, render, type Card } from './cards';
 import type { LearnCard, Story } from './types';
@@ -209,32 +212,74 @@ function searchPage(el: HTMLElement) {
   setTimeout(() => q.focus(), 50);
 }
 
-/* ---------- The menu ---------- */
+/* ---------- Sport: every sport and team you follow, in one place ---------- */
 
-function menu() {
-  const p = S.profile; if (!p) return;
-  const due = srs.due({ mark: false, perLang: 99 }).length;
-  const langs = p.languages.filter(l => hasPack(l.name));
-  const row = (k: string, ic: string, t: string, sub: string) => `<button class="menu-row" data-k="${k}"><span class="ic">${ic}</span><span><b>${esc(t)}</b><span>${esc(sub)}</span></span>${ICON.chev}</button>`;
-  const s = openSheet(`<h3>Menu</h3><div class="menu-list">
-    ${row('learn', ICON.book, 'Learn', p.skills.length ? 'Skill of the day, your interests and quizzes' : 'Your interests, quizzes and books')}
-    ${row('langs', ICON.lang, 'Languages', langs.length ? langs.map(l => progressLine(l.name)).join(' · ') : p.languages.length ? p.languages.map(l => l.name).join(', ') : 'Pick a language to learn')}
-    ${due ? row('review', ICON.check, `Review ${due > 5 ? 5 : due} thing${due === 1 ? '' : 's'}`, 'Quick recall, before you forget') : ''}
-    ${row('settings', ICON.settings, 'Settings', 'Interests, work, city, editions, account')}
-    ${row('feedback', ICON.flag, 'Send feedback', 'Something wrong, or an idea?')}
-  </div>`, 'Menu');
-  s.querySelectorAll<HTMLButtonElement>('.menu-row').forEach(b => b.addEventListener('click', () => {
-    closeSheet();
-    const k = b.dataset.k;
-    if (k === 'learn' || k === 'langs') go(k);
-    else if (k === 'review') startReview();
-    else if (k === 'settings') openChat();
-    else if (k === 'feedback') openChat('feedback');
+function sportPage(el: HTMLElement) {
+  const p = S.profile!;
+  const sp = data.sport;
+  if (!p.sports.length && !p.teams.length) {
+    el.innerHTML = `${head('Sport', 'Scores, fixtures and the latest from the sports and teams you follow.')}
+      <section class="psec"><button class="feature" data-add="sport"><span class="ic">${ICON.ball}</span><span><b>Pick your sports and teams</b><span>Football, rugby, cricket, F1 and more</span></span>${ICON.chev}</button></section>`;
+    el.querySelector('[data-add]')!.addEventListener('click', () => openChat('sport' as any));
+    return;
+  }
+  const stories: Story[] = [];
+  const list = (xs: Story[], n: number) => { const pick = xs.slice(0, n); stories.push(...pick); return pick.length ? `<div class="rows">${pick.map(storyRow).join('')}</div>` : '<p class="note">No new stories right now.</p>'; };
+  const teams = p.teams.map(t => {
+    const fx = fixtureLines(t);
+    const xs = sp?.teams?.[t]?.length ? sp.teams[t] : footballFilter(t);
+    return `<section class="psec"><h2>${esc(t)}</h2>${fx.length ? `<div class="fixtures">${fx.map(f => `<p>${esc(f)}</p>`).join('')}</div>` : ''}${list(xs, 5)}</section>`;
+  }).join('');
+  const f1 = p.sports.includes('Formula 1') ? sp?.f1 : undefined;
+  const f1Html = f1 && (f1.last || f1.next) ? `<section class="psec"><h2>Formula 1</h2><div class="fixtures">
+      ${f1.last ? `<p><b>${esc(f1.last.race)}</b></p>${f1.last.results.slice(0, 5).map(r => `<p>${r.pos}. ${esc(r.driver)}</p>`).join('')}` : ''}
+      ${f1.next ? `<p><b>Next:</b> ${esc(f1.next.race)}, ${new Date(`${f1.next.date}T${f1.next.time || '12:00:00Z'}`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</p>` : ''}
+      <p class="src">Results from Jolpica F1</p></div>${list(sp?.sports?.['Formula 1'] || [], 4)}</section>` : '';
+  const others = p.sports.filter(x => x !== 'Formula 1' && (x !== 'Football' || !p.teams.length) || (x === 'Football' && p.teams.length)).map(x =>
+    `<section class="psec"><h2>${esc(x === 'Football' && p.teams.length ? 'More football' : x)}</h2>${list((sp?.sports?.[x] || []).filter(s => !stories.some(o => o.id === s.id)), 6)}</section>`).join('');
+  el.innerHTML = `${head('Sport', 'Scores, fixtures and the latest from the sports and teams you follow. Big sport stories also appear in your editions.')}
+    ${teams}${f1Html}${others}<p class="pfoot"><button class="linkish" data-add="sport">Change sports and teams</button></p>`;
+  el.querySelector('[data-add]')!.addEventListener('click', () => openChat('sport' as any));
+  wireRows(el, [], stories);
+}
+
+/* ---------- Profile: settings through the chat, and suggestions from your likes ---------- */
+
+const SETTINGS: [string, string, string][] = [
+  ['interests', 'Interests', 'What you want news and learning about'], ['skills', 'Work and skills', 'Your job and the skills you want to build'],
+  ['city', 'City', 'Where your local news comes from'], ['languages', 'Languages', 'What you are learning, your level and goal'],
+  ['sport', 'Sports and teams', 'Your sports page and live scores'], ['editions', 'Editions and times', 'When your editions arrive'],
+  ['avoid', 'Topics to avoid', 'Things you would rather not see'], ['wellbeing', 'Reading goal and limit', 'Optional, off by default'],
+  ['voice', 'Listening voice', 'The voice that reads to you'], ['feedback', 'Feedback', 'Tell us what is working and what is not'],
+  ['data', 'Your data', 'Back up, restore or delete'],
+];
+
+function profilePage(el: HTMLElement) {
+  const p = S.profile!;
+  const sugg = suggestions(6);
+  const u = cloud.signedIn();
+  const following = [...p.interests.map(i => i.label), ...[...S.entities].map(titleCase)];
+  const likes = S.liked.size;
+  el.innerHTML = `<header class="phead prof"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p></span></header>
+    <section class="psec"><button class="feature talk" data-chat=""><span class="ic">${ICON.chat}</span><span><b>Talk to Knowfeed</b><span>Change anything by chatting. It also suggests things from what you like.</span></span>${ICON.chev}</button></section>
+    <section class="psec"><h2>Suggested for you</h2>
+      <p class="note">${likes ? `Based on ${plural(likes, 'thing')} you've liked.` : 'Double tap stories you like.'} Knowfeed learns from your likes: it shows more of what you enjoy and suggests topics and people to follow.</p>
+      ${sugg.length ? `<div class="rows">${sugg.map(x => `<div class="row-wrap"><div class="row static"><span class="rt"><span class="rk">${x.kind === 'interest' ? 'TOPIC' : 'IN THE NEWS'}${x.because ? ` · ${esc(x.because.toUpperCase())}` : ''}</span><b>${esc(x.label)}</b>${x.kind === 'entity' && x.desc ? `<span class="rs">${esc(x.desc)}</span>` : ''}</span></div><button class="follow-btn" data-follow="${esc(x.key)}">Follow</button></div>`).join('')}</div>` : '<p class="note">Nothing new to suggest right now.</p>'}
+    </section>
+    <section class="psec"><h2>You follow</h2>${following.length ? `<div class="chips">${following.map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}</div>` : '<p class="note">Nothing yet.</p>'}
+      <button class="linkish" data-chat="interests">Change interests</button></section>
+    ${cloud.cloudOn ? `<section class="psec"><h2>Account</h2><button class="feature" data-chat="account"><span class="ic">${ICON.check}</span><span><b>${u ? esc(u.email) : 'Not signed in'}</b><span>${u ? 'Your answers, saves and progress are kept with your account' : 'Sign in so your answers are kept if you change phones'}</span></span>${ICON.chev}</button></section>` : ''}
+    <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.map(([k, t, sub]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`).join('')}</div></section>`;
+  el.querySelectorAll<HTMLElement>('[data-chat]').forEach(b => b.addEventListener('click', () => openChat((b.dataset.chat || undefined) as any)));
+  el.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => b.addEventListener('click', () => {
+    const x = sugg.find(s => s.key === b.dataset.follow); if (!x) return;
+    follow(x); forget(); toast(`Following ${x.label}. It'll shape your next edition`); go('profile');
   }));
 }
 
 export function initPages() {
-  onMenu(menu);
+  onTab('sport', sportPage);
+  onTab('profile', profilePage);
   onTab('learn', learnPage);
   onTab('langs', langsPage);
   onTab('saved', savedPage);

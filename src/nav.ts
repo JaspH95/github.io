@@ -1,9 +1,9 @@
-/* The tab bar: Edition, Saved and the menu (Learn, Languages, settings), plus Search.
-   Learning and language cards also turn up inside every edition; the menu is for going deeper. */
+/* The tab bar: Edition, Sport, Search, Saved and Profile. Learning and language cards live in the edition itself;
+   the Learn and Languages pages open from those cards and the done screen. */
 import { close as closeStory, isOpen } from './story';
 import { stopAudio } from './audio';
 
-export type Tab = 'edition' | 'learn' | 'langs' | 'saved' | 'search';
+export type Tab = 'edition' | 'learn' | 'langs' | 'saved' | 'search' | 'sport' | 'profile';
 let tab: Tab = 'edition';
 const renderers: Partial<Record<Tab, (el: HTMLElement) => void>> = {};
 export const onTab = (t: Tab, fn: (el: HTMLElement) => void) => { renderers[t] = fn; };
@@ -16,7 +16,7 @@ export function go(t: Tab) {
   if (t !== 'edition') stopAudio();
   tab = t;
   document.body.dataset.tab = t;
-  document.querySelectorAll<HTMLButtonElement>('.tab, .search').forEach(b => { const on = b.dataset.tab === t || (!!b.dataset.menu && (t === 'learn' || t === 'langs')); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  document.querySelectorAll<HTMLButtonElement>('.tab').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   if (t === 'edition') { page.hidden = true; feed.hidden = false; return; }
   feed.hidden = true; page.hidden = false;
   page.innerHTML = '';
@@ -24,15 +24,17 @@ export function go(t: Tab) {
   renderers[t]?.(page);
 }
 
-let menuFn: () => void = () => {};
-export const onMenu = (fn: () => void) => { menuFn = fn; };
+export function toTop() { document.getElementById('feed')!.scrollTo({ top: 0, behavior: 'smooth' }); }
 export function refreshTab() { if (tab !== 'edition') go(tab); }
 
 export function initNav() {
-  document.querySelectorAll<HTMLButtonElement>('.tab[data-tab], .search').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll<HTMLButtonElement>('.tab').forEach(b => b.addEventListener('click', () => {
     // Tapping Edition again goes back to the top
-    if (b.dataset.tab === 'edition' && tab === 'edition') { document.getElementById('feed')!.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (b.dataset.tab === 'edition' && tab === 'edition') { toTop(); return; }
     go(b.dataset.tab as Tab);
   }));
-  document.querySelector('.tab[data-menu]')?.addEventListener('click', () => menuFn());
+  // Tapping the Knowfeed wordmark always goes back to the top of the edition
+  document.getElementById('wordmark')!.addEventListener('click', () => { if (tab !== 'edition') go('edition'); toTop(); });
+  // Cards can ask for a tab (the sports page's "All your sport")
+  document.addEventListener('kf-go', e => go((e as CustomEvent<Tab>).detail));
 }
