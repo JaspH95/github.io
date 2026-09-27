@@ -370,7 +370,8 @@ Jasper wants a version he can run and change on his MacBook, using the real conn
 ## Build status and decisions (keep this up to date)
 
 Done (build order 1 to 7, local-first parts, on free services already connected):
-- **Hosting:** Vercel (already connected to this repo) and the hourly GitHub Actions pipeline. The repo is public, so Actions minutes are unlimited.
+- **Hosting:** Vercel project "Knowfeed" at https://knowfeed-nine.vercel.app (production = `main`), and the hourly GitHub Actions pipeline.
+- **Standing instruction from Jasper:** merge every finished, tested change into `main` straight away (pull request, then merge) so the one address always has the latest version. Don't leave work sitting on a branch. The repo is public, so Actions minutes are unlimited.
 - **Pipeline:** stories persist between runs (`pipeline/cache/stories.json`) with first seen, coverage growth, timeline and importance. Grouping uses rare shared words and numbers.
 - **Gemini:** tries free-tier Flash models in turn and handles daily and per-minute quotas. Transient failures are never cached. It gets one retry with feedback if the checks fail.
 - **Images:** article → og:image → Wikipedia entity → Unsplash/Pexels (if keys) → designed cover. Every image gets size and logo checks, a blurred preview and a focal point.

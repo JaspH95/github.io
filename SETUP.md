@@ -2,12 +2,13 @@
 
 Knowfeed already runs on free services you've connected: GitHub (code and the hourly news pipeline) and Vercel (hosting). This page covers what's left to switch on, how to get it on your iPhone, and how to test it.
 
-## 1. Put the new version live
+## 1. Where it lives
 
-The new build is on the branch `claude/loving-ptolemy-8iimfd`. Vercel makes a preview of it automatically; merging it into `main` makes it your real site (https://github-io-ten-bice.vercel.app).
+Knowfeed is at **https://knowfeed-nine.vercel.app**. The address never changes.
 
-1. On GitHub, open the pull request for the branch (or create one) and merge it into `main`.
-2. Vercel redeploys within a minute or two.
+- The site shows whatever is on the `main` branch. Vercel rebuilds it a minute or two after anything reaches `main`.
+- Claude Code works on a branch, then merges every finished change into `main` straight away, so the address always has the latest version.
+- On your iPhone, close Knowfeed and open it again to get a new version. There's no need to reinstall.
 
 ## 2. Keys (all free)
 
@@ -64,7 +65,7 @@ You've already made the Supabase project (Knowfeed, London). Four steps:
 
 1. **Create the tables.** Supabase → your project → **SQL Editor** → **New query**. Open `supabase/schema.sql` in this repo, copy all of it in, press **Run**. You should see "Success. No rows returned".
 2. **Switch off confirmation emails.** Supabase → **Authentication** → **Sign In / Providers** → **Email** → turn **Confirm email** off → **Save**. Knowfeed then never needs to send an email, which matters because Supabase's free email sender is very limited and its emails can't be changed on the free plan.
-3. **Set the site address.** Supabase → **Authentication** → **URL Configuration** → **Site URL**: your Vercel address (for example `https://knowfeed.vercel.app`).
+3. **Set the site address.** Supabase → **Authentication** → **URL Configuration** → **Site URL**: `https://knowfeed-nine.vercel.app`.
 4. **Give Vercel the two public values.** Supabase → **Project Settings** → **API Keys** (and **Data API** for the URL). In Vercel → your project → **Settings** → **Environment Variables**, add:
    - `SUPABASE_URL` = `https://nujdjtrmulzgnwcijpqw.supabase.co`
    - `SUPABASE_ANON_KEY` = the **publishable** key (starts `sb_publishable_`), or the legacy **anon** key
