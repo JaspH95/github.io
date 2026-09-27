@@ -11,7 +11,7 @@ import * as srs from './srs';
 import { speakIn } from './audio';
 import { openStory, openLearn, openSkill } from './story';
 import { feedback } from './feedback';
-import { markDone, notInterested } from './dismiss';
+import { markDone, notInterested, knowThis } from './dismiss';
 import { storyLabel } from './data';
 import type { Story, LearnCard, Quiz, HubItem, TopicKey, Entity } from './types';
 
@@ -129,9 +129,12 @@ function body(c: Card): string {
       const lic = src === 'Wikipedia' ? ' (CC BY-SA)' : '';
       if (l.kind === 'onthisday') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><div class="big">${l.year}</div><h2 class="h-sm">${esc(l.event)}</h2>
         <button class="readbtn glass open">About ${esc(l.title)} ${ICON.chev}</button>${attrib('Wikipedia', l.url, lic)}`;
+      const know = `<div class="dismiss"><button class="dz know-it" aria-label="I know this: skip it and go deeper">${ICON.check}<span>I know this</span></button></div>`;
+      if (l.kind === 'fact') return `<div class="meta"><span>DID YOU KNOW? · WIKIPEDIA</span></div><h2 class="h-sm${(l.hook || '').length > 140 ? ' h-xs' : ''}">${esc(l.hook || l.title)}</h2>
+        <button class="readbtn solid open">Learn the story ${ICON.chev}</button>${know}${attrib('Wikipedia', l.url, lic)}${credit(c)}`;
       if (l.kind === 'potd') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><p class="lead">${esc(sentences(l.extract, 2))}</p>${attrib('Wikimedia Commons', l.url)}${credit(c)}`;
       return `<div class="meta"><span>${esc(c.label.toUpperCase())} · ${esc(src.toUpperCase())}</span></div><h2>${esc(l.title)}</h2>
-        <p>${esc(sentences(l.extract, 2))}</p><button class="readbtn ${l.kind === 'topic' ? 'solid' : 'glass'} open">${l.kind === 'topic' ? 'Start learning' : 'Read more'} ${ICON.chev}</button>${attrib(src, l.url, lic)}${credit(c)}`;
+        <p>${esc(l.fact || sentences(l.extract, 2))}</p><button class="readbtn ${l.kind === 'topic' ? 'solid' : 'glass'} open">${l.kind === 'topic' ? 'Start learning' : 'Read more'} ${ICON.chev}</button>${l.kind === 'topic' || l.kind === 'featured' ? know : ''}${attrib(src, l.url, lic)}${credit(c)}`;
     }
     case 'quiz': {
       const q = c.quiz!;
@@ -241,6 +244,7 @@ export function moreMenu(c: Card) {
       ['done', 'Mark as read', () => markDone(c, cardEl(c))] as [string, string, () => void],
       ['not', 'Not interested…', () => notInterested(c, cardEl(c))] as [string, string, () => void],
     ] : []),
+    ...(c.learn && ['topic', 'fact', 'featured'].includes(c.learn.kind) ? [['know', 'I know this', () => knowThis(c, cardEl(c))] as [string, string, () => void]] : []),
     ['wrong', 'Something wrong?', () => feedback(c.id, title)],
   ], 'Card options');
 }
@@ -290,6 +294,7 @@ function wire(c: Card, el: HTMLElement) {
   el.querySelector('.open')?.addEventListener('click', e => { e.stopPropagation(); open(); });
   el.querySelector('.done-it')?.addEventListener('click', e => { e.stopPropagation(); markDone(c, el); });
   el.querySelector('.not-it')?.addEventListener('click', e => { e.stopPropagation(); notInterested(c, el); });
+  el.querySelector('.know-it')?.addEventListener('click', e => { e.stopPropagation(); knowThis(c, el); });
   el.querySelector('.start-series')?.addEventListener('click', e => { e.stopPropagation(); open(); });
   // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
   // The single tap waits a moment, so a double tap never opens the story by accident.

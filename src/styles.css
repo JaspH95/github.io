@@ -99,6 +99,7 @@ img.photo{ filter:blur(0); transition:opacity .3s; }
 .meta svg{ width:12px; height:12px; flex:none; }
 .card h2{ font-size:clamp(1.45rem, 6.4vw, 2.1rem); line-height:1.17; font-weight:700; letter-spacing:-.015em; margin:0 0 10px; text-wrap:balance; }
 .card h2.h-sm{ font-size:clamp(1.25rem, 5.4vw, 1.7rem); }
+.card h2.h-xs{ font-size:clamp(1.12rem, 4.8vw, 1.45rem); line-height:1.25; }
 .card p{ font-size:1rem; line-height:1.42; color:rgba(240,240,248,.86); margin:0 0 6px; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 .card p.lead{ color:rgba(255,255,255,.88); -webkit-line-clamp:6; }
 .card p b{ color:#fff; }
@@ -621,3 +622,8 @@ body.series-open .tabbar{ display:none; }
 .sp-zone.next{ right:0; width:70%; }
 .sp-body.end{ pointer-events:auto; }
 .sp-body .unchecked{ align-self:flex-start; }
+
+/* Did you know… */
+.dyk-hook{ font-size:1.12rem; line-height:1.4; font-weight:600; margin:0 0 16px; }
+.dyk-hook b{ display:block; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--yellow); margin-bottom:4px; }
+.row .rhook{ font-weight:600; line-height:1.3; }

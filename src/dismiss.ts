@@ -63,3 +63,22 @@ export function notInterested(c: Card, el?: HTMLElement) {
 
   options(items, 'Not interested');
 }
+
+/* "I know this" on a learning card: skip it, and teach that interest to go deeper (fewer well-known basics) */
+export function knowThis(c: Card, el?: HTMLElement) {
+  const l = c.learn; const p = S.profile;
+  if (!l || !p) return;
+  const skip = () => { remember(l, 'know', true); drop(c, el); };
+  const it = l.interest ? p.interests.find(i => i.id === l.interest) : undefined;
+  if (!it || l.kind !== 'topic') { skip(); toast('Got it. We’ll keep looking for things you don’t know'); return; }
+  const label = it.label || interestById.get(it.id)?.label || 'this topic';
+  const deeper = (n: number) => { S.depth[it.id] = Math.min(6, (S.depth[it.id] || 0) + n); persist.depth(); };
+  options([
+    ['this', 'I know this one', () => { deeper(1); skip(); toast(`Got it. ${label} will go a bit deeper`); }],
+    ['basics', `I know the basics of ${label}: go deeper`, () => { deeper(2); skip(); toast(`${label}: less well-known things from now on`); }],
+    ['stop', `Stop learning about ${label}`, () => {
+      if (it.mode === 'both') it.mode = 'news'; else p.interests = p.interests.filter(i => i !== it);
+      persist.profile(); skip(); toast(`No more ${label} learning cards`);
+    }],
+  ], 'I know this');
+}

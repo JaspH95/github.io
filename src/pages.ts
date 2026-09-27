@@ -1,5 +1,5 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
-import { S, persist, type SavedItem } from './state';
+import { S, persist, tooKnown, type SavedItem } from './state';
 import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL, OUTLETS, itemStory, regionOf } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
@@ -24,6 +24,9 @@ const head = (title: string, sub = '') => `<header class="phead"><h1>${esc(title
 function learnRow(l: LearnCard, label?: string) {
   return `<button class="row" data-learn="${esc(l.id)}">${thumb(l.image, { topic: l.topic, id: l.id, label })}<span class="rt"><span class="rk">${esc((label || l.description || TOPIC_LABEL[l.topic]).toUpperCase())}</span><b>${esc(l.title)}</b><span class="rs">${esc(sentences(l.extract, 1))}</span></span></button>`;
 }
+function factRow(l: LearnCard) {
+  return `<button class="row" data-learn="${esc(l.id)}">${thumb(l.image, { topic: l.topic, id: l.id, label: 'Did you know?' })}<span class="rt"><span class="rk">${esc(l.title.toUpperCase())}</span><b class="rhook">${esc(l.hook || l.title)}</b></span></button>`;
+}
 function storyRow(s: Story) {
   return `<button class="row" data-story="${esc(s.id)}">${thumb(s.image?.url, { topic: s.topic, id: s.id, label: storyLabel(s) })}<span class="rt"><span class="rk">${esc(storyLabel(s).toUpperCase())} · ${esc(ago(s.updated))}</span><b>${esc(s.title)}</b></span></button>`;
 }
@@ -42,14 +45,16 @@ function learnPage(el: HTMLElement) {
   const due = srs.due({ mark: false, perLang: 99 }).length;
   const skills = p.skills;
   const todays = skills.length ? skills[Math.floor(Date.now() / 86400_000) % skills.length] : null;
-  const byInterest = learnIds.map(id => ({ id, label: interestById.get(id)?.label || p.interests.find(i => i.id === id)?.label || id, cards: cards.filter(c => c.interest === id) })).filter(g => g.cards.length);
-  const daily = cards.filter(c => c.kind !== 'topic');
+  const byInterest = learnIds.map(id => ({ id, label: interestById.get(id)?.label || p.interests.find(i => i.id === id)?.label || id, cards: cards.filter(c => c.interest === id && !tooKnown(c) && !S.history[c.id]) })).filter(g => g.cards.length);
+  const daily = cards.filter(c => c.kind !== 'topic' && c.kind !== 'fact');
+  const facts = cards.filter(c => c.kind === 'fact' && !S.history[c.id]).slice(0, 8);
   const searched = p.interests.filter(i => i.id.startsWith('q:') && i.mode !== 'news' && i.wiki);
   const quiz = (data.learn?.quizzes || [])[0];
   const series = available(p);
   const KIND: Record<string, string> = { idea: 'BIG IDEAS', history: 'HISTORY', skill: 'SKILL', book: 'CLASSIC BOOK', language: 'LANGUAGE' };
   el.innerHTML = `${head('Learn', 'Your work, your interests and today\'s picks. Every session ends; start another when you like.')}
     ${series.length ? `<section class="psec"><h2>Series</h2><div class="rows">${series.map(s => { const d = doneEpisodes(s.id).length; return `<button class="row" data-series="${esc(s.id)}"><span class="series-thumb" style="--c1:${s.colours[0]};--c2:${s.colours[1]}" aria-hidden="true">${s.episodes.length}</span><span class="rt"><span class="rk">${KIND[s.kind] || 'SERIES'} · ${d ? `${d} OF ${s.episodes.length} DONE` : `${s.episodes.length} EPISODES`}${isDraft(s) ? ' · <em>DRAFT</em>' : ''}</span><b>${esc(s.title)}</b><span class="rs">${esc(s.blurb)}</span></span></button>`; }).join('')}</div></section>` : ''}
+    ${facts.length ? `<section class="psec"><h2>Did you know…</h2><div class="rows">${facts.map(c => factRow(c)).join('')}</div></section>` : ''}
     ${todays ? `<section class="psec"><h2>Skill of the day</h2><button class="feature" data-skill="${esc(todays.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(cap(todays.label))}</b><span>From your work${p.job ? `: ${esc(p.job.title)}` : ''}</span></span>${ICON.chev}</button>
       <div class="chips">${skills.map(k => `<button class="chip-btn" data-skill="${esc(k.id)}">${esc(cap(k.label))}</button>`).join('')}<button class="chip-btn add" data-add="skills">${ICON.plus} Skills</button></div></section>`
       : `<section class="psec"><h2>Your work</h2><button class="feature" data-add="skills"><span class="ic">${ICON.book}</span><span><b>Add your job and skills</b><span>Get a skill of the day and industry news</span></span>${ICON.chev}</button></section>`}

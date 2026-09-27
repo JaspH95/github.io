@@ -12,7 +12,7 @@ import { readPage, htmlToText } from './fulltext';
 import { Summariser, type Source } from './summarise';
 import { enrich, pruneEntities, type EntityCache } from './entities';
 import { chooseImages, pruneImages, imageStats, type ImageCache } from './images';
-import { wikipediaDaily, topicCards, apod, wikidataQuizzes, hubspot, growPools, type LearnPool } from './learn';
+import { wikipediaDaily, topicCards, apod, wikidataQuizzes, hubspot, growPools, didYouKnow, type LearnPool, type FactPool } from './learn';
 import { NEWS_FEEDS, GUARDIAN_SECTIONS, BBC_REGIONS, WORLD_CITIES, SPORT_FEEDS, TEAM_SLUGS } from './sources';
 import { fetchJSON, record, status, hash, todayUTC, pool } from './util';
 import { OFFLINE, RECORD } from './http';
@@ -167,7 +167,7 @@ async function learn(interests: InterestsFile): Promise<LearnFile> {
   const date = todayUTC(now);
   const extra = JSON.parse(await readFile('content/topics.json', 'utf8'));
   // The version string forces a rebuild when the way cards are chosen changes (v2: growing pools, 5 a day)
-  const topicsHash = hash(JSON.stringify(['v3', interests.interests.map(i => [i.id, i.wiki]), extra]));
+  const topicsHash = hash(JSON.stringify(['v6', interests.interests.map(i => [i.id, i.wiki]), extra]));
   const path = `${OUT}/learn.json`;
   const old = await readJSON<LearnFile | null>(path, null);
   const hub = await hubspot();
@@ -180,9 +180,11 @@ async function learn(interests: InterestsFile): Promise<LearnFile> {
   const pools = await growPools(interests.interests, await readJSON<LearnPool>(`${CACHE}/learnpool.json`, {}), now);
   await writeFile(`${CACHE}/learnpool.json`, JSON.stringify(pools) + '\n');
   const topicList = await topicCards(interests.interests, extra, now, pools);
+  const dyk = await didYouKnow(await readJSON<FactPool>(`${CACHE}/facts.json`, { hooks: [] }), now);
+  await writeFile(`${CACHE}/facts.json`, JSON.stringify(dyk.pool) + '\n');
   const pic = await apod();
   const wd = await wikidataQuizzes(now);
-  const cards = [...daily.cards, ...(pic ? [pic] : []), ...topicList];
+  const cards = [...daily.cards, ...(pic ? [pic] : []), ...dyk.cards, ...topicList];
   return { generated: now.toISOString(), date, topicsHash, cards, quizzes: [...daily.quizzes, ...wd], hubspot: hub.length ? hub : old?.hubspot || [] };
 }
 

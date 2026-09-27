@@ -13,6 +13,7 @@ interface WikiSummary {
   thumbnail?: { source: string; width: number };
   originalimage?: { source: string; width: number };
   content_urls?: { desktop: { page: string } };
+  pop?: number;               // average daily page views over the last month: how well known it already is
 }
 
 function bestImage(s: WikiSummary): string | undefined {
@@ -48,8 +49,23 @@ export async function wikiSummary(title: string): Promise<WikiSummary | null> {
   }
 }
 
+/* The most surprising sentence in an intro (not the definition that opens it): numbers, firsts, records, origins.
+   Taken word for word from the article, so nothing is invented. */
+const HOOKY = /\b(first|oldest|largest|biggest|smallest|longest|tallest|fastest|deepest|earliest|record|originally|named after|nicknamed|invented|discovered|surprising|unusual|banned|secret|accident|by chance|mistake|world's)\b/gi;
+export function hookSentence(extract: string): string | undefined {
+  const sents = extract.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z"‘“(])/).map(x => x.trim());
+  let best: string | undefined, score = 2.5;
+  sents.slice(1).forEach((x, k) => {
+    if (x.length < 60 || x.length > 230 || /^(It|This|These|They|He|She|His|Her|Its|There)\b/.test(x) || /[:;]$/.test(x)) return;
+    const sc = (x.match(HOOKY) || []).length * 2 + (/\b\d{2,4}\b/.test(x) ? 1 : 0) - k * 0.2;
+    if (sc > score) { score = sc; best = x; }
+  });
+  return best;
+}
+
 function wikiCard(s: WikiSummary, kind: LearnCard['kind'], topic: TopicKey, extra: Partial<LearnCard> = {}): LearnCard {
   const image = bestImage(s);
+  const fact = kind === 'topic' ? hookSentence(s.extract) : undefined;
   return {
     id: `${kind}-${hash(s.title + (extra.event || ''))}`,
     kind, topic,
@@ -59,6 +75,8 @@ function wikiCard(s: WikiSummary, kind: LearnCard['kind'], topic: TopicKey, extr
     ...(image ? { image } : {}),
     url: pageUrl(s),
     source: 'Wikipedia',
+    ...(s.pop !== undefined ? { pop: s.pop } : {}),
+    ...(fact ? { fact } : {}),
     ...extra,
   };
 }
@@ -179,7 +197,7 @@ async function wikiBatch(titles: string[]): Promise<Map<string, WikiSummary>> {
   const uniq = [...new Set(titles)];
   for (let i = 0; i < uniq.length; i += 20) {
     const chunk = uniq.slice(i, i + 20);
-    const q = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&prop=extracts|pageimages|info|description|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&exlimit=20&piprop=thumbnail|original&pithumbsize=960&pilimit=20&inprop=url&titles=${encodeURIComponent(chunk.join('|'))}`;
+    const q = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&prop=extracts|pageimages|info|description|pageprops|pageviews&pvipdays=30&ppprop=disambiguation&exintro=1&explaintext=1&exlimit=20&piprop=thumbnail|original&pithumbsize=960&pilimit=20&inprop=url&titles=${encodeURIComponent(chunk.join('|'))}`;
     let r: any = null;
     for (let attempt = 0; attempt < 3 && !r; attempt++) { try { r = await fetchJSON<any>(q); } catch { await sleep(1500 * (attempt + 1)); } }
     if (!r?.query) continue;
@@ -195,29 +213,54 @@ async function wikiBatch(titles: string[]): Promise<Map<string, WikiSummary>> {
         ...(p.original ? { originalimage: { source: p.original.source, width: p.original.width } } : {}),
         content_urls: { desktop: { page: p.fullurl } },
       };
+      const views = Object.values(p.pageviews || {}).filter((x): x is number => typeof x === 'number');
+      if (views.length) s.pop = Math.round(views.reduce((a, b) => a + b, 0) / views.length);
       out.set(p.title, s);
       const asked = back.get(p.title); if (asked) out.set(asked, s);
     }
     await sleep(250);
   }
+  // Page views come back for only some pages in a combined request, so fetch the rest on their own (following "continue")
+  const noViews = [...new Set([...out.values()].filter(x => x.pop === undefined))];
+  const byTitle = new Map(noViews.map(x => [x.title, x]));
+  for (let i = 0; i < noViews.length; i += 20) {
+    const base = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageviews&pvipdays=30&titles=${encodeURIComponent(noViews.slice(i, i + 20).map(x => x.title).join('|'))}`;
+    let cont = '';
+    for (let round = 0; round < 5; round++) {
+      let r: any = null;
+      try { r = await fetchJSON<any>(base + cont); } catch { break; }
+      for (const p of r?.query?.pages || []) {
+        const views = Object.values(p.pageviews || {}).filter((x): x is number => typeof x === 'number');
+        const x = byTitle.get(p.title);
+        if (x && views.length && x.pop === undefined) x.pop = Math.round(views.reduce((a, b) => a + b, 0) / views.length);
+      }
+      if (!r?.continue?.pvipcontinue) break;
+      cont = `&pvipcontinue=${encodeURIComponent(r.continue.pvipcontinue)}&continue=${encodeURIComponent(r.continue.continue || '')}`;
+      await sleep(150);
+    }
+    await sleep(150);
+  }
   return out;
 }
 
-export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, pools: LearnPool = {}, perTopic = 5): Promise<LearnCard[]> {
+/* Articles this well known (average daily views) are general knowledge: most people know the basics already */
+export const TOO_KNOWN = 3000;
+
+export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, pools: LearnPool = {}, perTopic = 7): Promise<LearnCard[]> {
   const jobs: { topic: TopicKey; interest?: string; title: string }[] = [];
   const day = dayNum(date);
   const lists: { topic: TopicKey; interest?: string; titles: string[]; n: number }[] = [
-    // Hand-picked titles first, then the wider pool, so the basics come before the deep cuts
-    ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: [...i.wiki, ...(pools[i.id]?.titles || [])], n: perTopic })),
+    // The wider pool first: the hand-picked titles are mostly the broad basics people already know, so they come last
+    ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: [...(pools[i.id]?.titles || []), ...i.wiki], n: perTopic })),
     ...Object.entries(extra).filter(([k, v]) => !k.startsWith('_') && Array.isArray(v)).map(([k, v]) => ({ topic: k as TopicKey, titles: v as string[], n: 3 })),
   ];
-  // Twice as many titles as needed, so a short or missing article doesn't leave a gap
+  // Three times as many titles as needed, so a short, missing or too-well-known article doesn't leave a gap
   const want = new Map<string, number>();
   for (const l of lists) {
     if (!l.titles.length) continue;
     const key = l.interest || l.topic;
     want.set(key, l.n);
-    for (let k = 0; k < Math.min(l.n * 2, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
+    for (let k = 0; k < Math.min(l.n * 3, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
   }
   const found = await wikiBatch(jobs.map(j => j.title));
   let ok = 0; const missing: string[] = [];
@@ -228,6 +271,7 @@ export async function topicCards(interests: Interest[], extra: Record<string, st
     const s = found.get(j.title);
     // Only articles with enough to learn from
     if (!s || s.extract.length < 280) { missing.push(j.title); return null; }
+    if (j.interest && (s.pop || 0) > TOO_KNOWN) { missing.push(`${j.title} (too well known)`); return null; }
     ok++; have.set(key, (have.get(key) || 0) + 1);
     return wikiCard(s, 'topic', j.topic, j.interest ? { interest: j.interest } : {});
   });
@@ -235,6 +279,91 @@ export async function topicCards(interests: Interest[], extra: Record<string, st
   // The same article can sit in two lists: keep one card
   const seen = new Set<string>();
   return (out.filter(Boolean) as LearnCard[]).filter(c => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+}
+
+/* ---------- Did you know… (Wikipedia's main page facts) ----------
+   Every day Wikipedia's editors pick surprising facts from new or improved articles, each checked against a
+   cited source in that article. They're the opposite of general knowledge. The recent ones are collected here
+   into a pool (kept in pipeline/cache/facts.json), and a few new ones go out each day. */
+
+export interface Hook { hook: string; title: string; added: string }
+export type FactPool = { hooks: Hook[]; archived?: string };
+
+const decode = (x: string) => x.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+
+export function parseHooks(html: string): { hook: string; title: string }[] {
+  const out: { hook: string; title: string }[] = [];
+  for (const m of html.matchAll(/<li[^>]*>(?:\s|<[^>]+>|&#160;|&nbsp;)*(?:\.\.\.|…|&#8230;)(?:\s|&#160;|&nbsp;|<[^>]+>)*that\b([\s\S]*?)<\/li>/g)) {
+    const inner = m[1];
+    // The article the fact comes from is the bold link
+    const b = inner.match(/<b>(?:\s*<i>)?\s*<a [^>]*href="\/wiki\/([^"#?]+)"/);
+    if (!b) continue;
+    let title: string; try { title = decodeURIComponent(b[1]).replace(/_/g, ' '); } catch { continue; }
+    if (/^[A-Za-z]+:/.test(title)) continue;
+    const text = decode(inner.replace(/<sup[\s\S]*?<\/sup>/g, '').replace(/<[^>]+>/g, ''))
+      .replace(/\s*\((?:pictured|illustrated|shown|depicted|example pictured|detail pictured)[^)]*\)/gi, '')
+      .replace(/\s+/g, ' ').trim();
+    if (!text.endsWith('?') || text.length < 30 || text.length > 240) continue;
+    out.push({ hook: `…that ${text}`, title });
+  }
+  return out;
+}
+
+async function parsed(page: string): Promise<string> {
+  const url = `https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&redirects=1&disablelimitreport=1&page=${encodeURIComponent(page)}`;
+  const r = await fetchJSON<any>(url, { timeout: 30000 });
+  return String(r?.parse?.text || '');
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/* Which part of the app a fact belongs to, from the article's own short description */
+const FACT_TOPICS: [RegExp, TopicKey][] = [
+  [/\b(footballer|cricketer|athlete|cyclist|rugby|tennis|boxer|olympi|racing driver|golfer|football club|basketball|baseball|sportsperson|jockey|swimmer|wrestler)/i, 'sport'],
+  [/\b(species|genus|family of|moth|beetle|snail|bird|fish|frog|spider|plant|fungus|bacteri|asteroid|galaxy|star\b|planet|crater|chemical|mineral|disease|physicist|chemist|biologist|astronomer|mathematician|volcano|dinosaur)/i, 'science'],
+  [/\b(software|computer|video game|internet|website|engineer|aircraft|locomotive|ship\b|car\b|rocket|spacecraft)/i, 'tech'],
+  [/\b(company|business|bank|economist|businessman|businesswoman|brand|entrepreneur)/i, 'money'],
+  [/\b(album|song|single|film|novel|book|painting|painter|artist|singer|actor|actress|band|poem|poet|opera|television|writer|composer|musician|sculpt|play\b|dancer|photographer|architect|building|church|castle|cathedral|museum|battle|war\b|king|queen|emperor|dynasty|politician|archaeolog|historian|saint|bishop|monarch)/i, 'culture'],
+];
+const factTopic = (d = '') => FACT_TOPICS.find(([re]) => re.test(d))?.[1] || 'general';
+
+export async function didYouKnow(pool0: FactPool, date: Date): Promise<{ pool: FactPool; cards: LearnCard[] }> {
+  const day = date.toISOString().slice(0, 10);
+  const have = new Set(pool0.hooks.map(h => h.hook));
+  const fresh: Hook[] = [];
+  const add = (xs: { hook: string; title: string }[]) => xs.forEach(x => { if (!have.has(x.hook)) { have.add(x.hook); fresh.push({ ...x, added: day }); } });
+  const pages = ['Template:Did you know', 'Wikipedia:Recent additions'];
+  // Once, to start the pool: last month's archive
+  const lastMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
+  const archive = `Wikipedia:Recent additions/${lastMonth.getUTCFullYear()}/${MONTHS[lastMonth.getUTCMonth()]}`;
+  if (pool0.archived !== archive) pages.push(archive);
+  let ok = 0, fromArchive = 0; const errs: string[] = [];
+  for (const pg of pages) {
+    try {
+      const html = await parsed(pg); const hs = parseHooks(html); ok += hs.length; if (pg === archive) fromArchive = hs.length; add(hs);
+      // Nothing found: note what the page looks like, so the parser can be fixed
+      if (!hs.length) { const i = html.search(/that\b/); errs.push(`${pg}: no facts in ${html.length} chars; sample ${JSON.stringify(html.slice(Math.max(0, i - 160), i + 80))}`); }
+    } catch (e: any) { errs.push(`${pg}: ${e?.message}`); }
+    await sleep(300);
+  }
+  record('Wikipedia: Did you know', 'https://en.wikipedia.org/wiki/Wikipedia:Recent_additions', ok > 0, ok, errs.length ? errs.join('; ') : `${fresh.length} new`);
+  const hooks = [...fresh, ...pool0.hooks].slice(0, 2000);
+  const pool: FactPool = { hooks, archived: fromArchive ? archive : pool0.archived };
+  // Today: the newest facts first, then a slow rotation through the rest, so nothing repeats for months
+  const newest = hooks.filter(h => h.added >= new Date(+date - 2 * 86400_000).toISOString().slice(0, 10)).slice(0, 12);
+  const rest = hooks.filter(h => !newest.includes(h));
+  const d = dayNum(date);
+  const rot = rest.length ? Array.from({ length: Math.min(24, rest.length) }, (_, k) => rest[(d * 8 + k) % rest.length]) : [];
+  const pick = [...new Set([...newest, ...rot])];
+  const found = await wikiBatch(pick.map(h => h.title));
+  const cards: LearnCard[] = [];
+  for (const h of pick) {
+    const s = found.get(h.title);
+    if (!s) continue;
+    cards.push({ ...wikiCard(s, 'fact', factTopic(s.description)), id: `dyk-${hash(h.hook)}`, hook: h.hook });
+  }
+  return { pool, cards };
 }
 
 /* ---------- NASA Astronomy Picture of the Day ---------- */

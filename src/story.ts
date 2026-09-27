@@ -215,13 +215,14 @@ function articleShell(o: { id: string; topic: Card['topic']; label: string; titl
 const paras = (s: string) => s.split(/\n+/).map(x => x.trim()).filter(Boolean);
 
 function learnView(l: LearnCard) {
-  const label = l.kind === 'topic' ? ((l.interest && interestById.get(l.interest)?.label) || 'Learning') : l.kind === 'apod' ? 'NASA picture of the day' : l.kind === 'potd' ? 'Picture of the day' : l.kind === 'onthisday' ? 'On this day' : l.kind === 'featured' ? 'Featured article' : 'Most read today';
+  const label = l.kind === 'fact' ? 'Did you know?' : l.kind === 'topic' ? ((l.interest && interestById.get(l.interest)?.label) || 'Learning') : l.kind === 'apod' ? 'NASA picture of the day' : l.kind === 'potd' ? 'Picture of the day' : l.kind === 'onthisday' ? 'On this day' : l.kind === 'featured' ? 'Featured article' : 'Most read today';
   const card: Card = { id: l.id, kind: 'learn', topic: l.topic, label, learn: l };
   const src = l.source === 'NASA' ? 'NASA' : l.kind === 'potd' ? 'Wikimedia Commons' : 'Wikipedia';
   const lic = src === 'Wikipedia' ? ' (CC BY-SA)' : '';
   const event = l.kind === 'onthisday' ? `<div class="otd"><b>${l.year}</b><span>${esc(l.event)}</span></div>` : '';
   articleShell({ id: l.id, topic: l.topic, label, title: l.title, sub: l.description, image: l.image, credit: l.credit ? `Image: ${l.credit}` : undefined, paras: paras(l.extract), source: src, url: l.url, licence: lic });
   if (event) story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', event);
+  if (l.hook) story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', `<p class="dyk-hook"><b>Did you know</b> ${esc(l.hook.replace(/^…/, ''))}</p>`);
   current = { card, speech: [l.title, l.extract], title: l.title, url: l.url };
   setDock(card, false);
   if (markRead(l.id)) bump('learned');

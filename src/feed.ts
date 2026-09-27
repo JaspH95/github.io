@@ -178,7 +178,7 @@ export function showJustIn() {
 function speechFor(c: Card): string | null {
   switch (c.kind) {
     case 'story': { const s = c.story!; return `${c.label}. ${s.title}. ${s.summary ? s.summary.gist.join(' ') : s.standfirst}`; }
-    case 'learn': return c.learn!.kind === 'onthisday' ? `On this day in ${c.learn!.year}. ${c.learn!.event}` : `${c.label}. ${c.learn!.title}. ${c.learn!.extract.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`;
+    case 'learn': return c.learn!.kind === 'fact' ? `Did you know ${c.learn!.hook!.replace(/^…/, '')}` : c.learn!.kind === 'onthisday' ? `On this day in ${c.learn!.year}. ${c.learn!.event}` : `${c.label}. ${c.learn!.title}. ${c.learn!.extract.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`;
     case 'quiz': return `Quiz. ${c.quiz!.q} ${c.quiz!.prompt || ''} ${c.quiz!.opts.join(', or ')}? The answer: ${c.quiz!.opts[c.quiz!.answer]}.`;
     case 'hub': return `${c.label}. ${c.hub!.title}. ${c.hub!.summary}`;
     case 'series': return `A Series episode: ${c.label}.`;
