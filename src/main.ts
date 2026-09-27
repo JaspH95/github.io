@@ -1,6 +1,6 @@
 import './styles.css';
 import { S } from './state';
-import { loadData, data } from './data';
+import { loadData, data, refreshLive } from './data';
 import { showEdition, showJustIn, refreshDone, stale, initFeed } from './feed';
 import { initStory } from './story';
 import { initAudio } from './audio';
@@ -56,8 +56,9 @@ function open() {
   log('edition_open');
 }
 
-onChatClosed(() => {
+onChatClosed(async () => {
   if (!S.profile) return;
+  await refreshLive();   // outlets, breaking or typed-in topics may have changed
   // Back to wherever the chat was opened from; the edition is rebuilt with any changes either way
   const t = currentTab();
   if (t === 'edition') open(); else { showEdition(); startLive(); go(t); }

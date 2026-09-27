@@ -306,11 +306,11 @@ export function build(p: Profile, force = false): Edition {
 
   // 1. Breaking: the big headlines several outlets lead with (the hourly top stories if offline)
   const breakingSrc = p.breaking === false ? [] : live?.breaking?.length ? live.breaking : (data.news?.stories || []).filter(s => s.importance >= 0.45 || s.top).sort((a, b) => b.importance - a.importance);
-  const breakingNow = take(breakingSrc.filter(fresh), catchup ? 4 : 3);
+  const breakingNow = take(breakingSrc.filter(fresh), catchup ? 3 : 2);
   // 2. Outlets you follow: taking turns, newest first
   const outletLists = Object.values(live?.outlets || {}).map(xs => xs.filter(fresh));
   const outletPicks: Story[] = [];
-  for (let round = 0; round < 6 && outletPicks.length < (catchup ? 7 : 4); round++) for (const xs of outletLists) { if (outletPicks.length >= (catchup ? 7 : 4)) break; const s = xs.filter(isNew)[0]; if (s) { outletPicks.push(s); taken.push(s); } }
+  for (let round = 0; round < 6 && outletPicks.length < (catchup ? 4 : 3); round++) for (const xs of outletLists) { if (outletPicks.length >= (catchup ? 4 : 3)) break; const s = xs.filter(isNew)[0]; if (s) { outletPicks.push(s); taken.push(s); } }
   // 3. Topics you follow: stories that match your news interests, and live feeds for topics you typed in
   const liveTopic = new Set(Object.values(live?.topics || {}).flat().map(s => s.id));
   const topicPool = [...all.filter(s => s.topic !== 'sport' && s.topic !== 'local'), ...Object.values(live?.topics || {}).flat()].filter(fresh);
@@ -320,14 +320,14 @@ export function build(p: Profile, force = false): Edition {
   const perTopic = new Map<string, number>();
   const topicPicks: Story[] = [];
   for (const x of scored) {
-    if (topicPicks.length >= (catchup ? 8 : 5)) break;
+    if (topicPicks.length >= (catchup ? 4 : 3)) break;
     const k = x.s.tags[0] || x.s.topic;
     if ((perTopic.get(k) || 0) >= 2 || !isNew(x.s)) continue;
     topicPicks.push(x.s); taken.push(x.s); perTopic.set(k, (perTopic.get(k) || 0) + 1);
   }
   // 4. Your area, and 5. your sport
-  const localPicks = take(localStories().filter(fresh).sort((a, b) => +new Date(b.updated) - +new Date(a.updated)), catchup ? 3 : 2);
-  const sportPicks = sportStories(p, since, shown, catchup ? 4 : 2).filter(isNew);
+  const localPicks = take(localStories().filter(fresh).sort((a, b) => +new Date(b.updated) - +new Date(a.updated)), catchup ? 2 : 1);
+  const sportPicks = sportStories(p, since, shown, catchup ? 2 : 1).filter(isNew);
 
   const newsCards = [
     ...followedUpdates,
@@ -336,10 +336,13 @@ export function build(p: Profile, force = false): Edition {
   ];
   const used = new Set(newsCards.map(x => x.id));
   // Learning is the main part of every edition
-  const { learning, light } = learningCards(p, firstToday, Math.max(8, Math.round(newsCards.length * 1.6)), used);
+  const { learning, light } = learningCards(p, firstToday, Math.max(10, Math.round(newsCards.length * 1.5)), used);
+  // If there's less learning than usual, trim the news so it never outweighs it (lowest priority goes first)
+  const cap = Math.max(4, learning.length + 2);
+  const cut = newsCards.length > cap ? newsCards.splice(cap) : [];
 
   const cards = weave(newsCards, learning, light);
-  const earlier = [...scored.map(x => x.s), ...outletLists.flat()].filter(s => !taken.includes(s) && isNew(s)).slice(0, 12).map(s => storyCard(s));
+  const earlier = [...cut.map(x => x.story!).filter(Boolean), ...[...scored.map(x => x.s), ...outletLists.flat()].filter(s => !taken.includes(s) && isNew(s))].slice(0, 12).map(s => storyCard(s));
   const e: Edition = { key, date, slot, builtAt: d.toISOString(), since: since.toISOString(), catchup, merged, cards, earlier };
   store[key] = e;
   persist();

@@ -65,6 +65,9 @@ async function wikiRelated(title: string, interest: string, topic: TopicKey): Pr
   return pages.map(p => ({ id: `q-${interest}-${p.pageid}`, kind: 'topic', topic, interest, title: p.title, ...(p.description ? { description: p.description } : {}), extract: p.extract.slice(0, 900), ...(p.thumbnail ? { image: p.thumbnail.source } : {}), url: p.fullurl, source: 'Wikipedia' } as LearnCard));
 }
 
+/* After settings change (outlets, breaking, topics), fetch the live news again */
+export async function refreshLive() { data.live = await liveNews(); }
+
 async function liveNews(): Promise<Live | undefined> {
   const p = S.profile; if (!p) return undefined;
   const cached = load<Live | null>('live', null);

@@ -1,7 +1,7 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
 import { S, persist, type SavedItem } from './state';
 import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
-import { data, allStories, storyLabel, interestById, TOPIC_LABEL } from './data';
+import { data, allStories, storyLabel, interestById, TOPIC_LABEL, OUTLETS, itemStory, regionOf } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
 import { learnCard, forget } from './edition';
 import { PACKS, LANG_CODE, LANG_WIKI, BSL, hasPack, progressLine, phraseOfDay } from './languages';
@@ -15,6 +15,7 @@ import * as cloud from './cloud';
 import { signSVG } from './scenes';
 import { photo, fixImages, render, type Card } from './cards';
 import type { LearnCard, Story } from './types';
+import type { NewsItem } from '../api/news';
 
 const thumb = (url: string | undefined, c: { topic: Card['topic']; id: string; label?: string }) => `<span class="thumb">${photo(url, c, undefined, 'th')}</span>`;
 const head = (title: string, sub = '') => `<header class="phead"><h1>${esc(title)}</h1>${sub ? `<p>${sub}</p>` : ''}</header>`;
@@ -187,26 +188,41 @@ const titleCase = (s: string) => s.replace(/\b\p{L}/gu, m => m.toUpperCase());
 
 /* ---------- Search ---------- */
 
+/* Search: today's stories and learning in the app, the latest from every outlet (live), and Wikipedia */
 function searchPage(el: HTMLElement) {
-  el.innerHTML = `${head('Search')}<form class="sform" role="search"><input type="search" id="q" placeholder="Stories, topics, people, places" autocomplete="off" enterkeyhint="search" aria-label="Search"></form><div id="results"></div>`;
+  el.innerHTML = `${head('Search')}<form class="sform" role="search"><input type="search" id="q" placeholder="Anything: iPhone, Formula E, Roman history" autocomplete="off" enterkeyhint="search" aria-label="Search"></form><div id="results"></div><div id="liveResults"></div>`;
   const q = el.querySelector<HTMLInputElement>('#q')!;
   const out = el.querySelector<HTMLElement>('#results')!;
-  let t: ReturnType<typeof setTimeout>;
+  const liveOut = el.querySelector<HTMLElement>('#liveResults')!;
+  let t: ReturnType<typeof setTimeout>, lt: ReturnType<typeof setTimeout>, token = 0;
   const run = () => {
     const v = q.value.trim();
-    if (v.length < 2) { out.innerHTML = '<p class="note">Search today\'s stories and learning, or look anything up on Wikipedia.</p>'; return; }
+    if (v.length < 2) { out.innerHTML = '<p class="note">Search your stories and learning, the latest from news outlets everywhere, or look anything up on Wikipedia.</p>'; liveOut.innerHTML = ''; return; }
     const re = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const seen = new Set<string>();
-    const stories = allStories().filter(s => (seen.has(s.id) ? false : (seen.add(s.id), true)) && (re.test(s.title) || re.test(s.standfirst) || s.entities?.some(e => re.test(e.name)))).slice(0, 12);
+    const stories = allStories().filter(s => (seen.has(s.id) ? false : (seen.add(s.id), true)) && (re.test(s.title) || re.test(s.standfirst) || s.entities?.some(e => re.test(e.name)))).slice(0, 8);
     const learn = (data.learn?.cards || []).filter(c => re.test(c.title) || re.test(c.extract)).slice(0, 8);
-    out.innerHTML = `${stories.length ? `<section class="psec"><h2>Stories</h2><div class="rows">${stories.map(storyRow).join('')}</div></section>` : ''}
-      ${learn.length ? `<section class="psec"><h2>Learning</h2><div class="rows">${learn.map(c => learnRow(c, learnCard(c).label)).join('')}</div></section>` : ''}
+    out.innerHTML = `${learn.length ? `<section class="psec"><h2>Learning</h2><div class="rows">${learn.map(c => learnRow(c, learnCard(c).label)).join('')}</div></section>` : ''}
+      ${stories.length ? `<section class="psec"><h2>In your Knowfeed</h2><div class="rows">${stories.map(storyRow).join('')}</div></section>` : ''}
       <section class="psec"><button class="feature" data-wiki="${esc(v)}"><span class="ic">${ICON.search}</span><span><b>Look up “${esc(v)}”</b><span>On Wikipedia</span></span>${ICON.chev}</button></section>`;
     wireRows(out, learn, stories);
     out.querySelector<HTMLElement>('[data-wiki]')!.addEventListener('click', async () => { const w = await wiki(v); if (w) openWiki(w.title); else toast("Wikipedia doesn't have a page with that name"); });
+    // The latest from every outlet, a moment after typing stops
+    clearTimeout(lt);
+    if (v.length < 3) { liveOut.innerHTML = ''; return; }
+    liveOut.innerHTML = `<section class="psec"><h2>Latest news</h2><div class="skel"></div><div class="skel w80"></div><div class="skel w60"></div></section>`;
+    const mine = ++token;
+    lt = setTimeout(async () => {
+      let items: NewsItem[] = [];
+      try { const r = await fetch(`/api/news?mode=search&days=7&region=${regionOf(S.profile?.city?.country)}&q=${encodeURIComponent(v)}`); if (r.ok) items = (await r.json()).items || []; } catch { /* offline */ }
+      if (mine !== token) return;
+      const found = items.slice(0, 15).map(x => itemStory(x, x.outlet));
+      liveOut.innerHTML = found.length ? `<section class="psec"><h2>Latest news</h2><div class="rows">${found.map(storyRow).join('')}</div><p class="pfoot">From news outlets' own feeds, newest first</p></section>` : `<section class="psec"><h2>Latest news</h2><p class="note">${navigator.onLine ? `No recent news about “${esc(v)}”.` : "You're offline."}</p></section>`;
+      wireRows(liveOut, [], found);
+    }, 500);
   };
   q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 180); });
-  el.querySelector('form')!.addEventListener('submit', e => { e.preventDefault(); run(); q.blur(); });
+  el.querySelector('form')!.addEventListener('submit', e => { e.preventDefault(); clearTimeout(t); run(); q.blur(); });
   run();
   setTimeout(() => q.focus(), 50);
 }
@@ -216,7 +232,7 @@ function searchPage(el: HTMLElement) {
 const SETTINGS: [string, string, string][] = [
   ['interests', 'Interests', 'What you want news and learning about'], ['skills', 'Work and skills', 'Your job and the skills you want to build'],
   ['city', 'City', 'Where your local news comes from'], ['languages', 'Languages', 'What you are learning, your level and goal'],
-  ['sport', 'Sports and teams', 'Your sports page and live scores'], ['editions', 'Editions and times', 'When your editions arrive'],
+  ['news', 'Breaking news and outlets', 'Headlines, and the outlets you follow'], ['sport', 'Sports and teams', 'Sport stories and live scores'], ['editions', 'Editions and times', 'When your editions arrive'],
   ['avoid', 'Topics to avoid', 'Things you would rather not see'], ['wellbeing', 'Reading goal and limit', 'Optional, off by default'],
   ['voice', 'Listening voice', 'The voice that reads to you'], ['feedback', 'Feedback', 'Tell us what is working and what is not'],
   ['data', 'Your data', 'Back up, restore or delete'],
@@ -226,7 +242,7 @@ function profilePage(el: HTMLElement) {
   const p = S.profile!;
   const sugg = suggestions(6);
   const u = cloud.signedIn();
-  const following = [...p.interests.map(i => i.label), ...[...S.entities].map(titleCase)];
+  const following = [...p.interests.map(i => i.label), ...(p.outlets || []).map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean) as string[], ...[...S.entities].map(titleCase)];
   const likes = S.liked.size;
   el.innerHTML = `<header class="phead prof"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p></span></header>
     <section class="psec"><button class="feature talk" data-chat=""><span class="ic">${ICON.chat}</span><span><b>Talk to Knowfeed</b><span>Change anything by chatting. It also suggests things from what you like.</span></span>${ICON.chev}</button></section>
