@@ -8,6 +8,7 @@ import { startOnboarding } from './chat';
 import * as srs from './srs';
 import { events } from './events';
 import { edition } from './feed';
+import { showDrafts, setShowDrafts, reloadSeries } from './series';
 
 let taps: number[] = [];
 let onRebuild: () => void = () => {};
@@ -33,6 +34,8 @@ function menu() {
       <button class="chip-btn" id="devSrs">Clear learning progress</button>
       <button class="chip-btn" id="devOnb">Reset onboarding</button>
     </div>
+    <p class="kicker small">Series</p>
+    <div class="chips"><button class="chip-btn" id="devSeries" aria-pressed="${showDrafts()}">Show Series drafts for review</button><button class="chip-btn" id="devSeriesReset">Reset Series progress</button></div>
     <p class="kicker small">Look</p>
     <div class="chips"><button class="chip-btn" id="devImg" aria-pressed="${document.body.classList.contains('show-src')}">Show image sources</button><button class="chip-btn" id="devNotif">Test notification</button></div>
     <p class="kicker small">Data</p>
@@ -59,6 +62,8 @@ function menu() {
   s.querySelector('#devOnb')!.addEventListener('click', () => { S.profile = null; persist.profile(); forget(); closeSheet(); startOnboarding(); });
   s.querySelector('#devImg')!.addEventListener('click', e => { const on = document.body.classList.toggle('show-src'); (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(on)); });
   s.querySelector('#devNotif')!.addEventListener('click', testNotification);
+  s.querySelector('#devSeries')!.addEventListener('click', e => { const on = !showDrafts(); setShowDrafts(on); (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(on)); forget(); closeSheet(); onRebuild(); toast(on ? 'Series drafts shown (only on this phone)' : 'Series drafts hidden'); });
+  s.querySelector('#devSeriesReset')!.addEventListener('click', () => { remove('series'); reloadSeries(); forget(); closeSheet(); onRebuild(); toast('Series progress reset'); });
 }
 
 /* Push notifications need accounts (phase 2); this checks the phone can show one */

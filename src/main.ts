@@ -14,6 +14,7 @@ import { startLive } from './live';
 import { closeSheet } from './ui';
 import { log } from './events';
 import * as cloud from './cloud';
+import { initSeries } from './series';
 
 /* Knowfeed is an app, not a web page: no pinch zoom (text size still follows the iPhone's setting). iPhone ignores
    "user-scalable=no" in some cases, so pinches are stopped here too; double-tap zoom is off in CSS (touch-action). */
@@ -46,7 +47,7 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
   window.addEventListener('scroll', () => { if (window.scrollY) window.scrollTo(0, 0); }, { passive: true });
 })();
 
-initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
+initSeries(); initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
 document.getElementById('sheetBg')!.addEventListener('click', closeSheet);
 
 function ready() {

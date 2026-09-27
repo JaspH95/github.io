@@ -7,7 +7,8 @@ import { tokens, similar } from './similar';
 import { matcher, matches } from './match';
 import * as srs from './srs';
 import { phraseOfDay, hasPack, PACKS } from './languages';
-import type { Story, LearnCard } from './types';
+import type { Story, LearnCard, TopicKey } from './types';
+import { todays } from './series';
 import type { Card } from './cards';
 
 export const SLOTS: Slot[] = ['morning', 'midday', 'evening'];
@@ -189,6 +190,9 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   const light: Card[] = [];
   const fresh = (id: string) => !used.has(id) && !S.seen[id];
 
+  // Today's Series episode leads the learning (one a day per Series)
+  const t = todays(p);
+  if (t && !used.has(`series-${t.s.id}-${t.e.n}`)) learning.push({ id: `series-${t.s.id}-${t.e.n}`, kind: 'series', topic: t.s.topic as TopicKey, label: t.s.title, series: { id: t.s.id, n: t.e.n } });
   // Phrase of the day for each language, in the first edition of the day
   for (const l of p.languages) {
     if (!hasPack(l.name)) continue;
