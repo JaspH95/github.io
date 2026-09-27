@@ -76,7 +76,7 @@ function background(c: Card): string {
     case 'quiz': return photo(c.quiz!.article?.image, { ...c, label: 'Quiz' });
     case 'sign': return signSVG();
     case 'sports': return cover('sport', seedFor(c.id), 'Sport', 'pitch');
-    case 'phrase': case 'review': return cover('lang', seedFor(c.id), c.phrase?.lang, 'lang');
+    case 'phrase': case 'review': return cover('lang', seedFor(c.id), undefined, 'lang');
     case 'skill': return cover('work', seedFor(c.id), 'Skill');
     default: return '';
   }

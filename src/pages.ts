@@ -89,21 +89,21 @@ function langsPage(el: HTMLElement) {
   el.innerHTML = head('Languages', 'Phrases are written by Knowfeed and checked by native speakers. Unchecked ones are labelled.') + langs.map(l => {
     if (l.name === BSL) {
       const signCards = (data.learn?.cards || []).filter(c => c.topic === 'sign');
-      return `<section class="psec lang"><h2>British Sign Language</h2><div class="sign-box">${signSVG()}</div><p class="note">The BSL vowels: thumb is A, then E, I, O, U across the fingertips. More signs will be added once Deaf BSL teachers have made or checked them.</p>${signCards.length ? `<div class="rows">${signCards.map(c => learnRow(c, 'BSL and Deaf culture')).join('')}</div>` : ''}</section>`;
+      return `<section class="psec lang"><h2>British Sign Language</h2><div class="sign-box">${signSVG().replace(/xMidYMid slice/, 'xMidYMid meet')}</div><p class="note">The BSL vowels: thumb is A, then E, I, O, U across the fingertips. More signs will be added once Deaf BSL teachers have made or checked them.</p>${signCards.length ? `<div class="rows">${signCards.map(c => learnRow(c, 'BSL and Deaf culture')).join('')}</div>` : ''}</section>`;
     }
     if (!hasPack(l.name)) return `<section class="psec lang"><h2>${esc(l.name)}</h2><p class="note">The ${esc(l.name)} phrase pack is being written. It'll appear here as soon as it's ready, and your phrase of the day will start then.</p><button class="feature" data-wiki="${esc(LANG_WIKI[l.name])}"><span class="ic">${ICON.book}</span><span><b>About the ${esc(l.name)} language</b><span>From Wikipedia</span></span>${ICON.chev}</button></section>`;
     const pod = phraseOfDay(l.name, l.goal, l.level);
     const dueN = srs.due({ kind: 'phrase', lang: l.name, mark: false, perLang: 99 }).length;
     return `<section class="psec lang" data-lang="${esc(l.name)}"><h2>${esc(l.name)}</h2><p class="progress-l">${esc(progressLine(l.name))}</p>
       ${pod ? `<div class="pod"><p class="rk">PHRASE OF THE DAY</p>${pod.checked ? '' : '<span class="unchecked">Not yet checked</span>'}<p class="ph" lang="${esc(LANG_CODE[l.name])}">${esc(pod.phrase)}</p>${pod.romanisation ? `<p class="roman">${esc(pod.romanisation)}</p>` : ''}<p class="say">Say it: <b>${esc(pod.say)}</b></p><p>${esc(pod.meaning)}. ${esc(pod.when)}</p><div class="choices"><button class="choice hear" data-p="${esc(pod.id)}">${ICON.speaker} Hear it</button><button class="choice slow" data-p="${esc(pod.id)}">Slowly</button></div></div>` : `<p class="note">You've met every phrase in this pack. Reviews carry on, and you can review everything again from the settings chat.</p>`}
-      <div class="choices"><button class="cta lesson">5-minute lesson</button>${dueN ? `<button class="cta ghost rev">Review ${dueN}</button>` : ''}</div>
+      <div class="choices"><button class="cta start-lesson">5-minute lesson</button>${dueN ? `<button class="cta ghost rev">Review ${dueN}</button>` : ''}</div>
       <details class="pack"><summary>Phrase pack · ${PACKS[l.name].length} phrases</summary>${packHTML(l.name)}</details></section>`;
   }).join('') + `<p class="pfoot"><button class="linkish" data-add="languages">Change languages</button></p>`;
   el.querySelectorAll<HTMLElement>('[data-add]').forEach(b => b.addEventListener('click', () => openChat('languages')));
   el.querySelectorAll<HTMLElement>('[data-wiki]').forEach(b => b.addEventListener('click', () => openWiki(b.dataset.wiki!)));
   el.querySelectorAll<HTMLElement>('section.lang[data-lang]').forEach(sec => {
     const lang = sec.dataset.lang!;
-    sec.querySelector('.lesson')?.addEventListener('click', () => startLesson(lang));
+    sec.querySelector('.start-lesson')?.addEventListener('click', () => startLesson(lang));
     sec.querySelector('.rev')?.addEventListener('click', () => startReview());
     sec.querySelectorAll<HTMLElement>('.hear,.slow,.say-btn').forEach(b => b.addEventListener('click', () => {
       const ph = PACKS[lang].find(x => x.id === b.dataset.p); if (ph) speakIn(ph.phrase, lang, b.classList.contains('slow') ? 0.55 : 0.9);

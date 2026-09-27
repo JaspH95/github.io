@@ -410,6 +410,7 @@ details.pack h4{ font-size:.75rem; letter-spacing:.06em; text-transform:uppercas
 .lbody h2{ font-size:clamp(1.5rem, 6.5vw, 2rem); line-height:1.15; margin:0 0 12px; }
 .lbody .lead{ font-size:1.08rem; line-height:1.45; color:rgba(255,255,255,.85); }
 .lbody .note{ color:var(--muted); }
+.lbody .unchecked{ align-self:flex-start; }
 .lbody .cta{ margin-top:18px; align-self:flex-start; }
 
 /* ============ Onboarding and settings chat (the prototype's look) ============ */
