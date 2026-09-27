@@ -25,7 +25,7 @@ export const OUTLETS: Outlet[] = [
   { id: 'independent', name: 'The Independent', region: 'uk', kind: 'news', feed: 'https://www.independent.co.uk/news/uk/rss', breaking: true },
   { id: 'telegraph', name: 'The Telegraph', region: 'uk', kind: 'news', feed: 'https://www.telegraph.co.uk/rss.xml', paywall: true },
   { id: 'standard', name: 'Evening Standard', region: 'uk', kind: 'news', feed: 'https://www.standard.co.uk/rss' },
-  { id: 'inews', name: 'i', region: 'uk', kind: 'news', feed: 'https://inews.co.uk/feed' },
+  { id: 'inews', name: 'The i Paper', region: 'uk', kind: 'news', feed: 'https://inews.co.uk/feed' },
   { id: 'ft', name: 'Financial Times', region: 'uk', kind: 'business', feed: 'https://www.ft.com/rss/home', paywall: true },
   { id: 'economist', name: 'The Economist', region: 'uk', kind: 'business', feed: 'https://www.economist.com/latest/rss.xml', paywall: true },
   { id: 'bbcbusiness', name: 'BBC Business', region: 'uk', kind: 'business', feed: 'https://feeds.bbci.co.uk/news/business/rss.xml' },

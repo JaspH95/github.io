@@ -8,6 +8,71 @@ Claude Code:
   - Use only what the feed provides (headline, summary, image, link).
   - Always link to the original.
 
+## Outlets people can follow, breaking news and search (live, via /api/news)
+
+The list lives in `api/news.ts` (`OUTLETS`), which the app also reads. Nothing is stored: `/api/news` reads the outlet's own RSS feed when asked and Vercel caches the answer (outlets 10 minutes, breaking 5, search 15). Checked by `npm run check` on every change to `api/`.
+
+- **Breaking:** the front-page feeds marked *breaking* for the reader's country (from their city), grouped by headline. A story leading two or more front pages is "Breaking".
+- **Search and typed-in topics:** Google News search (every outlet, headlines and links only) plus the Guardian API.
+- **Paywalled** outlets show headlines only, marked "subscription".
+
+| Outlet | Region | Subject | Feed |
+|---|---|---|---|
+| BBC News (breaking) | uk | news | https://feeds.bbci.co.uk/news/rss.xml |
+| Sky News (breaking) | uk | news | https://feeds.skynews.com/feeds/rss/home.xml |
+| The Guardian (breaking) | uk | news | https://www.theguardian.com/uk/rss |
+| The Independent (breaking) | uk | news | https://www.independent.co.uk/news/uk/rss |
+| The Telegraph (paywall) | uk | news | https://www.telegraph.co.uk/rss.xml |
+| Evening Standard | uk | news | https://www.standard.co.uk/rss |
+| The i Paper | uk | news | https://inews.co.uk/feed |
+| Financial Times (paywall) | uk | business | https://www.ft.com/rss/home |
+| The Economist (paywall) | uk | business | https://www.economist.com/latest/rss.xml |
+| BBC Business | uk | business | https://feeds.bbci.co.uk/news/business/rss.xml |
+| Sky Sports | uk | sport | https://www.skysports.com/rss/12040 |
+| BBC Sport | uk | sport | https://feeds.bbci.co.uk/sport/rss.xml |
+| RTÉ News (breaking) | ie | news | https://www.rte.ie/feeds/rss/?index=/news/ |
+| The Irish Times (breaking, paywall) | ie | news | https://www.irishtimes.com/arc/outboundfeeds/feed-irish-news/?outputType=xml |
+| ABC News (Australia) (breaking) | au | news | https://www.abc.net.au/news/feed/51120/rss.xml |
+| Guardian Australia (breaking) | au | news | https://www.theguardian.com/australia-news/rss |
+| NPR (breaking) | us | news | https://feeds.npr.org/1001/rss.xml |
+| The New York Times (breaking, paywall) | us | news | https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml |
+| CBS News (breaking) | us | news | https://www.cbsnews.com/latest/rss/main |
+| CNBC | us | business | https://www.cnbc.com/id/100003114/device/rss/rss.html |
+| BBC World (breaking) | world | news | https://feeds.bbci.co.uk/news/world/rss.xml |
+| Al Jazeera (breaking) | world | news | https://www.aljazeera.com/xml/rss/all.xml |
+| DW (breaking) | world | news | https://rss.dw.com/rdf/rss-en-all |
+| France 24 | world | news | https://www.france24.com/en/rss |
+| Euronews | world | news | https://www.euronews.com/rss |
+| Politico Europe | world | news | https://www.politico.eu/feed/ |
+| The Verge | world | tech | https://www.theverge.com/rss/index.xml |
+| TechCrunch | world | tech | https://techcrunch.com/feed/ |
+| Wired | world | tech | https://www.wired.com/feed/rss |
+| Ars Technica | world | tech | https://feeds.arstechnica.com/arstechnica/index |
+| Engadget | world | tech | https://www.engadget.com/rss.xml |
+| 9to5Mac | world | tech | https://9to5mac.com/feed/ |
+| Tom's Hardware | world | tech | https://www.tomshardware.com/feeds/all |
+| MacRumors | world | tech | https://feeds.macrumors.com/MacRumors-All |
+| 9to5Google | world | tech | https://9to5google.com/feed/ |
+| Android Authority | world | tech | https://www.androidauthority.com/feed/ |
+| The Register | uk | tech | https://www.theregister.com/headlines.atom |
+| TechRadar | world | tech | https://www.techradar.com/rss |
+| MIT Technology Review | world | tech | https://www.technologyreview.com/feed/ |
+| Rest of World | world | tech | https://restofworld.org/feed/latest/ |
+| 404 Media | world | tech | https://www.404media.co/rss/ |
+| Hacker News | world | tech | https://hnrss.org/frontpage |
+| BBC Technology | uk | tech | https://feeds.bbci.co.uk/news/technology/rss.xml |
+| Guardian Technology | uk | tech | https://www.theguardian.com/uk/technology/rss |
+| New Scientist | uk | science | https://www.newscientist.com/feed/home/ |
+| Nature | world | science | https://www.nature.com/nature.rss |
+| Live Science | world | science | https://www.livescience.com/feeds/all |
+| ScienceDaily | world | science | https://www.sciencedaily.com/rss/all.xml |
+| NASA | world | science | https://www.nasa.gov/news-release/feed/ |
+| BBC Science | uk | science | https://feeds.bbci.co.uk/news/science_and_environment/rss.xml |
+| BBC Entertainment & Arts | uk | culture | https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml |
+| Guardian Culture | uk | culture | https://www.theguardian.com/uk/culture/rss |
+
+Dropped when checked on 27 September 2026: Gizmodo (403 to feed readers), The Washington Post (feed timed out). Reuters and AP have no free feeds.
+
 ## World and UK news
 
 | Feed | URL |

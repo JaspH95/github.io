@@ -10,7 +10,7 @@ A personal newspaper and learning app that ends. News comes in Morning, Midday a
 | Pipeline | `pipeline/run.ts`, `.github/workflows/pipeline.yml` | Hourly on GitHub Actions: fetches every source, groups articles into stories, scores importance, writes AI summaries, picks images, writes `public/data/*.json` |
 | Seed | `pipeline/seed.ts`, `.github/workflows/seed.yml` | Monthly: ESCO occupations and skills, and the GeoNames city list, for onboarding |
 | Health check | `pipeline/check.ts`, `.github/workflows/check.yml` | Tests every key, source and serverless function |
-| Serverless functions | `api/` | Live football, interest search, skill of the day, local news for any city. Keys stay on the server |
+| Serverless functions | `api/` | Live news (outlets, breaking, search), live football, interest search, skill of the day, local news for any city. Keys stay on the server |
 | Interests | `content/interests.json` | The ~60 starter interests: news matching terms, Guardian sections, Wikipedia titles for learning |
 | Extra learning topics | `content/topics.json` | Wikipedia titles for topics that aren't news interests (BSL) |
 | Phrase packs | `content/phrases/*.json` | The one fixed content type. See `content/phrases/README.md` |
