@@ -19,3 +19,23 @@ export function similar(a: Set<string>, b: Set<string>): boolean {
   if (!small) return false;
   return shared >= 3 ? shared / small >= 0.45 : shared >= 2 && small <= 3 && shared / small >= 0.66;
 }
+
+/* Names in a headline: capitalised words after the first, and numbers. Headlines written in Title Case give none. */
+export function names(title: string): Set<string> {
+  const words = title.replace(/[’']s\b/g, '').split(/[^\p{L}\p{N}£$€%]+/u).filter(Boolean);
+  const caps = words.slice(1).filter(w => /^\p{Lu}/u.test(w));
+  if (caps.length > (words.length - 1) * 0.6) return new Set(words.filter(w => /\d{2,}/.test(w)));
+  return new Set([...caps.filter(w => !STOP.has(w.toLowerCase()) && w.length > 1), ...words.filter(w => /\d{2,}/.test(w))].map(w => w.toLowerCase()));
+}
+
+/* Two headlines about the same event, even from different outlets with different wording:
+   very similar words, or the same two names (people, places) and a third word in common */
+export interface Heads { tok: Set<string>; nm: Set<string> }
+export const heads = (title: string): Heads => ({ tok: tokens(title), nm: names(title) });
+export function sameEvent(a: Heads, b: Heads): boolean {
+  if (similar(a.tok, b.tok)) return true;
+  let n = 0; a.nm.forEach(w => { if (b.nm.has(w)) n++; });
+  if (n < 2) return false;
+  let t = 0; a.tok.forEach(w => { if (b.tok.has(w)) t++; });
+  return t >= 3;
+}

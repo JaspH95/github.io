@@ -108,6 +108,11 @@ img.photo{ filter:blur(0); transition:opacity .3s; }
 .readbtn{ margin-top:12px; display:inline-flex; align-items:center; gap:8px; font-size:.92rem; font-weight:600; padding:10px 16px; border-radius:999px; cursor:pointer; text-decoration:none; color:#fff; }
 .readbtn svg{ width:14px; height:14px; }
 .readbtn.solid{ background:#fff; color:#000; border:0; }
+.dismiss{ display:flex; gap:8px; margin-top:10px; }
+.dz{ display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:.8rem; font-weight:600; color:rgba(255,255,255,.9); background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.2); padding:7px 12px; border-radius:999px; cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); text-shadow:none; }
+.dz svg{ width:14px; height:14px; flex:none; }
+.dz:active{ background:rgba(255,255,255,.2); }
+.card.dropping{ transition:opacity .26s ease, transform .26s ease; opacity:0; transform:scale(.94); pointer-events:none; }
 .attrib, .credit{ font-size:.74rem !important; color:rgba(235,235,245,.7) !important; margin:10px 0 0 !important; -webkit-line-clamp:2 !important; }
 .credit{ margin-top:4px !important; }
 .attrib a{ color:inherit; }

@@ -1,9 +1,9 @@
 /* The edition feed: a finite set of full-screen cards, ending with "You're up to date". */
-import { S, markSeen, bump, day } from './state';
+import { S, markSeen, bump, day, remember, dismissed } from './state';
 import { esc, ICON, plural } from './ui';
 import { render, type Card } from './cards';
 import { todays, minutes } from './series';
-import { build, markFinished, nextLabel, SLOT_LABEL, justIn, type Edition } from './edition';
+import { build, markFinished, nextLabel, SLOT_LABEL, justIn, hadBefore, type Edition } from './edition';
 import { hasPack, progressLine } from './languages';
 import * as srs from './srs';
 import { openStory } from './story';
@@ -25,6 +25,7 @@ const io = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserve
     el.dataset.seen = '1';
     const c: Card | undefined = (el as any)._card;
     if (c && markSeen(c.id) && ['learn', 'skill', 'phrase', 'sign'].includes(c.kind)) bump('learned');
+    if (c?.story) remember(c.story, 'seen');
     progress();
     if (el.dataset.kind === 'done' && edition && !edition.finishedAt) { markFinished(edition); bump('finished'); refreshDone(); }
   }
@@ -52,16 +53,43 @@ export function showEdition(force = false) {
   const f = feed();
   f.innerHTML = '';
   if (e.catchup) f.appendChild(catchupCard(e));
-  for (const c of e.cards) { if ((c.kind as string) === 'sports') continue; const n = render(c); f.appendChild(n); io?.observe(n); }   // editions saved before the sports page card was removed
+  // Stories you've marked as read or said no to are left out, even from an edition you've already opened
+  for (const c of e.cards) {
+    if ((c.kind as string) === 'sports') continue;   // editions saved before the sports page card was removed
+    if (c.story && dismissed(c.story.id)) continue;
+    const n = render(c); f.appendChild(n); io?.observe(n);
+  }
   const done = doneCard(e);
   f.appendChild(done); io?.observe(done);
-  // Past the done card: stories from earlier today you haven't seen, each tagged "Earlier today"
-  for (const c of e.earlier) { const n = render({ ...c, earlier: true }); f.appendChild(n); io?.observe(n); }
+  // Past the done card: stories from earlier today you haven't had yet (seen, read, or the same news elsewhere), each tagged "Earlier today"
+  const had = hadBefore();
+  for (const c of earlierFor(e, had)) { const n = render({ ...c, earlier: true }); f.appendChild(n); io?.observe(n); }
+  refreshDone();
+  // Coming back to an edition you've started: pick up at the first card you haven't seen, not the top
+  const els = [...f.children] as HTMLElement[];
+  const started = els.some(n => (n as any)._card && S.seen[(n as any)._card.id]);
+  const resume = started ? els.find(n => n.dataset.kind === 'done' || ((n as any)._card && !S.seen[(n as any)._card.id])) : null;
   f.scrollTo({ top: 0 });
+  if (resume && resume !== els[0]) requestAnimationFrame(() => { f.scrollTo({ top: resume.offsetTop }); currentEl = resume; progress(); });
   document.getElementById('edLabel')!.textContent = e.catchup ? 'Catch-up' : SLOT_LABEL[e.slot];
   f.setAttribute('aria-label', SLOT_LABEL[e.slot]);
   showJustIn();
 }
+
+const earlierFor = (e: Edition, had: ReturnType<typeof hadBefore>) => e.earlier.filter(c => !c.story || !had(c.story));
+
+/* "Mark as read" or "Not interested": the card folds away and the next one takes its place */
+document.addEventListener('kf-drop', ev => {
+  const el = (ev as CustomEvent<HTMLElement>).detail;
+  if (!el?.isConnected) return;
+  el.classList.add('dropping');
+  setTimeout(() => {
+    const next = el.nextElementSibling as HTMLElement | null;
+    io?.unobserve(el); el.remove();
+    if (currentEl === el) currentEl = next;
+    progress(); refreshDone();
+  }, 280);
+});
 
 function catchupCard(e: Edition): HTMLElement {
   const el = document.createElement('section');
@@ -111,10 +139,12 @@ function doneHTML(e: Edition): string {
       <button class="next-row" data-go="learn"><span class="ic">${ICON.book}</span><span><b>Explore your library</b><span>Skills, topics and today's picks</span></span>${ICON.chev}</button>
     </div>
     ${week ? `<div class="recap"><p class="kicker small">Your week</p><p>${week}</p></div>` : ''}
-    ${e.earlier.length ? `<div class="hint">${ICON.up}Keep scrolling for ${plural(e.earlier.length, 'story', 'stories')} from earlier today</div>` : ''}
+    ${earlierCount() ? `<div class="hint">${ICON.up}Keep scrolling for ${plural(earlierCount(), 'story', 'stories')} from earlier today</div>` : ''}
     <button class="linkish change">Change what you see</button>
   </div>`;
 }
+
+const earlierCount = () => feed().querySelectorAll('[data-kind="done"] ~ [data-kind="story"]').length;
 
 function wireDone(el: HTMLElement, e: Edition) {
   el.querySelectorAll<HTMLElement>('[data-lesson]').forEach(b => b.addEventListener('click', () => startLesson(b.dataset.lesson!)));

@@ -660,6 +660,11 @@ async function section(k: Section) {
       p.breaking = b === 'on';
       pastAll(); await say('Which outlets would you like to follow? Their latest goes into your editions.');
       p.outlets = await askOutlets(regionOf(p.city?.country), p.outlets || []);
+      const hidden = Object.entries(S.history).filter(([, g]) => g.k === 'done' || g.k === 'know' || g.k === 'hide');
+      if (hidden.length) {
+        pastAll(); await say(`You've marked ${hidden.length === 1 ? 'one story' : `${hidden.length} stories`} as read or not interested. They stay hidden for three weeks.`);
+        if (await askOne([['keep', 'Keep them hidden', 'flag'], ['show', 'Show them again', 'dots']]) === 'show') { hidden.forEach(([id]) => delete S.history[id]); persist.history(); }
+      }
       pastAll(); await saveP(p.outlets.length ? `Saved. Following ${p.outlets.map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean).join(', ')}.` : 'Saved. No outlets for now.');
       return;
     }

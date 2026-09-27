@@ -11,6 +11,7 @@ import * as srs from './srs';
 import { speakIn } from './audio';
 import { openStory, openLearn, openSkill } from './story';
 import { feedback } from './feedback';
+import { markDone, notInterested } from './dismiss';
 import { storyLabel } from './data';
 import type { Story, LearnCard, Quiz, HubItem, TopicKey, Entity } from './types';
 
@@ -119,7 +120,8 @@ function body(c: Card): string {
       return `<div class="meta">${ICON.bolt}<span>${storyMeta(s)}</span></div>
         ${c.earlier ? '<span class="pill earlier">Earlier today</span>' : c.followed ? '<span class="pill">Following · new coverage</span>' : c.must ? `<span class="pill">${c.story?.via === 'Breaking' ? 'Breaking' : 'Top story today'}</span>` : ''}
         <h2>${hl(s.title, s.entities)}</h2>${text ? `<p>${hl(text, s.entities)}</p>` : ''}
-        <button class="readbtn glass open">Read the full story ${ICON.chev}</button>${credit(c)}`;
+        <button class="readbtn glass open">Read the full story ${ICON.chev}</button>
+        <div class="dismiss"><button class="dz done-it" aria-label="Mark as read: don’t show this story again">${ICON.check}<span>Mark as read</span></button><button class="dz not-it" aria-label="Not interested: hide this story and choose what to see less of">${ICON.hide}<span>Not interested</span></button></div>${credit(c)}`;
     }
     case 'learn': {
       const l = c.learn!;
@@ -235,10 +237,15 @@ export function moreMenu(c: Card) {
   const url = c.story?.url || c.learn?.url || c.hub?.url || c.quiz?.source.url;
   options([
     ...(url ? [['share', 'Share', () => share(title, url)] as [string, string, () => void]] : []),
-    ...(c.kind === 'story' ? [['fewer', 'Show fewer stories like this', () => fewerLikeThis(c)] as [string, string, () => void]] : []),
+    ...(c.kind === 'story' ? [
+      ['done', 'Mark as read', () => markDone(c, cardEl(c))] as [string, string, () => void],
+      ['not', 'Not interested…', () => notInterested(c, cardEl(c))] as [string, string, () => void],
+    ] : []),
     ['wrong', 'Something wrong?', () => feedback(c.id, title)],
   ], 'Card options');
 }
+
+const cardEl = (c: Card) => document.querySelector<HTMLElement>(`#feed [data-id="${CSS.escape(c.id)}"]`) || undefined;
 
 export async function share(title: string, url: string) {
   try {
@@ -281,6 +288,8 @@ function wire(c: Card, el: HTMLElement) {
     else if (c.series) document.dispatchEvent(new CustomEvent('kf-series', { detail: c.series }));
   };
   el.querySelector('.open')?.addEventListener('click', e => { e.stopPropagation(); open(); });
+  el.querySelector('.done-it')?.addEventListener('click', e => { e.stopPropagation(); markDone(c, el); });
+  el.querySelector('.not-it')?.addEventListener('click', e => { e.stopPropagation(); notInterested(c, el); });
   el.querySelector('.start-series')?.addEventListener('click', e => { e.stopPropagation(); open(); });
   // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
   // The single tap waits a moment, so a double tap never opens the story by accident.
