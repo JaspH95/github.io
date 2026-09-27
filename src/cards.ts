@@ -114,7 +114,7 @@ function body(c: Card): string {
       const s = c.story!;
       const text = sentences(s.standfirst, 2);
       return `<div class="meta">${ICON.bolt}<span>${storyMeta(s)}</span></div>
-        ${c.earlier ? '<span class="pill earlier">Earlier today</span>' : c.followed ? '<span class="pill">Following · new coverage</span>' : c.must ? '<span class="pill">Top story today</span>' : ''}
+        ${c.earlier ? '<span class="pill earlier">Earlier today</span>' : c.followed ? '<span class="pill">Following · new coverage</span>' : c.must ? `<span class="pill">${c.story?.via === 'Breaking' ? 'Breaking' : 'Top story today'}</span>` : ''}
         <h2>${hl(s.title, s.entities)}</h2>${text ? `<p>${hl(text, s.entities)}</p>` : ''}
         <button class="readbtn glass open">Read the full story ${ICON.chev}</button>${credit(c)}`;
     }

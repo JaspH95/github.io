@@ -119,12 +119,12 @@ export async function wikipediaDaily(date: Date): Promise<{ cards: LearnCard[]; 
   const r = seeded(dayNum(date));
   const shuffled = shuffle(events, r);
   const withPic = shuffled.filter(e => e.pages.some((p: WikiSummary) => p.thumbnail && !/^\d+$/.test(p.title)));
-  withPic.slice(0, 3).forEach(e => {
+  withPic.slice(0, 5).forEach(e => {
     const p: WikiSummary = e.pages.find((p: WikiSummary) => p.thumbnail && !/^\d+$/.test(p.title));
     cards.push(wikiCard(p, 'onthisday', 'general', { year: e.year, event: e.text }));
   });
   const nowYear = date.getUTCFullYear();
-  shuffled.filter(e => !withPic.slice(0, 3).includes(e) && !String(e.text).includes(String(e.year))).slice(0, 3).forEach(e => {
+  shuffled.filter(e => !withPic.slice(0, 5).includes(e) && !String(e.text).includes(String(e.year))).slice(0, 4).forEach(e => {
     const offsets = shuffle([-12, -9, -7, -5, -4, -3, -2, 2, 3, 4, 5, 7, 9, 12], r);
     const wrong: number[] = [];
     for (const o of offsets) { const y = e.year + o; if (y <= nowYear && y > 0 && !wrong.includes(y)) wrong.push(y); if (wrong.length === 2) break; }
@@ -144,11 +144,41 @@ export async function wikipediaDaily(date: Date): Promise<{ cards: LearnCard[]; 
 }
 
 /* Learning cards for every interest (and extra topics like BSL): a few titles a day, rotating through each list */
-export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, perTopic = 2): Promise<LearnCard[]> {
+/* Each interest's pool of Wikipedia articles: its hand-picked titles, plus articles Wikipedia itself says are
+   similar ("morelike" search). The pool grows over time and is refreshed a few seeds at a time, weekly. */
+export type LearnPool = Record<string, { titles: string[]; refreshed: string; seedAt: number }>;
+const JUNK = /^(List|Lists|Outline|Index|Timeline|Glossary|Bibliography) of |\(disambiguation\)|^\d{1,4}( BC| AD)?$|^\d{4} in /i;
+
+async function related(title: string): Promise<string[]> {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&list=search&srnamespace=0&srlimit=12&srqiprofile=classic_noboostlinks&srsearch=${encodeURIComponent(`morelike:${title}`)}`;
+  try { const r = await fetchJSON<any>(url); return (r?.query?.search || []).map((x: any) => String(x.title)).filter((t: string) => !JUNK.test(t)); } catch { return []; }
+}
+
+export async function growPools(interests: Interest[], pool0: LearnPool, date: Date): Promise<LearnPool> {
+  const pools: LearnPool = { ...pool0 };
+  const week = 7 * 86400_000;
+  let found = 0;
+  const due = interests.filter(i => i.wiki.length && (!pools[i.id] || +date - +new Date(pools[i.id].refreshed) > week));
+  await pool(due, 3, async i => {
+    const p = pools[i.id] || { titles: [], refreshed: '', seedAt: 0 };
+    // Four seeds per refresh, taking turns through the hand-picked list
+    const seeds = [0, 1, 2, 3].map(k => i.wiki[(p.seedAt + k) % i.wiki.length]);
+    const more: string[] = [];
+    for (const t of seeds) { more.push(...(await related(t))); await sleep(120); }
+    const titles = [...new Set([...p.titles, ...more])].filter(t => !i.wiki.includes(t)).slice(0, 120);
+    found += titles.length - p.titles.length;
+    pools[i.id] = { titles, refreshed: date.toISOString(), seedAt: (p.seedAt + 4) % Math.max(1, i.wiki.length) };
+  });
+  record('Wikipedia related articles', 'https://en.wikipedia.org/w/api.php?list=search&srsearch=morelike:{title}', true, found, due.length ? `${due.length} interests refreshed` : 'none due');
+  return pools;
+}
+
+export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, pools: LearnPool = {}, perTopic = 5): Promise<LearnCard[]> {
   const jobs: { topic: TopicKey; interest?: string; title: string }[] = [];
   const day = dayNum(date);
   const lists: { topic: TopicKey; interest?: string; titles: string[]; n: number }[] = [
-    ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: i.wiki, n: perTopic })),
+    // Hand-picked titles first, then the wider pool, so the basics come before the deep cuts
+    ...interests.map(i => ({ topic: i.cat, interest: i.id, titles: [...i.wiki, ...(pools[i.id]?.titles || [])], n: perTopic })),
     ...Object.entries(extra).filter(([k, v]) => !k.startsWith('_') && Array.isArray(v)).map(([k, v]) => ({ topic: k as TopicKey, titles: v as string[], n: 3 })),
   ];
   for (const l of lists) {
@@ -156,14 +186,15 @@ export async function topicCards(interests: Interest[], extra: Record<string, st
     for (let k = 0; k < Math.min(l.n, l.titles.length); k++) jobs.push({ topic: l.topic, interest: l.interest, title: l.titles[(day * l.n + k) % l.titles.length] });
   }
   let ok = 0; const missing: string[] = [];
-  const out = await pool(jobs, 3, async j => {
+  const out = await pool(jobs, 4, async j => {
     const s = await wikiSummary(j.title);
-    await sleep(100);
-    if (!s) { missing.push(j.title); return null; }
+    await sleep(80);
+    // Only articles with enough to learn from
+    if (!s || s.extract.length < 280) { missing.push(j.title); return null; }
     ok++;
     return wikiCard(s, 'topic', j.topic, j.interest ? { interest: j.interest } : {});
   });
-  record('Wikipedia topic summaries', 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}', ok > 0, ok, missing.length ? `not found: ${missing.join('; ')}` : undefined);
+  record('Wikipedia topic summaries', 'https://en.wikipedia.org/api/rest_v1/page/summary/{title}', ok > 0, ok, missing.length ? `skipped ${missing.length}: ${missing.slice(0, 12).join('; ')}` : undefined);
   // The same article can sit in two lists: keep one card
   const seen = new Set<string>();
   return (out.filter(Boolean) as LearnCard[]).filter(c => (seen.has(c.id) ? false : (seen.add(c.id), true)));

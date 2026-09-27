@@ -39,7 +39,6 @@ export const OUTLETS: Outlet[] = [
   // US
   { id: 'npr', name: 'NPR', region: 'us', kind: 'news', feed: 'https://feeds.npr.org/1001/rss.xml', breaking: true },
   { id: 'nyt', name: 'The New York Times', region: 'us', kind: 'news', feed: 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml', breaking: true, paywall: true },
-  { id: 'wapo', name: 'The Washington Post', region: 'us', kind: 'news', feed: 'https://feeds.washingtonpost.com/rss/national', breaking: true, paywall: true },
   { id: 'cbs', name: 'CBS News', region: 'us', kind: 'news', feed: 'https://www.cbsnews.com/latest/rss/main', breaking: true },
   { id: 'cnbc', name: 'CNBC', region: 'us', kind: 'business', feed: 'https://www.cnbc.com/id/100003114/device/rss/rss.html' },
   // International
@@ -62,7 +61,6 @@ export const OUTLETS: Outlet[] = [
   { id: 'theregister', name: 'The Register', region: 'uk', kind: 'tech', feed: 'https://www.theregister.com/headlines.atom' },
   { id: 'tomshardware', name: "Tom's Hardware", region: 'world', kind: 'tech', feed: 'https://www.tomshardware.com/feeds/all' },
   { id: 'techradar', name: 'TechRadar', region: 'world', kind: 'tech', feed: 'https://www.techradar.com/rss' },
-  { id: 'gizmodo', name: 'Gizmodo', region: 'world', kind: 'tech', feed: 'https://gizmodo.com/feed' },
   { id: 'mittr', name: 'MIT Technology Review', region: 'world', kind: 'tech', feed: 'https://www.technologyreview.com/feed/' },
   { id: 'restofworld', name: 'Rest of World', region: 'world', kind: 'tech', feed: 'https://restofworld.org/feed/latest/' },
   { id: '404media', name: '404 Media', region: 'world', kind: 'tech', feed: 'https://www.404media.co/rss/' },
@@ -106,7 +104,8 @@ const json = (body: unknown, maxAge: number, status = 200) =>
 const ENT: Record<string, string> = { '&amp;': '&', '&quot;': '"', '&#39;': "'", '&apos;': "'", '&lt;': '<', '&gt;': '>', '&nbsp;': ' ', '&#8217;': '’', '&#8216;': '‘', '&#8220;': '“', '&#8221;': '”', '&#8211;': '–', '&#8212;': '—', '&#038;': '&' };
 const decode = (s: string) => s.replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))).replace(/&#(\d+);/g, (m, d) => ENT[m] ?? String.fromCodePoint(+d)).replace(/&[a-z]+;/gi, m => ENT[m.toLowerCase()] ?? ' ');
 const cdata = (s: string) => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
-const text = (s: string) => decode(cdata(s).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+/* Plain text: some feeds escape their HTML (&lt;p&gt;), so unescape that first, then drop the tags */
+const text = (s: string) => { const c = cdata(s); const h = /&lt;[a-z/]/i.test(c) ? c.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"') : c; return decode(h.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim(); };
 const clip = (s: string, n: number) => (s.length <= n ? s : s.slice(0, s.lastIndexOf(' ', n - 1) > n * 0.6 ? s.lastIndexOf(' ', n - 1) : n - 1) + '…');
 const tag = (block: string, name: string) => block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'))?.[1];
 const attr = (block: string, el: string, a: string) => block.match(new RegExp(`<${el}\\b[^>]*\\b${a}=["']([^"']+)["']`, 'i'))?.[1];
@@ -125,7 +124,7 @@ export function parseFeed(xml: string, outlet: string, outletId?: string): NewsI
     const rawDesc = tag(b, 'description') || tag(b, 'summary') || tag(b, 'content') || tag(b, 'content:encoded') || '';
     const when = text(tag(b, 'pubDate') || tag(b, 'published') || tag(b, 'updated') || tag(b, 'dc:date') || '');
     const t = when ? new Date(when) : null;
-    const img = safeHttp(attr(b, 'media:content', 'url') || attr(b, 'media:thumbnail', 'url') || (/image\//i.test(attr(b, 'enclosure', 'type') || '') ? attr(b, 'enclosure', 'url') : undefined) || cdata(rawDesc + (tag(b, 'content:encoded') || '')).match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]);
+    const img = safeHttp(attr(b, 'media:content', 'url') || attr(b, 'media:thumbnail', 'url') || (/image\//i.test(attr(b, 'enclosure', 'type') || '') ? attr(b, 'enclosure', 'url') : undefined) || decode(cdata(rawDesc + (tag(b, 'content:encoded') || ''))).match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]);
     const summary = clip(text(rawDesc).replace(/^(Article URL|Comments URL|Points|# Comments):.*$/gim, '').trim(), 260);
     out.push({
       id: hashId(link), title: clip(title, 200), summary: /^(Comments|Article URL)/.test(summary) ? '' : summary, url: link, outlet: text(tag(b, 'source') || '') || outlet, ...(outletId ? { outletId } : {}),

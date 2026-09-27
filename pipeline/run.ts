@@ -12,7 +12,7 @@ import { readPage, htmlToText } from './fulltext';
 import { Summariser, type Source } from './summarise';
 import { enrich, pruneEntities, type EntityCache } from './entities';
 import { chooseImages, pruneImages, imageStats, type ImageCache } from './images';
-import { wikipediaDaily, topicCards, apod, wikidataQuizzes, hubspot } from './learn';
+import { wikipediaDaily, topicCards, apod, wikidataQuizzes, hubspot, growPools, type LearnPool } from './learn';
 import { NEWS_FEEDS, GUARDIAN_SECTIONS, BBC_REGIONS, WORLD_CITIES, SPORT_FEEDS, TEAM_SLUGS } from './sources';
 import { fetchJSON, record, status, hash, todayUTC, pool } from './util';
 import { OFFLINE, RECORD } from './http';
@@ -176,7 +176,9 @@ async function learn(interests: InterestsFile): Promise<LearnFile> {
     return { ...old, generated: now.toISOString(), hubspot: hub.length ? hub : old.hubspot };
   }
   const daily = await wikipediaDaily(now);
-  const topicList = await topicCards(interests.interests, extra, now);
+  const pools = await growPools(interests.interests, await readJSON<LearnPool>(`${CACHE}/learnpool.json`, {}), now);
+  await writeFile(`${CACHE}/learnpool.json`, JSON.stringify(pools) + '\n');
+  const topicList = await topicCards(interests.interests, extra, now, pools);
   const pic = await apod();
   const wd = await wikidataQuizzes(now);
   const cards = [...daily.cards, ...(pic ? [pic] : []), ...topicList];
