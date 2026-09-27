@@ -15,7 +15,7 @@ import { closeSheet } from './ui';
 import { log } from './events';
 import * as cloud from './cloud';
 
-/* Home Screen app on iPhone: if the phone reports no top safe area, keep the top bar clear of the status bar anyway */
+/* Home Screen app on iPhone: keep the top bar clear of the status bar, and fill the whole screen */
 (function safeTop() {
   const standalone = (navigator as any).standalone === true || matchMedia('(display-mode: standalone)').matches;
   if (!standalone || !/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
@@ -24,6 +24,17 @@ import * as cloud from './cloud';
   document.body.appendChild(probe);
   const h = probe.getBoundingClientRect().height; probe.remove();
   if (h < 20) document.documentElement.style.setProperty('--safe-t', `${screen.height >= 812 ? 50 : 20}px`);
+  // Some iPhones give Home Screen apps a page shorter than the screen, leaving a black strip under the tab bar.
+  // Size the app to the whole screen instead (everything is positioned against the body).
+  const fill = () => {
+    const portrait = matchMedia('(orientation: portrait)').matches;
+    const full = portrait ? Math.max(screen.height, screen.width) : Math.min(screen.height, screen.width);
+    if (full - window.innerHeight > 20) document.documentElement.style.setProperty('--app-h', `${full}px`);
+    else document.documentElement.style.removeProperty('--app-h');
+  };
+  fill();
+  window.addEventListener('resize', fill);
+  window.addEventListener('orientationchange', () => setTimeout(fill, 300));
 })();
 
 initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
@@ -43,8 +54,9 @@ function open() {
 
 onChatClosed(() => {
   if (!S.profile) return;
-  // Back to Profile if the chat was opened from there; the edition is rebuilt with any changes either way
-  if (currentTab() === 'profile') { showEdition(); startLive(); go('profile'); } else open();
+  // Back to wherever the chat was opened from; the edition is rebuilt with any changes either way
+  const t = currentTab();
+  if (t === 'edition') open(); else { showEdition(); startLive(); go(t); }
 });
 onDevRebuild(() => { showEdition(); if (currentTab() !== 'edition') go('edition'); });
 

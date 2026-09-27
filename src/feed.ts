@@ -1,7 +1,7 @@
 /* The edition feed: a finite set of full-screen cards, ending with "You're up to date". */
 import { S, markSeen, bump, day } from './state';
 import { esc, ICON, plural } from './ui';
-import { render, storyMeta, hl, type Card } from './cards';
+import { render, type Card } from './cards';
 import { build, markFinished, nextLabel, SLOT_LABEL, justIn, type Edition } from './edition';
 import { hasPack, progressLine } from './languages';
 import * as srs from './srs';
@@ -33,8 +33,11 @@ function progress() {
   const f = feed();
   const cards = [...f.children] as HTMLElement[];
   const i = currentEl ? cards.indexOf(currentEl) : 0;
+  // The edition ends at the done card; earlier stories after it don't stretch the bar
+  const end = cards.findIndex(c => c.dataset.kind === 'done');
+  const last = end >= 0 ? end : cards.length - 1;
   const bar = document.getElementById('prog');
-  if (bar) bar.style.width = `${Math.max(0, (i / Math.max(1, cards.length - 1)) * 100)}%`;
+  if (bar) bar.style.width = `${Math.min(100, Math.max(0, (i / Math.max(1, last)) * 100))}%`;
 }
 
 /* ---------- Building the feed ---------- */
@@ -51,6 +54,8 @@ export function showEdition(force = false) {
   for (const c of e.cards) { const n = render(c); f.appendChild(n); io?.observe(n); }
   const done = doneCard(e);
   f.appendChild(done); io?.observe(done);
+  // Past the done card: stories from earlier today you haven't seen, each tagged "Earlier today"
+  for (const c of e.earlier) { const n = render({ ...c, earlier: true }); f.appendChild(n); io?.observe(n); }
   f.scrollTo({ top: 0 });
   document.getElementById('edLabel')!.textContent = e.catchup ? 'Catch-up' : SLOT_LABEL[e.slot];
   f.setAttribute('aria-label', SLOT_LABEL[e.slot]);
@@ -66,7 +71,7 @@ function catchupCard(e: Edition): HTMLElement {
   el.innerHTML = `<div class="aurora soft"></div><div class="inner">
     <p class="kicker">While you were away</p>
     <h2 class="display">Your ${list} editions, in one.</h2>
-    <p>${plural(stories, 'story', 'stories')}, the most important first, with learning in between. Anything below the cut is in <b>Earlier today</b> at the end.</p>
+    <p>${plural(stories, 'story', 'stories')}, the most important first, with learning in between. Anything below the cut comes after, tagged <b>Earlier today</b>.</p>
     <div class="hint">${ICON.up}Swipe up to start</div></div>`;
   return el;
 }
@@ -103,7 +108,7 @@ function doneHTML(e: Edition): string {
       <button class="next-row" data-go="learn"><span class="ic">${ICON.book}</span><span><b>Explore your library</b><span>Skills, topics and today's picks</span></span>${ICON.chev}</button>
     </div>
     ${week ? `<div class="recap"><p class="kicker small">Your week</p><p>${week}</p></div>` : ''}
-    ${e.earlier.length ? `<details class="earlier"><summary>Earlier today <span>${e.earlier.length}</span></summary><ul>${e.earlier.map(c => `<li><button data-story="${esc(c.story!.id)}"><span class="m">${storyMeta(c.story!)}</span>${hl(c.story!.title, c.story!.entities)}</button></li>`).join('')}</ul></details>` : ''}
+    ${e.earlier.length ? `<div class="hint">${ICON.up}Keep scrolling for ${plural(e.earlier.length, 'story', 'stories')} from earlier today</div>` : ''}
     <button class="linkish change">Change what you see</button>
   </div>`;
 }
@@ -112,16 +117,13 @@ function wireDone(el: HTMLElement, e: Edition) {
   el.querySelectorAll<HTMLElement>('[data-lesson]').forEach(b => b.addEventListener('click', () => startLesson(b.dataset.lesson!)));
   el.querySelector('[data-review]')?.addEventListener('click', () => startReview());
   el.querySelector('[data-go]')?.addEventListener('click', () => go('learn'));
-  el.querySelectorAll<HTMLElement>('[data-story]').forEach(b => b.addEventListener('click', () => { const c = e.earlier.find(x => x.story?.id === b.dataset.story); if (c?.story) openStory(c.story); }));
   el.querySelector('.change')?.addEventListener('click', () => openChat());
 }
 
 export function refreshDone() {
   const el = feed().querySelector<HTMLElement>('[data-kind="done"]');
   if (!el || !edition) return;
-  const open = el.querySelector('details')?.open;
   el.innerHTML = doneHTML(edition);
-  if (open) el.querySelector('details')?.setAttribute('open', '');
   wireDone(el, edition);
 }
 

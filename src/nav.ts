@@ -1,5 +1,5 @@
-/* The tab bar: Edition, Sport, Search, Saved and Profile. Learning and language cards live in the edition itself;
-   the Learn and Languages pages open from those cards and the done screen. */
+/* The tab bar: Edition, Search, Chat, Saved and Profile. Learning, language and sport cards live in the edition itself;
+   the Learn, Languages and Sport pages open from those cards and the done screen. Chat opens the settings chat. */
 import { close as closeStory, isOpen } from './story';
 import { stopAudio } from './audio';
 
@@ -28,7 +28,7 @@ export function toTop() { document.getElementById('feed')!.scrollTo({ top: 0, be
 export function refreshTab() { if (tab !== 'edition') go(tab); }
 
 export function initNav() {
-  document.querySelectorAll<HTMLButtonElement>('.tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll<HTMLButtonElement>('.tab[data-tab]').forEach(b => b.addEventListener('click', () => {
     // Tapping Edition again goes back to the top
     if (b.dataset.tab === 'edition' && tab === 'edition') { toTop(); return; }
     go(b.dataset.tab as Tab);

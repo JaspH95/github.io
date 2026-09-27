@@ -305,19 +305,28 @@ const toPicked = (id: string): PickedInterest | null => {
   return searched.get(id) || S.profile?.interests.find(x => x.id === id) || null;
 };
 
-async function askInterests(preset: PickedInterest[] = []): Promise<PickedInterest[]> {
+/* Two separate questions: what to follow in the news, then what to learn about. Both can search for anything.
+   A topic picked in both is "both"; the edition uses news picks for stories and learning picks for learning cards. */
+function askTopics(preset: PickedInterest[], placeholder: string): Promise<string[]> {
   // Sport has its own question, so it isn't repeated here
   const groups: [string, [string, string][]][] = Object.entries(CATEGORIES).filter(([c]) => c !== 'sport').map(([c, label]) => [label, INTERESTS.filter(i => i.cat === c).map(i => [i.id, i.label] as [string, string])]);
   const extra = preset.filter(p => p.id.startsWith('q:'));
   if (extra.length) groups.unshift(['Found by search', extra.map(p => [p.id, p.label])]);
-  const ids = await askMany([], { btn: 'Continue', groups, preset: preset.filter(p => !isSport(p)).map(p => p.id), search: { placeholder: 'Type anything else, like rewilding', find: findInterests } });
-  const picks = ids.map(toPicked).filter(Boolean) as PickedInterest[];
-  if (!picks.length) return [];
-  // News, learning, or both? One line per pick, "both" unless changed
+  return askMany([], { btn: 'Continue', none: 'Skip for now', groups, preset: preset.filter(p => !isSport(p)).map(p => p.id), search: { placeholder, find: findInterests } });
+}
+async function askInterests(preset: PickedInterest[] = []): Promise<PickedInterest[]> {
+  const first = !preset.length;
+  await say(first ? "First, the news. What do you want to keep up with? Pick as many as you like, or type anything that's missing." : 'What do you want to follow in the news?');
+  const news = await askTopics(preset.filter(p => p.mode !== 'learn'), 'Type anything else, like rewilding');
   pastAll();
-  await say('For each one: news, learning, or both?');
-  const modes = await askModes(picks.map(p => ({ ...p, mode: preset.find(x => x.id === p.id)?.mode || p.mode })));
-  return modes;
+  await say(first ? 'Now learning. What would you like to know more about? It can be different from your news.' : 'And what would you like to learn about?');
+  const learn = await askTopics(preset.filter(p => p.mode !== 'news'), 'Type anything, like Roman history');
+  const out: PickedInterest[] = [];
+  for (const id of [...new Set([...news, ...learn])]) {
+    const p = toPicked(id); if (!p) continue;
+    out.push({ ...p, mode: news.includes(id) && learn.includes(id) ? 'both' : news.includes(id) ? 'news' : 'learn' });
+  }
+  return out;
 }
 const isSport = (p: PickedInterest) => interestById.get(p.id)?.cat === 'sport';
 /* The sports you follow become news interests too, so their big stories can reach the edition */
@@ -325,20 +334,6 @@ function withSports(list: PickedInterest[], sports: string[]): PickedInterest[] 
   const keep = list.filter(p => !isSport(p));
   const add = INTERESTS.filter(i => i.cat === 'sport' && i.sport && sports.includes(i.sport)).map(i => ({ id: i.id, label: i.label, cat: i.cat, mode: 'news' as Mode }));
   return [...keep, ...add];
-}
-function askModes(list: PickedInterest[]): Promise<PickedInterest[]> {
-  return new Promise(res => {
-    const box = document.createElement('div'); box.className = 'modes';
-    box.innerHTML = list.map((p, i) => `<div class="mrow" data-i="${i}"><span>${esc(p.label)}</span><div class="seg" role="radiogroup" aria-label="${esc(p.label)}">${(['news', 'learn', 'both'] as Mode[]).map(m => `<button role="radio" data-m="${m}" aria-checked="${p.mode === m}">${m === 'learn' ? 'Learn' : m === 'news' ? 'News' : 'Both'}</button>`).join('')}</div></div>`).join('');
-    box.querySelectorAll<HTMLElement>('.mrow').forEach(r => r.querySelectorAll<HTMLButtonElement>('button').forEach(b => b.addEventListener('click', () => {
-      list[+r.dataset.i!].mode = b.dataset.m as Mode;
-      r.querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-    })));
-    lines().appendChild(box);
-    const go = tray('Continue');
-    go.addEventListener('click', () => { box.remove(); clearTray(); const n = list.filter(p => p.mode === 'both').length; answer(n === list.length ? 'Both for all of them' : `${list.filter(p => p.mode !== 'learn').length} for news, ${list.filter(p => p.mode !== 'news').length} for learning`); res(list); });
-    showQ(box);
-  });
 }
 
 async function askLanguages(preset: Language[] = []): Promise<Language[]> {
@@ -515,7 +510,6 @@ export async function startOnboarding() {
   await say('Now, your work.');
   const work = await askJob();
   pastAll(); await say(work.skills.length ? "Thanks. I'll bring you a skill of the day and news from your field." : 'Got it.');
-  await say("What are you into? Pick as many as you like, or type anything that's missing.");
   const interests = await askInterests();
   pastAll(); await say(interests.length > 5 ? 'A good mix. Serious, but never dull.' : interests.length ? 'Focused. I like it.' : "No problem. I'll start broad and learn from what you like.");
   await say('Want to learn a language?');
@@ -559,7 +553,7 @@ export async function startOnboarding() {
   } else if (cloud.signedIn()) cloud.push().catch(() => {});
   if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email and password.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
   await say("Double tap anything you like. I learn from your likes, show you more of what you enjoy and suggest topics to follow.", 'small');
-  await say('You can change anything later in Profile, at the bottom right.', 'small');
+  await say('You can change anything later: tap Chat at the bottom, or Profile.', 'small');
   const go = tray('Show my feed');
   go.addEventListener('click', () => { clearTray(); closeScreen(); });
 }
@@ -607,7 +601,6 @@ async function section(k: Section) {
       return;
     }
     case 'interests': {
-      await say('Pick what you want. Tap to add or remove.');
       const list = await askInterests(p.interests);
       p.interests = withSports(list, p.sports); p.avoid = p.avoid.filter(a => !list.some(i => i.id === a));
       pastAll(); await saveP(list.length ? `Done. ${list.length} interest${list.length > 1 ? 's' : ''}. Your next edition uses them.` : 'Done. I\'ll keep things broad.');
@@ -743,5 +736,6 @@ export function initChat() {
   if (window.visualViewport) { visualViewport!.addEventListener('resize', () => { fit(); if (onb().classList.contains('kb')) keepQuestion(); }); visualViewport!.addEventListener('scroll', fit); }
   window.addEventListener('resize', () => { if (onb().classList.contains('open')) setPad(); });
   $('doneBtn').addEventListener('click', () => { if (chatOpen) closeScreen(); });
-  $('avatar').addEventListener('click', () => openChat());
+  // The Chat tab opens this screen
+  document.querySelector('.tab[data-chat]')?.addEventListener('click', () => openChat());
 }
