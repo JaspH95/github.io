@@ -20,7 +20,7 @@ export interface PickedInterest {
 }
 export interface Language { name: string; level: 'new' | 'basics' | 'getting-by' | 'confident'; goal: 'travel' | 'family' | 'work' | 'fun' }
 export interface Place { name: string; country: string; lat: number; lon: number; region?: string; world?: string }
-export interface Job { uri?: string; title: string; raw: string; group?: string }
+export interface Job { uri?: string; title: string; raw: string; group?: string; areas?: string[] }
 export interface SkillPick { id: string; label: string; source: 'job' | 'chosen' }
 
 export interface Profile {

@@ -12,6 +12,7 @@ import { feedback } from './feedback';
 import { log } from './events';
 import type { Occupation, OccupationsFile, TopicKey } from './types';
 import { makeMatcher } from './jobmatch';
+import { AREAS, areaById } from './workareas';
 
 const $ = (id: string) => document.getElementById(id)!;
 const onb = () => $('onb'), lines = () => $('lines'), stream = () => $('stream'), otray = () => $('otray'), orb = () => $('orb');
@@ -177,8 +178,9 @@ async function askCity(): Promise<Profile['city']> {
     return r ? { name: r.name, country: 'GB', lat: r.lat, lon: r.lon, region: r.id } : { name: w!.name, country: '', lat: w!.lat, lon: w!.lon, world: w!.id };
   }
   return new Promise(res => {
-    const f = makeForm('Start typing your city or town'); lines().appendChild(f);
-    const sug = document.createElement('div'); sug.className = 'olist sugg'; lines().appendChild(sug);
+    // Suggestions sit above the text box, closest match nearest to it, so the keyboard never covers them
+    const f = makeForm('Start typing your city or town');
+    const sug = document.createElement('div'); sug.className = 'olist sugg'; lines().appendChild(sug); lines().appendChild(f);
     const input = f.querySelector('input')!;
     const draw = () => {
       const q = fold(input.value.trim());
@@ -186,17 +188,17 @@ async function askCity(): Promise<Profile['city']> {
       if (q.length < 2) return;
       const hits = list.filter(c => fold(c[0]).startsWith(q)).slice(0, 5);
       const more = hits.length < 5 ? list.filter(c => !hits.includes(c) && fold(c[0]).includes(q)).slice(0, 5 - hits.length) : [];
-      [...hits, ...more].forEach(c => {
+      [...hits, ...more].reverse().forEach(c => {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'po'; b.innerHTML = `${IC.pin}<span></span>`;
         b.querySelector('span')!.textContent = `${c[0]}, ${countryName(c[1])}`;
         b.addEventListener('click', () => { blurAll(); f.remove(); sug.remove(); answer(`${c[0]}, ${countryName(c[1])}`); res(placeFor(c[0], c[1], c[2], c[3])); });
         sug.appendChild(b);
       });
       if (!hits.length && !more.length) sug.innerHTML = '<p class="ln thinking">No match yet. Try the nearest big town.</p>';
-      toBottom();
+      keepQuestion();
     };
     input.addEventListener('input', draw);
-    f.addEventListener('submit', e => { e.preventDefault(); (sug.querySelector('.po') as HTMLButtonElement | null)?.click(); });
+    f.addEventListener('submit', e => { e.preventDefault(); ([...sug.querySelectorAll('.po')].pop() as HTMLButtonElement | undefined)?.click(); });
     setTimeout(() => showQ(f), 30);
   });
 }
@@ -209,33 +211,56 @@ async function occupations(): Promise<OccupationsFile | null> {
 }
 
 let matcher: ReturnType<typeof makeMatcher> | null = null;
-async function askJob(): Promise<Pick<Profile, 'job' | 'skills'>> {
-  const raw = await askText('Your job title, in your own words', 80);
+async function skillsOf(occs: Occupation[]): Promise<[string, string][]> {
+  const lists = await Promise.all(occs.map(async o => {
+    try { const r = await fetch(`/data/esco/skills-${o.g.slice(0, 2) || 'xx'}.json`); if (r.ok) { const d = await r.json(); const x = d[o.u]; if (x) return [...x.e, ...x.o] as [string, string][]; } } catch { /* offline */ }
+    return [] as [string, string][];
+  }));
+  // Take turns from each occupation so one doesn't crowd out the others
+  const out: [string, string][] = [];
+  for (let i = 0; out.length < 12 && lists.some(l => l[i]); i++) for (const l of lists) if (l[i] && !out.some(s => s[0] === l[i][0]) && out.length < 12) out.push(l[i]);
+  return out;
+}
+
+/* Work: areas first (always something that fits), then the job title or a description, with as many tries as it takes */
+async function askJob(preset?: Profile['job']): Promise<Pick<Profile, 'job' | 'skills'>> {
+  await say('Which areas do you work in? Pick one or two.');
+  const areaIds = await askMany(AREAS.map(a => [a.id, a.label]), { btn: 'Continue', none: 'Not working right now', preset: preset?.areas, compact: true });
+  if (!areaIds.length) { pastAll(); return { job: undefined, skills: [] }; }
+  const areas = areaIds.map(id => areaById.get(id)!).filter(Boolean);
+  const boost = areas.flatMap(a => a.g);
+  pastAll(); await say("And your job title? If it's an unusual one, just describe what you do.");
+  let raw = await askText('Job title, or what you do day to day', 120);
   const file = await occupations();
-  if (!file) { pastAll(); await say("Thanks. I'll use that to find news from your field."); return { job: { title: raw, raw }, skills: [] }; }
+  if (!file) { pastAll(); return { job: { title: raw, raw, areas: areaIds }, skills: [] }; }
   matcher ||= makeMatcher(file.occupations);
-  const hits = matcher(raw, 3);
-  pastAll();
   let pick: Occupation | undefined;
-  if (hits.length) {
-    await say('Which of these is closest?');
-    const k = await askOne([...hits.map(o => [o.u, cap(o.t), 'job'] as [string, string, string]), ['__else', 'Something else', 'dots']]);
-    pick = hits.find(o => o.u === k);
-  }
-  if (!pick) {
+  for (let tries = 1; ; tries++) {
+    const hits = matcher(raw, 6, boost);
     pastAll();
-    await say('No problem. Which broad area is it in?');
-    const majors = Object.entries(file.groups).filter(([c]) => c.length === 1).sort((a, b) => a[0].localeCompare(b[0]));
-    const g = await askOne([...majors.map(([c, l]) => [c, cap(l), 'job'] as [string, string, string]), ['__none', 'None of these', 'dots']]);
-    return { job: { title: raw, raw, ...(g !== '__none' ? { group: g } : {}) }, skills: [] };
+    if (!hits.length) { await say("I couldn't find a match for that."); }
+    else await say('Which of these is closest?');
+    const k = await askOne([
+      ...hits.map(o => [o.u, cap(o.t), 'job'] as [string, string, string]),
+      ...(tries < 4 ? [['__retry', hits.length ? 'None of these. Let me describe it' : 'Try describing it', 'dots'] as [string, string, string]] : []),
+      ['__area', `Skip. Just use ${areas.length > 1 ? 'my areas' : areas[0].label.toLowerCase()}`, 'spark'],
+    ]);
+    pick = hits.find(o => o.u === k);
+    if (k !== '__retry') break;
+    pastAll(); await say('Try it another way. What do you spend most of your day doing?');
+    raw = await askText('For example: I plan email campaigns for a charity', 120);
   }
-  const job = { uri: pick.u, title: cap(pick.t), raw, group: pick.g };
-  // That occupation's skills, from ESCO
-  let skills: [string, string][] = [];
-  try {
-    const r = await fetch(`/data/esco/skills-${pick.g.slice(0, 2) || 'xx'}.json`);
-    if (r.ok) { const d = await r.json(); const o = d[pick.u]; if (o) skills = [...o.e, ...o.o].slice(0, 12); }
-  } catch { /* offline */ }
+  let job: Profile['job'], skills: [string, string][];
+  if (pick) {
+    job = { uri: pick.u, title: cap(pick.t), raw, group: pick.g, areas: areaIds };
+    skills = await skillsOf([pick]);
+  } else {
+    // No exact job: the skills of a few typical jobs in their areas stand in
+    const byTitle = new Map(file.occupations.map(o => [o.t.toLowerCase(), o]));
+    const stand = areas.flatMap(a => a.jobs.slice(0, areas.length > 1 ? 1 : 3)).map(t => byTitle.get(t.toLowerCase())).filter(Boolean) as Occupation[];
+    job = { title: raw, raw, group: stand[0]?.g, areas: areaIds };
+    skills = await skillsOf(stand);
+  }
   if (!skills.length) return { job, skills: [] };
   pastAll();
   await say('Which of these do you want to get better at?');
@@ -279,10 +304,11 @@ const toPicked = (id: string): PickedInterest | null => {
 };
 
 async function askInterests(preset: PickedInterest[] = []): Promise<PickedInterest[]> {
-  const groups: [string, [string, string][]][] = Object.entries(CATEGORIES).map(([c, label]) => [label, INTERESTS.filter(i => i.cat === c).map(i => [i.id, i.label] as [string, string])]);
+  // Sport has its own question, so it isn't repeated here
+  const groups: [string, [string, string][]][] = Object.entries(CATEGORIES).filter(([c]) => c !== 'sport').map(([c, label]) => [label, INTERESTS.filter(i => i.cat === c).map(i => [i.id, i.label] as [string, string])]);
   const extra = preset.filter(p => p.id.startsWith('q:'));
   if (extra.length) groups.unshift(['Found by search', extra.map(p => [p.id, p.label])]);
-  const ids = await askMany([], { btn: 'Continue', groups, preset: preset.map(p => p.id), search: { placeholder: 'Type anything else, like rewilding', find: findInterests } });
+  const ids = await askMany([], { btn: 'Continue', groups, preset: preset.filter(p => !isSport(p)).map(p => p.id), search: { placeholder: 'Type anything else, like rewilding', find: findInterests } });
   const picks = ids.map(toPicked).filter(Boolean) as PickedInterest[];
   if (!picks.length) return [];
   // News, learning, or both? One line per pick, "both" unless changed
@@ -290,6 +316,13 @@ async function askInterests(preset: PickedInterest[] = []): Promise<PickedIntere
   await say('For each one: news, learning, or both?');
   const modes = await askModes(picks.map(p => ({ ...p, mode: preset.find(x => x.id === p.id)?.mode || p.mode })));
   return modes;
+}
+const isSport = (p: PickedInterest) => interestById.get(p.id)?.cat === 'sport';
+/* The sports you follow become news interests too, so their big stories can reach the edition */
+function withSports(list: PickedInterest[], sports: string[]): PickedInterest[] {
+  const keep = list.filter(p => !isSport(p));
+  const add = INTERESTS.filter(i => i.cat === 'sport' && i.sport && sports.includes(i.sport)).map(i => ({ id: i.id, label: i.label, cat: i.cat, mode: 'news' as Mode }));
+  return [...keep, ...add];
 }
 function askModes(list: PickedInterest[]): Promise<PickedInterest[]> {
   return new Promise(res => {
@@ -385,9 +418,9 @@ export async function startOnboarding() {
   await say('Where do you live? Your city or town is enough.');
   const city = await askCity();
   pastAll(); await say(city?.region ? `${city.name}. I'll bring you local news from BBC ${regionName(city)}.` : city?.world ? `${city.name}. I'll keep you across the big stories there.` : `${city?.name}. I'll look for news about ${city?.name} from the Guardian.`);
-  await say('What do you do for work?');
+  await say('Now, your work.');
   const work = await askJob();
-  pastAll(); await say(work.job?.uri ? `${work.job.title}. I'll bring you a skill of the day and news from your field.` : 'Got it.');
+  pastAll(); await say(work.skills.length ? "Thanks. I'll bring you a skill of the day and news from your field." : 'Got it.');
   await say("What are you into? Pick as many as you like, or type anything that's missing.");
   const interests = await askInterests();
   pastAll(); await say(interests.length > 5 ? 'A good mix. Serious, but never dull.' : interests.length ? 'Focused. I like it.' : "No problem. I'll start broad and learn from what you like.");
@@ -406,7 +439,7 @@ export async function startOnboarding() {
   const avoid = await askMany(INTERESTS.filter(i => !chosen.has(i.id) && i.cat !== 'sport').map(i => [i.id, i.label]), { btn: 'Hide these', none: "Nothing, I'm open", compact: true });
   pastAll(); await say(avoid.length ? "Done. You won't see those." : 'Open-minded. Noted.');
 
-  S.profile = { name, city, ...work, interests, languages, sports, teams, avoid, ...eds, created: now().toISOString() };
+  S.profile = { name, city, ...work, interests: withSports(interests, sports), languages, sports, teams, avoid, ...eds, created: now().toISOString() };
   S.weights = {};
   persist.profile(); persist.weights();
   forget();
@@ -473,14 +506,14 @@ async function section(k: Section) {
     case 'interests': {
       await say('Pick what you want. Tap to add or remove.');
       const list = await askInterests(p.interests);
-      p.interests = list; p.avoid = p.avoid.filter(a => !list.some(i => i.id === a));
+      p.interests = withSports(list, p.sports); p.avoid = p.avoid.filter(a => !list.some(i => i.id === a));
       pastAll(); await saveP(list.length ? `Done. ${list.length} interest${list.length > 1 ? 's' : ''}. Your next edition uses them.` : 'Done. I\'ll keep things broad.');
       return;
     }
     case 'city': { await say('Where do you live now?'); const c = await askCity(); p.city = c; pastAll(); await saveP(`${c?.name} it is.`); return; }
     case 'skills': {
-      await say(p.job ? `You told me: ${p.job.title}. What do you do now?` : 'What do you do for work?');
-      const w = await askJob(); p.job = w.job; p.skills = [...w.skills, ...p.skills.filter(s => s.source === 'chosen' && !w.skills.some(x => x.id === s.id))];
+      if (p.job) await say(`You told me: ${p.job.title}.`);
+      const w = await askJob(p.job); p.job = w.job; p.skills = [...w.skills, ...p.skills.filter(s => s.source === 'chosen' && !w.skills.some(x => x.id === s.id))];
       pastAll(); await saveP(p.skills.length ? `Saved. ${p.skills.length} skill${p.skills.length > 1 ? 's' : ''} for your skill of the day.` : 'Saved.');
       return;
     }
@@ -504,6 +537,7 @@ async function section(k: Section) {
       await say('Which sports do you follow?');
       p.sports = await askMany(Object.keys(SPORT_FEEDS).map(s => [s, s]), { btn: 'Save', none: 'None', preset: p.sports, compact: true });
       if (p.sports.includes('Football')) { pastAll(); await say('Which teams?'); p.teams = await askTeams(p.teams); } else p.teams = [];
+      p.interests = withSports(p.interests, p.sports);
       pastAll(); await saveP(p.sports.length ? 'Saved. Your sports page updates from the next edition.' : "Sport's out.");
       return;
     }
@@ -516,7 +550,7 @@ async function section(k: Section) {
     case 'avoid': {
       await say("What would you rather not see?");
       const mine = new Set(p.interests.map(i => i.id));
-      p.avoid = await askMany(INTERESTS.filter(i => !mine.has(i.id)).map(i => [i.id, i.label]), { btn: 'Save', none: "Nothing, I'm open", preset: p.avoid, compact: true });
+      p.avoid = await askMany(INTERESTS.filter(i => !mine.has(i.id) && i.cat !== 'sport').map(i => [i.id, i.label]), { btn: 'Save', none: "Nothing, I'm open", preset: p.avoid, compact: true });
       pastAll(); await saveP(p.avoid.length ? `Hidden: ${p.avoid.map(a => interestById.get(a)?.label).join(', ')}.` : 'Nothing hidden.');
       return;
     }
