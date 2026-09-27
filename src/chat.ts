@@ -1,7 +1,6 @@
 /* Onboarding and the settings chat share one screen. Both run on the phone with no AI.
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
-import Fuse from 'fuse.js';
 import { S, persist, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
 import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data, allStories } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
@@ -12,6 +11,7 @@ import { exportData, importData, deleteEverything } from './backup';
 import { feedback } from './feedback';
 import { log } from './events';
 import type { Occupation, OccupationsFile, TopicKey } from './types';
+import { makeMatcher } from './jobmatch';
 
 const $ = (id: string) => document.getElementById(id)!;
 const onb = () => $('onb'), lines = () => $('lines'), stream = () => $('stream'), otray = () => $('otray'), orb = () => $('orb');
@@ -208,12 +208,13 @@ async function occupations(): Promise<OccupationsFile | null> {
   return occ;
 }
 
+let matcher: ReturnType<typeof makeMatcher> | null = null;
 async function askJob(): Promise<Pick<Profile, 'job' | 'skills'>> {
   const raw = await askText('Your job title, in your own words', 80);
   const file = await occupations();
   if (!file) { pastAll(); await say("Thanks. I'll use that to find news from your field."); return { job: { title: raw, raw }, skills: [] }; }
-  const fuse = new Fuse(file.occupations, { keys: [{ name: 't', weight: 2 }, { name: 'a', weight: 1 }], threshold: 0.4, ignoreLocation: true, includeScore: true });
-  const hits = fuse.search(raw, { limit: 3 }).map(h => h.item);
+  matcher ||= makeMatcher(file.occupations);
+  const hits = matcher(raw, 3);
   pastAll();
   let pick: Occupation | undefined;
   if (hits.length) {
