@@ -1,7 +1,7 @@
 /* Onboarding and the settings chat share one screen. Both run on the phone with no AI.
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
-import { S, persist, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
+import { S, persist, load, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
 import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data, allStories } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
 import { wait, esc, toast } from './ui';
@@ -12,6 +12,7 @@ import { feedback } from './feedback';
 import { log } from './events';
 import type { Occupation, OccupationsFile, TopicKey } from './types';
 import { makeMatcher } from './jobmatch';
+import * as cloud from './cloud';
 import { AREAS, areaById } from './workareas';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -83,10 +84,10 @@ function tray(label: string, disabled = false): HTMLButtonElement {
 const clearTray = () => { otray().innerHTML = ''; };
 const blurAll = () => { (document.activeElement as HTMLElement | null)?.blur?.(); onb().classList.remove('kb'); fit(); };
 
-function askText(placeholder: string, max = 40): Promise<string> {
+function askText(placeholder: string, max = 40, setup?: (i: HTMLInputElement) => void): Promise<string> {
   return new Promise(res => {
     const f = makeForm(placeholder); lines().appendChild(f); toBottom();
-    const input = f.querySelector('input')!; input.maxLength = max;
+    const input = f.querySelector('input')!; input.maxLength = max; setup?.(input);
     f.addEventListener('submit', e => { e.preventDefault(); const v = input.value.trim(); if (!v) return; blurAll(); f.remove(); answer(v); res(v); });
     setTimeout(() => showQ(f), 30);
   });
@@ -384,6 +385,44 @@ function askEditions(p: Pick<Profile, 'editions' | 'quiet'>): Promise<Pick<Profi
   });
 }
 
+/* ---------- Account: sign in with a code sent by email ---------- */
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const emailInput = (i: HTMLInputElement) => { i.type = 'email'; i.inputMode = 'email'; i.autocapitalize = 'off'; i.autocomplete = 'email'; i.spellcheck = false; };
+const codeInput = (i: HTMLInputElement) => { i.inputMode = 'numeric'; i.autocomplete = 'one-time-code'; i.pattern = '[0-9]*'; };
+
+/* Returns true once signed in, false if they chose to skip */
+async function signInFlow(): Promise<boolean> {
+  await say("What's your email? I'll send you a code. No password needed.");
+  let email = '';
+  for (;;) {
+    email = (await askText('you@example.com', 120, emailInput)).trim().toLowerCase();
+    if (EMAIL.test(email)) break;
+    pastAll(); await say("That doesn't look like an email address. Try again?");
+  }
+  for (;;) {
+    pastAll();
+    const err = await cloud.sendCode(email);
+    if (err) {
+      await say(`I couldn't send the code. ${err}`);
+      const c = await askOne([['again', 'Try again', 'time'], ['skip', 'Skip for now', 'dots']]);
+      if (c === 'skip') return false;
+      continue;
+    }
+    await say(`I've sent a code to ${email}. Type it here. It can take a minute, so check your junk folder too.`);
+    for (;;) {
+      const code = (await askText('The code from the email', 10, codeInput)).replace(/\D/g, '');
+      const bad = code.length < 6 ? 'Codes are 6 digits or more.' : await cloud.verifyCode(email, code);
+      if (!bad) { pastAll(); return true; }
+      pastAll(); await say(bad);
+      const c = await askOne([['retry', 'Type the code again', 'time'], ['resend', 'Send a new code', 'spark'], ['skip', 'Skip for now', 'dots']]);
+      pastAll();
+      if (c === 'skip') return false;
+      if (c === 'resend') break;
+    }
+  }
+}
+
 /* ---------- Opening and closing the screen ---------- */
 
 function openScreen(mode: 'setup' | 'chat') {
@@ -412,6 +451,17 @@ export async function startOnboarding() {
   openScreen('setup');
   await wait(400);
   await say("Hi. I'm going to ask a few quick questions, then build your first edition. It takes about two minutes.");
+  if (cloud.cloudOn && !cloud.signedIn()) {
+    await say('New here, or have you set up Knowfeed before?');
+    const k = await askOne([['new', "I'm new", 'spark'], ['back', 'Sign in and bring back my answers', 'heart']]);
+    pastAll();
+    if (k === 'back' && await signInFlow()) {
+      await say('Signed in. Looking for your answers…');
+      const got = await cloud.pull().catch(() => false);
+      if (got && load('profile', null)) { await say('Found them. Opening your feed…'); await wait(600); location.reload(); return; }
+      pastAll(); await say("I couldn't find any answers for that email, so let's set you up. They'll be saved to your account as we go.");
+    }
+  }
   await say('First, what should I call you?');
   const name = await askText('Your first name', 30);
   pastAll(); await say(`Good to meet you, ${name}.`);
@@ -457,7 +507,13 @@ export async function startOnboarding() {
     box.innerHTML = `<p class="ogroup">First up</p>${heads.map(h => `<p class="prev">${esc(h)}</p>`).join('')}`;
     lines().appendChild(box); toBottom();
   }
-  if (!standalone()) await say('Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
+  if (cloud.cloudOn && !cloud.signedIn()) {
+    await say("Want me to keep your answers safe? With your email they come back if you add Knowfeed to your Home Screen or change phones.", 'small');
+    const k = await askOne([['yes', 'Save them with my email', 'heart'], ['no', 'Not now', 'dots']]);
+    pastAll();
+    if (k === 'yes' && await signInFlow()) { await cloud.push().catch(() => {}); await say('Saved to your account.', 'small'); }
+  } else if (cloud.signedIn()) cloud.push().catch(() => {});
+  if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
   await say('You can change anything later from the button at the top right.', 'small');
   const go = tray('Show my feed');
   go.addEventListener('click', () => { clearTray(); closeScreen(); });
@@ -466,7 +522,7 @@ export async function startOnboarding() {
 /* ---------- The settings chat ---------- */
 
 let chatOpen = false;
-type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback';
+type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account';
 
 export async function openChat(jump?: Section) {
   if (running || !S.profile) return;
@@ -479,7 +535,7 @@ export async function openChat(jump?: Section) {
     const pick = await askOne([
       ['suggest', 'Suggest something new', 'spark'], ['interests', 'My interests', 'heart'], ['city', 'My city', 'pin'], ['skills', 'My work and skills', 'job'],
       ['languages', 'Languages', 'globe'], ['sport', 'Sports and teams', 'ball'], ['editions', 'Editions and times', 'time'], ['avoid', 'Topics to avoid', 'shield'],
-      ['wellbeing', 'Reading goal and limit', 'book'], ['feedback', 'Feedback and notes', 'flag'], ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
+      ['wellbeing', 'Reading goal and limit', 'book'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
     ]);
     if (!chatOpen) break;
     pastAll();
@@ -573,16 +629,38 @@ async function section(k: Section) {
       if (c === 'see') { const box = document.createElement('div'); box.className = 'previewbox'; box.innerHTML = S.feedback.slice(0, 20).map(f => `<p class="prev"><b>${esc(new Date(f.at).toLocaleDateString('en-GB'))}</b> ${f.title ? `(${esc(f.title)}) ` : ''}${esc(f.text)}</p>`).join(''); lines().appendChild(box); toBottom(); }
       return;
     }
+    case 'account': {
+      const u = cloud.signedIn();
+      if (!u) {
+        const ok = await signInFlow();
+        if (!ok) { await say('No problem. Everything stays on this phone.'); return; }
+        await say('Signed in. Syncing…');
+        const got = await cloud.pull().catch(() => false);
+        if (got) { await say('Your account had newer answers. Reloading with them…'); await wait(700); location.reload(); return; }
+        await say('Done. Your answers, saves and progress are now kept with your account.');
+        return;
+      }
+      const t = cloud.lastSynced();
+      await say(`Signed in as ${u.email}.${t ? ` Last synced ${new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.` : ''}`);
+      const c = await askOne([['sync', 'Sync now', 'time'], ['out', 'Sign out', 'back'], ['back', 'Back', 'dots']]);
+      pastAll();
+      if (c === 'sync') { const got = await cloud.pull().catch(() => null); if (got === null) await say("Couldn't reach Knowfeed just now. It'll try again later."); else if (got) { await say('Got newer answers from your account. Reloading…'); await wait(700); location.reload(); } else await say('All up to date.'); }
+      if (c === 'out') { await cloud.signOut(); await say('Signed out. Everything is still on this phone.'); }
+      return;
+    }
     case 'data': {
-      await say('Everything personal is stored on this phone. What would you like to do?');
+      await say(cloud.signedIn() ? 'Your data is on this phone and in your Knowfeed account. What would you like to do?' : 'Everything personal is stored on this phone. What would you like to do?');
       const c = await askOne([['export', 'Back up to a file', 'book'], ['import', 'Restore from a file', 'time'], ['delete', 'Delete everything', 'shield'], ['back', 'Back', 'back']]);
       pastAll();
       if (c === 'export') { await exportData(); await say('Saved a backup file.'); }
       if (c === 'import') { importData(); await say('Pick your backup file.'); }
       if (c === 'delete') {
-        await say('This removes your settings, likes, saves and progress from this phone. Are you sure?');
+        await say(cloud.signedIn() ? 'This deletes your Knowfeed account and removes your settings, likes, saves and progress from this phone. Are you sure?' : 'This removes your settings, likes, saves and progress from this phone. Are you sure?');
         const y = await askOne([['no', 'No, keep everything', 'back'], ['yes', 'Yes, delete everything', 'shield']]);
-        if (y === 'yes') { deleteEverything(); return; }
+        if (y === 'yes') {
+          if (cloud.signedIn() && !(await cloud.deleteAccount())) { pastAll(); await say("I couldn't delete your account just now, so nothing's been deleted. Try again when you have signal."); return; }
+          deleteEverything(); return;
+        }
         pastAll(); await say('Nothing deleted.');
       }
       return;

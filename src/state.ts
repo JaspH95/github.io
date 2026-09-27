@@ -1,10 +1,13 @@
-/* Everything personal lives in this browser's storage. Nothing leaves the phone. */
+/* Everything personal lives in this browser's storage. If you sign in, cloud.ts copies it to your
+   Knowfeed account so it survives a new phone or adding the app to the Home Screen. */
 import type { TopicKey, Story, LearnCard, Quiz, HubItem } from './types';
 
 const P = 'kf2-';
 export const load = <T>(k: string, d: T): T => { try { const v = localStorage.getItem(P + k); return v ? JSON.parse(v) : d; } catch { return d; } };
-export const save = (k: string, v: unknown) => { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
-export const remove = (k: string) => { try { localStorage.removeItem(P + k); } catch { /* blocked */ } };
+let changed: (k: string) => void = () => {};
+export const onChange = (fn: (k: string) => void) => { changed = fn; };
+export const save = (k: string, v: unknown) => { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } changed(k); };
+export const remove = (k: string) => { try { localStorage.removeItem(P + k); } catch { /* blocked */ } changed(k); };
 export const allKeys = () => { try { return Object.keys(localStorage).filter(k => k.startsWith(P)).map(k => k.slice(P.length)); } catch { return []; } };
 
 export type Slot = 'morning' | 'midday' | 'evening';
