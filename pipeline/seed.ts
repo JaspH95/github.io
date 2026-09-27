@@ -42,10 +42,33 @@ function toFull(o: any): Full | null {
 }
 
 /* Walk ISCO groups down to their occupations (and occupations down to narrower ones) */
+const shape = (o: any) => o && typeof o === 'object' ? `keys=${Object.keys(o).join(',')} links=${Object.keys(o._links || {}).join(',')} embedded=${Object.keys(o._embedded || {}).join(',')}` : String(o);
+
+/* Occupation URIs from the search API, a page at a time */
+async function searchAll(): Promise<string[]> {
+  const uris: string[] = [];
+  for (let offset = 0; offset < 6000; offset += 100) {
+    const r = await esco<any>(`/search?language=en&type=occupation&limit=100&offset=${offset}&full=false`).catch((e: any) => { console.log(`  search failed at ${offset}: ${e.message}`); return null; });
+    if (offset === 0) console.log(`ESCO search shape: ${shape(r)} total=${r?.total} first=${JSON.stringify(r?._embedded?.results?.[0] || {}).slice(0, 400)}`);
+    const got = (r?._embedded?.results || []).map((x: any) => x.uri).filter(Boolean);
+    uris.push(...got);
+    if (got.length < 100) break;
+    await sleep(150);
+  }
+  return [...new Set(uris)];
+}
+
 async function walk(): Promise<Full[]> {
-  const scheme = await esco<any>(`/resource/concept?uri=${encodeURIComponent('http://data.europa.eu/esco/concept-scheme/isco')}&language=en`);
-  let queue: string[] = (scheme._links?.hasTopConcept || []).map((c: any) => c.uri);
-  console.log(`ESCO: ${queue.length} ISCO top groups`);
+  let queue: string[] = [];
+  for (const scheme of ['http://data.europa.eu/esco/concept-scheme/isco', 'http://data.europa.eu/esco/concept-scheme/occupations']) {
+    for (const res of ['concept', 'taxonomy']) {
+      const r = await esco<any>(`/resource/${res}?uri=${encodeURIComponent(scheme)}&language=en`).catch((e: any) => ({ error: e.message }));
+      console.log(`ESCO ${res} ${scheme.split('/').pop()}: ${shape(r)} ${r?.error || ''}`);
+      const top = (r?._links?.hasTopConcept || r?._embedded?.hasTopConcept || []).map((c: any) => c.uri).filter(Boolean);
+      if (top.length && !queue.length) queue = top;
+    }
+  }
+  console.log(`ESCO: ${queue.length} top groups`);
   const occUris = new Set<string>();
   const seenGroups = new Set<string>();
   while (queue.length) {
@@ -59,12 +82,18 @@ async function walk(): Promise<Full[]> {
     await sleep(150);
   }
   console.log(`ESCO: ${seenGroups.size} groups, ${occUris.size} occupations directly under groups`);
+  if (occUris.size < 500) {
+    const found = await searchAll();
+    console.log(`ESCO search: ${found.length} occupations`);
+    found.forEach(u => occUris.add(u));
+  }
   const out = new Map<string, Full>();
   const todo = [...occUris];
   const parentGroup = new Map<string, string>();
   while (todo.length) {
     const batch = todo.splice(0, 8);
     const res = await Promise.all(batch.map(u => esco<any>(`/resource/occupation?uri=${encodeURIComponent(u)}&language=en`).catch(() => null)));
+    if (!out.size && res[0]) console.log(`ESCO occupation shape: ${shape(res[0])} broaderIscoGroup=${JSON.stringify(res[0]._links?.broaderIscoGroup || '').slice(0, 200)} essential=${JSON.stringify(res[0]._links?.hasEssentialSkill?.[0] || '').slice(0, 200)}`);
     for (const o of res) {
       if (!o) continue;
       const f = toFull(o);

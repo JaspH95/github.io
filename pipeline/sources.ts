@@ -61,7 +61,7 @@ export const BBC_REGIONS: Region[] = [
   { id: 'cornwall', name: 'Cornwall', url: bbc('england/cornwall'), lat: 50.3, lon: -4.95 },
   { id: 'coventry', name: 'Coventry & Warwickshire', url: bbc('england/coventry_and_warwickshire'), lat: 52.35, lon: -1.55 },
   { id: 'cumbria', name: 'Cumbria', url: bbc('england/cumbria'), lat: 54.6, lon: -3.0 },
-  { id: 'derby', name: 'Derby', url: bbc('england/derby'), lat: 52.95, lon: -1.6 },
+  { id: 'derby', name: 'Derbyshire', url: bbc('england/derbyshire'), lat: 52.95, lon: -1.6 },
   { id: 'devon', name: 'Devon', url: bbc('england/devon'), lat: 50.7, lon: -3.7 },
   { id: 'essex', name: 'Essex', url: bbc('england/essex'), lat: 51.75, lon: 0.6 },
   { id: 'gloucestershire', name: 'Gloucestershire', url: bbc('england/gloucestershire'), lat: 51.85, lon: -2.2 },
