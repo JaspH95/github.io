@@ -79,7 +79,9 @@ function panelHTML(s: Story, tab: Tab): string {
   const sum = s.summary;
   if (tab === 'fivew' && sum?.fivew) return `<dl class="w5">${sum.fivew.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${hl(v, s.entities)}</dd>`).join('')}</dl>`;
   if (tab === 'timeline' && s.timeline) return `<ul class="tl">${[...s.timeline].reverse().map(t => `<li><span class="when">${esc(when(t.at))}${t.outlet ? ` · ${esc(t.outlet)}` : ''}</span>${t.url ? `<a href="${safeUrl(t.url)}" target="_blank" rel="noopener">${esc(t.text)}</a>` : esc(t.text)}</li>`).join('')}</ul>`;
-  if (!sum) return `<p class="plain">${esc(s.standfirst || s.title)}</p><p class="panel-note">From ${esc(s.outlet)}. A summary appears here once the story has been read in full.</p>`;
+  if (!sum) return `<p class="plain">${esc(s.standfirst || s.title)}</p><p class="panel-note">${s.id.startsWith('live-')
+    ? `The headline and summary are from ${esc(s.outlet)}.${s.paywall ? ' The full article may need a subscription.' : ''} <a href="${safeUrl(s.url)}" target="_blank" rel="noopener">Read it on ${esc(s.outlet)}</a>.`
+    : `From ${esc(s.outlet)}. A summary appears here once the story has been read in full.`}</p>`;
   return `<ul class="gist">${sum.gist.map(g => `<li>${hl(g, s.entities)}</li>`).join('')}</ul>
     ${sum.sections.map(x => `<h4>${esc(x.heading)}</h4><p>${hl(x.text, s.entities)}</p>`).join('')}`;
 }

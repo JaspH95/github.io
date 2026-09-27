@@ -2,7 +2,7 @@
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
 import { S, persist, load, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
-import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data } from './data';
+import { OUTLETS, regionOf, INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
 import { wait, esc, toast } from './ui';
 import { preview, forget, SLOT_LABEL } from './edition';
@@ -382,6 +382,24 @@ function askEditions(p: Pick<Profile, 'editions' | 'quiet'>): Promise<Pick<Profi
   });
 }
 
+/* ---------- News outlets to follow: your country's first, then by subject ---------- */
+
+const REGION_NAME: Record<string, string> = { uk: 'the UK', us: 'the US', ie: 'Ireland', au: 'Australia', world: 'the world' };
+function askOutlets(region: string, preset: string[] = []): Promise<string[]> {
+  const label = (o: (typeof OUTLETS)[number]) => [o.id, o.paywall ? `${o.name} · subscription` : o.name] as [string, string];
+  const home = OUTLETS.filter(o => o.region === region && (o.kind === 'news' || o.kind === 'business'));
+  const groups: [string, [string, string][]][] = [
+    ...(region !== 'world' ? [[`News from ${REGION_NAME[region]}`, home.map(label)] as [string, [string, string][]]] : []),
+    ['World news', OUTLETS.filter(o => o.region === 'world' && o.kind === 'news').map(label)],
+    ['Tech', OUTLETS.filter(o => o.kind === 'tech').map(label)],
+    ['Business and money', OUTLETS.filter(o => o.kind === 'business' && !home.includes(o)).map(label)],
+    ['Science', OUTLETS.filter(o => o.kind === 'science').map(label)],
+    ['Culture', OUTLETS.filter(o => o.kind === 'culture').map(label)],
+    ['Sport', OUTLETS.filter(o => o.kind === 'sport').map(label)],
+  ];
+  return askMany([], { btn: 'Continue', none: 'Not right now', preset, groups: groups.filter(g => g[1].length) });
+}
+
 /* ---------- Account: email and password (or an emailed code, once Supabase has its own email sender) ---------- */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -513,6 +531,12 @@ export async function startOnboarding() {
   pastAll(); await say(work.skills.length ? "Thanks. I'll bring you a skill of the day and news from your field." : 'Got it.');
   const interests = await askInterests();
   pastAll(); await say(interests.length > 5 ? 'A good mix. Serious, but never dull.' : interests.length ? 'Focused. I like it.' : "No problem. I'll start broad and learn from what you like.");
+  const region = regionOf(city?.country);
+  await say('Knowfeed is mostly for learning, but I can keep you across breaking news too: just the biggest headlines, when several outlets lead with them. Want that?');
+  const breaking = (await askOne([['y', 'Yes please', 'flag'], ['n', 'No thanks', 'dots']])) === 'y';
+  pastAll(); await say("Any news outlets you'd like to follow? Their latest goes into your editions. Pick as many as you like, or none.");
+  const outlets = await askOutlets(region);
+  pastAll(); await say(outlets.length ? `Following ${outlets.length === 1 ? OUTLETS.find(o => o.id === outlets[0])!.name : `${outlets.length} outlets`}.` : 'No outlets for now. You can add some any time.');
   await say('Want to learn a language?');
   const languages = await askLanguages();
   pastAll(); await say(languages.length ? "A phrase a day adds up faster than you'd think." : 'No problem. You can add one later.');
@@ -528,7 +552,7 @@ export async function startOnboarding() {
   const avoid = await askMany(INTERESTS.filter(i => !chosen.has(i.id) && i.cat !== 'sport').map(i => [i.id, i.label]), { btn: 'Hide these', none: "Nothing, I'm open", compact: true });
   pastAll(); await say(avoid.length ? "Done. You won't see those." : 'Open-minded. Noted.');
 
-  S.profile = { name, city, ...work, interests: withSports(interests, sports), languages, sports, teams, avoid, ...eds, created: now().toISOString() };
+  S.profile = { name, city, ...work, interests: withSports(interests, sports), languages, sports, teams, outlets, breaking, avoid, ...eds, created: now().toISOString() };
   S.weights = {};
   persist.profile(); persist.weights();
   forget();
@@ -562,7 +586,7 @@ export async function startOnboarding() {
 /* ---------- The settings chat ---------- */
 
 let chatOpen = false;
-type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'voice';
+type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'voice' | 'news';
 
 export async function openChat(jump?: Section) {
   if (running || !S.profile) return;
@@ -575,7 +599,7 @@ export async function openChat(jump?: Section) {
     const pick = await askOne([
       ['suggest', 'Suggest something new', 'spark'], ['interests', 'My interests', 'heart'], ['city', 'My city', 'pin'], ['skills', 'My work and skills', 'job'],
       ['languages', 'Languages', 'globe'], ['sport', 'Sports and teams', 'ball'], ['editions', 'Editions and times', 'time'], ['avoid', 'Topics to avoid', 'shield'],
-      ['wellbeing', 'Reading goal and limit', 'book'], ['voice', 'Listening voice', 'spark'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
+      ['news', 'Breaking news and outlets', 'flag'], ['wellbeing', 'Reading goal and limit', 'book'], ['voice', 'Listening voice', 'spark'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
     ]);
     if (!chatOpen) break;
     pastAll();
@@ -628,6 +652,15 @@ async function section(k: Section) {
       await say('Which languages are you learning?');
       p.languages = await askLanguages(p.languages);
       pastAll(); await saveP(p.languages.length ? `Saved: ${p.languages.map(l => l.name).join(', ')}.` : 'No languages for now.');
+      return;
+    }
+    case 'news': {
+      await say(p.breaking === false ? 'Breaking headlines are off. Turn them on?' : 'Breaking headlines are on: the biggest stories, when several outlets lead with them. Keep them?');
+      const b = await askOne(p.breaking === false ? [['on', 'Turn them on', 'flag'], ['off', 'Keep them off', 'dots']] : [['on', 'Keep them', 'flag'], ['off', 'Turn them off', 'dots']]);
+      p.breaking = b === 'on';
+      pastAll(); await say('Which outlets would you like to follow? Their latest goes into your editions.');
+      p.outlets = await askOutlets(regionOf(p.city?.country), p.outlets || []);
+      pastAll(); await saveP(p.outlets.length ? `Saved. Following ${p.outlets.map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean).join(', ')}.` : 'Saved. No outlets for now.');
       return;
     }
     case 'sport': {

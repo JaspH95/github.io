@@ -35,6 +35,8 @@ export interface Profile {
   languages: Language[];
   sports: string[];
   teams: string[];
+  outlets?: string[];         // news outlets followed (ids from api/news.ts)
+  breaking?: boolean;         // breaking headlines; on unless turned off
   avoid: string[];            // interest ids
   editions: Record<Slot, { on: boolean; time: string }>;
   quiet: { on: boolean; weekdays: [string, string][] };

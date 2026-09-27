@@ -7,6 +7,7 @@ import { GET as interestSearch } from '../api/interest-search';
 import { GET as skill } from '../api/skill';
 import { GET as local } from '../api/local';
 import { GET as live } from '../api/live';
+import { GET as news, OUTLETS, outletItems } from '../api/news';
 
 type Row = [string, boolean | null, string];
 const rows: Row[] = [];
@@ -54,6 +55,22 @@ async function main() {
   await test('Jolpica F1', async () => { const r = await fetchJSON<any>('https://api.jolpi.ca/ergast/f1/current.json'); return `${r.MRData?.RaceTable?.Races?.length} races`; });
   await test('ESCO API', async () => { const r = await fetchJSON<any>(`https://ec.europa.eu/esco/api/search?text=${encodeURIComponent('data analyst')}&type=occupation&language=en&limit=3`); return (r._embedded?.results || []).map((x: any) => x.title).join(', '); });
 
+  // Every outlet people can follow: reachable, with items, and recent
+  const outletRows: string[] = []; const outletFails: string[] = [];
+  await Promise.all(OUTLETS.map(async o => {
+    try {
+      const items = await outletItems(o);
+      const newest = items[0] ? Math.round((Date.now() - +new Date(items[0].published)) / 3600_000) : -1;
+      const withImg = items.filter(i => i.image).length;
+      if (!items.length) outletFails.push(`${o.name}: no items`);
+      else if (newest > 96) outletFails.push(`${o.name}: newest ${newest}h old`);
+      else outletRows.push(`${o.name} ${items.length} (${withImg} img, ${newest}h)`);
+    } catch (e: any) { outletFails.push(`${o.name}: ${e?.message || e}`); }
+  }));
+  rows.push([`Outlet feeds (${OUTLETS.length})`, outletFails.length ? false : true, outletFails.length ? `FAILED: ${outletFails.join(' | ')}  OK: ${outletRows.join(', ')}` : outletRows.join(', ')]);
+  for (const region of ['uk', 'us', 'world']) await test(`/api/news breaking ${region}`, async () => { const b = await call(news, `/api/news?mode=breaking&region=${region}`); if (!b.items.length) throw new Error('no items'); return b.items.slice(0, 4).map((i: any) => `${i.title.slice(0, 50)} [${i.outlets.length}]`).join(' | '); });
+  await test('/api/news search', async () => { const b = await call(news, '/api/news?mode=search&q=iPhone&region=uk'); if (!b.items.length) throw new Error('no items'); return `${b.items.length} items: ` + b.items.slice(0, 4).map((i: any) => `${i.outlet}: ${i.title.slice(0, 40)}`).join(' | '); });
+  await test('/api/news outlet', async () => { const b = await call(news, '/api/news?mode=outlet&id=theverge'); return `${b.items.length} items, first: ${b.items[0]?.title}`; });
   await test('/api/interest-search', async () => { const b = await call(interestSearch, '/api/interest-search?q=rewilding'); if (!b.results.length) throw new Error('no results'); return b.results.slice(0, 3).map((r: any) => `${r.label}${r.guardian ? ' [G]' : ''}${r.wiki ? ' [W]' : ''}`).join(', '); });
   await test('/api/skill', async () => {
     const found = await fetchJSON<any>(`https://ec.europa.eu/esco/api/search?text=${encodeURIComponent('data analysis')}&type=skill&language=en&limit=1`);

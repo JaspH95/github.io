@@ -7,13 +7,11 @@ import { tokens, similar } from './similar';
 import { matcher, matches } from './match';
 import * as srs from './srs';
 import { phraseOfDay, hasPack, PACKS } from './languages';
-import type { Story, TopicKey, LearnCard } from './types';
+import type { Story, LearnCard } from './types';
 import type { Card } from './cards';
 
 export const SLOTS: Slot[] = ['morning', 'midday', 'evening'];
 export const SLOT_LABEL: Record<Slot, string> = { morning: 'Morning edition', midday: 'Midday edition', evening: 'Evening edition' };
-const NEWS_COUNT: Record<Slot, number> = { morning: 12, midday: 8, evening: 10 };
-const CATCHUP_MAX = 20;
 
 export interface Edition {
   key: string;
@@ -161,21 +159,22 @@ function dedupe(list: Story[]): Story[] {
   return out;
 }
 
-/* Put learning between stories, then make sure no topic appears twice in a row */
+/* The first two news cards (breaking) lead; the rest of the news is spread evenly through the learning, with light
+   cards a third and two-thirds of the way in. Then make sure no topic appears twice in a row. */
 function weave(news: Card[], learning: Card[], light: Card[]): Card[] {
-  const out: Card[] = [];
-  const L = [...learning], F = [...light];
-  // Spread learning evenly through the stories, starting after the first two; light cards near a third and two-thirds of the way
-  const every = L.length ? Math.max(1, (news.length - 1) / L.length) : Infinity;
-  const lightAt = new Set([Math.max(3, Math.round(news.length / 3)), Math.max(5, Math.round((news.length * 2) / 3))]);
-  let due = 2;
-  news.forEach((c, i) => {
-    out.push(c);
-    if (i + 1 >= due && L.length) { out.push(L.shift()!); due += every; }
-    if (lightAt.has(i + 1) && F.length) out.push(F.shift()!);
-  });
-  out.push(...L, ...F);
-  // No same topic twice in a row: swap with the next card that differs
+  const head = news.slice(0, Math.min(2, news.filter(c => c.must || c.followed).length || 1));
+  const N = news.slice(head.length), L = [...learning];
+  const body: Card[] = [];
+  const ratio = N.length / Math.max(1, N.length + L.length);
+  let acc = 0;
+  while (N.length || L.length) {
+    acc += ratio;
+    if ((acc >= 1 && N.length) || !L.length) { body.push(N.shift()!); acc -= 1; } else body.push(L.shift()!);
+  }
+  const F = [...light];
+  if (F.length) body.splice(Math.max(1, Math.round(body.length / 3)), 0, F.shift()!);
+  if (F.length) body.splice(Math.max(2, Math.round((body.length * 2) / 3)), 0, ...F);
+  const out = [...head, ...body];
   for (let i = 1; i < out.length; i++) {
     if (out[i].topic !== out[i - 1].topic || out[i].must) continue;
     const j = out.findIndex((c, k) => k > i && c.topic !== out[i - 1].topic && !c.must);
@@ -212,7 +211,8 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   // Learning cards for the interests you want to learn about
   const learnIds = new Set(p.interests.filter(i => i.mode !== 'news').map(i => i.id));
   const avoid = new Set(p.avoid);
-  const topicCards = (learn?.cards || []).filter(c => c.kind === 'topic' && fresh(c.id) && (c.interest ? learnIds.has(c.interest) && !avoid.has(c.interest) : c.topic === 'sign' && p.languages.some(l => l.name === 'British Sign Language')));
+  // Includes related Wikipedia articles for topics you typed in yourself
+  const topicCards = [...(learn?.cards || []), ...(data.live?.learn || [])].filter(c => c.kind === 'topic' && fresh(c.id) && (c.interest ? learnIds.has(c.interest) && !avoid.has(c.interest) : c.topic === 'sign' && p.languages.some(l => l.name === 'British Sign Language')));
   // Rotate interests so one doesn't take over, favouring the ones you like
   const byInterest = new Map<string, LearnCard[]>();
   for (const c of topicCards) { const k = c.interest || c.topic; byInterest.set(k, [...(byInterest.get(k) || []), c]); }
@@ -296,38 +296,53 @@ export function build(p: Profile, force = false): Edition {
   }
   const followedIds = new Set(followedUpdates.map(x => x.story!.id));
 
-  const candidates = all.filter(s => +new Date(s.updated) >= +since && !shown.has(s.id) && !S.read[s.id] && !followedIds.has(s.id) && !avoided(s, c) && s.topic !== 'sport');
-  const scored = candidates.map(s => ({ s, base: 0.35 * relevance(s, c) + 0.25 * s.importance + 0.15 * freshness(s, d) + 0.15 * personal(s, c) }));
+  // Knowfeed is a learning app first. News is only what you asked for: breaking headlines, outlets you follow,
+  // topics you follow, your area and your sport. Everything else is left out.
+  const fresh = (s: Story) => +new Date(s.updated) >= +since && !shown.has(s.id) && !S.read[s.id] && !followedIds.has(s.id) && !avoided(s, c);
+  const live = data.live;
+  const taken: Story[] = [...followedUpdates.map(x => x.story!)];
+  const isNew = (s: Story) => !taken.some(o => o.id === s.id || o.url === s.url || similar(tokens(o.title), tokens(s.title)));
+  const take = (list: Story[], n: number) => { const out: Story[] = []; for (const s of list) { if (out.length >= n) break; if (isNew(s)) { out.push(s); taken.push(s); } } return out; };
 
-  // Everyone sees the top stories of the day, even outside their interests
-  const must = (data.news?.stories || []).filter(s => candidates.includes(s) && (s.importance >= 0.45 || s.top)).sort((a, b) => b.importance - a.importance).slice(0, 3);
-  const want = catchup ? CATCHUP_MAX : NEWS_COUNT[slot];
-  const picked: Story[] = [...must];
-  const seenTopics = new Map<TopicKey, number>();
-  must.forEach(s => seenTopics.set(s.topic, (seenTopics.get(s.topic) || 0) + 1));
-  let localCount = must.filter(s => s.topic === 'local').length;
-  const rest = scored.filter(x => !must.includes(x.s));
-  while (picked.length < want && rest.length) {
-    // Variety: topics you haven't seen yet in this edition score higher
-    let bi = -1, bv = -1;
-    rest.forEach((x, i) => {
-      if (x.s.topic === 'local' && localCount >= 3) return;
-      const v = x.base + 0.1 * (seenTopics.has(x.s.topic) ? 0.3 / (seenTopics.get(x.s.topic)!) : 1);
-      if (v > bv) { bv = v; bi = i; }
-    });
-    if (bi < 0) break;
-    const [x] = rest.splice(bi, 1);
-    picked.push(x.s);
-    seenTopics.set(x.s.topic, (seenTopics.get(x.s.topic) || 0) + 1);
-    if (x.s.topic === 'local') localCount++;
+  // 1. Breaking: the big headlines several outlets lead with (the hourly top stories if offline)
+  const breakingSrc = p.breaking === false ? [] : live?.breaking?.length ? live.breaking : (data.news?.stories || []).filter(s => s.importance >= 0.45 || s.top).sort((a, b) => b.importance - a.importance);
+  const breakingNow = take(breakingSrc.filter(fresh), catchup ? 3 : 2);
+  // 2. Outlets you follow: taking turns, newest first
+  const outletLists = Object.values(live?.outlets || {}).map(xs => xs.filter(fresh));
+  const outletPicks: Story[] = [];
+  for (let round = 0; round < 6 && outletPicks.length < (catchup ? 4 : 3); round++) for (const xs of outletLists) { if (outletPicks.length >= (catchup ? 4 : 3)) break; const s = xs.filter(isNew)[0]; if (s) { outletPicks.push(s); taken.push(s); } }
+  // 3. Topics you follow: stories that match your news interests, and live feeds for topics you typed in
+  const liveTopic = new Set(Object.values(live?.topics || {}).flat().map(s => s.id));
+  const topicPool = [...all.filter(s => s.topic !== 'sport' && s.topic !== 'local'), ...Object.values(live?.topics || {}).flat()].filter(fresh);
+  const scored = topicPool.map(s => { const rel = liveTopic.has(s.id) ? 0.9 : relevance(s, c); return { s, rel, base: 0.5 * rel + 0.2 * s.importance + 0.2 * freshness(s, d) + 0.1 * personal(s, c) }; })
+    .filter(x => x.rel >= 0.7).sort((a, b) => b.base - a.base);
+  // Variety: no more than two from one topic
+  const perTopic = new Map<string, number>();
+  const topicPicks: Story[] = [];
+  for (const x of scored) {
+    if (topicPicks.length >= (catchup ? 4 : 3)) break;
+    const k = x.s.tags[0] || x.s.topic;
+    if ((perTopic.get(k) || 0) >= 2 || !isNew(x.s)) continue;
+    topicPicks.push(x.s); taken.push(x.s); perTopic.set(k, (perTopic.get(k) || 0) + 1);
   }
-  const newsCards = [...followedUpdates, ...picked.map(s => storyCard(s, must.includes(s) ? { must: true } : {}))];
-  newsCards.push(...sportStories(p, since, shown, catchup ? 5 : 3).map(s => storyCard(s)));
+  // 4. Your area, and 5. your sport
+  const localPicks = take(localStories().filter(fresh).sort((a, b) => +new Date(b.updated) - +new Date(a.updated)), catchup ? 2 : 1);
+  const sportPicks = sportStories(p, since, shown, catchup ? 2 : 1).filter(isNew);
+
+  const newsCards = [
+    ...followedUpdates,
+    ...breakingNow.map(s => storyCard(s, { must: true })),
+    ...[...outletPicks, ...topicPicks, ...localPicks, ...sportPicks].map(s => storyCard(s)),
+  ];
   const used = new Set(newsCards.map(x => x.id));
-  const { learning, light } = learningCards(p, firstToday, Math.max(3, Math.round(newsCards.length * 0.6)), used);
+  // Learning is the main part of every edition
+  const { learning, light } = learningCards(p, firstToday, Math.max(10, Math.round(newsCards.length * 1.5)), used);
+  // If there's less learning than usual, trim the news so it never outweighs it (lowest priority goes first)
+  const cap = Math.max(4, learning.length + 2);
+  const cut = newsCards.length > cap ? newsCards.splice(cap) : [];
 
   const cards = weave(newsCards, learning, light);
-  const earlier = rest.sort((a, b) => b.base - a.base).slice(0, 15).map(x => storyCard(x.s));
+  const earlier = [...cut.map(x => x.story!).filter(Boolean), ...[...scored.map(x => x.s), ...outletLists.flat()].filter(s => !taken.includes(s) && isNew(s))].slice(0, 12).map(s => storyCard(s));
   const e: Edition = { key, date, slot, builtAt: d.toISOString(), since: since.toISOString(), catchup, merged, cards, earlier };
   store[key] = e;
   persist();
@@ -338,6 +353,9 @@ export function build(p: Profile, force = false): Edition {
 export function justIn(e: Edition, p: Profile): Story | null {
   const c = context(p);
   const inEdition = new Set(e.cards.map(x => x.story?.id).filter(Boolean));
+  // Breaking news that several outlets started leading with after this edition was made
+  const br = p.breaking === false ? null : (data.live?.breaking || []).find(s => s.via === 'Breaking' && +new Date(s.published) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && !avoided(s, c));
+  if (br) return br;
   return (data.news?.stories || []).filter(s => +new Date(s.first) > +new Date(e.builtAt) && !inEdition.has(s.id) && !S.read[s.id] && s.importance >= 0.5 && (s.top || relevance(s, c) >= 0.7) && !avoided(s, c))
     .sort((a, b) => b.importance - a.importance)[0] || null;
 }

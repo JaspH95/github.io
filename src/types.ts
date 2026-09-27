@@ -79,6 +79,8 @@ export interface Story {
   summary?: Summary;
   entities?: Entity[];
   timeline?: TimelineItem[];
+  via?: string;               // live items: why it's here ("Breaking", an outlet you follow, a topic you follow)
+  paywall?: boolean;
 }
 
 export interface NewsFile { generated: string; stories: Story[] }
