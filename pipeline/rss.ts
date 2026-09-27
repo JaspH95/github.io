@@ -69,7 +69,16 @@ export function parseFeed(xml: string, outlet: string): FeedItem[] {
       });
     }
   }
-  return items.filter(i => i.title && /^https?:/.test(i.url)).map((i, pos) => ({ ...i, pos }));
+  return items
+    .filter(i => i.title && /^https?:/.test(i.url))
+    .filter(i => !/^APOD:/.test(i.title))            // NASA's picture of the day has its own card
+    .map((i, pos) => ({ ...i, summary: junk(i.summary) ? '' : i.summary, pos }));
+}
+
+/* Some feeds put page navigation in the description ("Archive Submissions Index Search Calendar RSS") */
+const NAV = /\b(archive|submissions|index|search|calendar|rss|subscribe|menu|sign in|log in|newsletter|cookies)\b/gi;
+export function junk(s: string): boolean {
+  return (s.match(NAV) || []).length >= 4;
 }
 
 function toISO(s: string): string {

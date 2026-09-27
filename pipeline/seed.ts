@@ -3,7 +3,7 @@
    - GeoNames cities, for the city autocomplete
    npm run seed                  both
    npm run seed -- --only=esco   one part: esco | cities */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { inflateRawSync } from 'node:zlib';
 import { fetchJSON, sleep, record, status } from './util';
 import { httpBytes } from './http';
@@ -133,21 +133,21 @@ async function escoSeed() {
     catch { /* skip */ }
   }
 
-  const occupations: Occupation[] = all.map(o => ({ u: short(o.uri), t: o.title, ...(o.alt.length ? { a: o.alt } : {}), g: o.group })).sort((a, b) => a.t.localeCompare(b.t));
-  await mkdir(`${OUT}/esco`, { recursive: true });
-  await writeFile(`${OUT}/esco/occupations.json`, JSON.stringify({ generated: new Date().toISOString(), version, groups, occupations } satisfies OccupationsFile) + '\n');
-  // Skills, split by ISCO major group so the app only loads the part it needs
-  const byMajor: Record<string, Record<string, { d: string; e: [string, string][]; o: [string, string][] }>> = {};
+  const occupations: Occupation[] = all.map(o => ({ u: short(o.uri), t: o.title, ...(o.alt.length ? { a: o.alt.filter(a => a.toLowerCase() !== o.title.toLowerCase()).slice(0, 8) } : {}), g: o.group })).sort((a, b) => a.t.localeCompare(b.t));
+  // Skills, split by ISCO sub-major group (two digits) so the app only loads a small part
+  const bySub: Record<string, Record<string, { e: [string, string][]; o: [string, string][] }>> = {};
   for (const o of all) {
-    const m = o.group[0] || 'x';
-    (byMajor[m] ||= {})[short(o.uri)] = {
-      d: o.desc.slice(0, 600),
-      e: o.essential.slice(0, 30).map(s => [short(s.uri), s.title]),
-      o: o.optional.slice(0, 20).map(s => [short(s.uri), s.title]),
+    const m = o.group.slice(0, 2) || 'xx';
+    (bySub[m] ||= {})[short(o.uri)] = {
+      e: o.essential.slice(0, 20).map(s => [short(s.uri), s.title]),
+      o: o.optional.slice(0, 8).map(s => [short(s.uri), s.title]),
     };
   }
-  for (const [m, data] of Object.entries(byMajor)) await writeFile(`${OUT}/esco/skills-${m}.json`, JSON.stringify(data) + '\n');
-  console.log(`ESCO: wrote ${occupations.length} occupations, ${Object.keys(groups).length} groups, ${Object.keys(byMajor).length} skill files`);
+  await rm(`${OUT}/esco`, { recursive: true, force: true });
+  await mkdir(`${OUT}/esco`, { recursive: true });
+  await writeFile(`${OUT}/esco/occupations.json`, JSON.stringify({ generated: new Date().toISOString(), version, groups, occupations } satisfies OccupationsFile) + '\n');
+  for (const [m, data] of Object.entries(bySub)) await writeFile(`${OUT}/esco/skills-${m}.json`, JSON.stringify(data) + '\n');
+  console.log(`ESCO: wrote ${occupations.length} occupations, ${Object.keys(groups).length} groups, ${Object.keys(bySub).length} skill files`);
 }
 
 /* ---------- GeoNames cities ---------- */
