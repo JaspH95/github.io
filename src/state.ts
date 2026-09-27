@@ -1,10 +1,13 @@
-/* Everything personal lives in this browser's storage. Nothing leaves the phone. */
+/* Everything personal lives in this browser's storage. If you sign in, cloud.ts copies it to your
+   Knowfeed account so it survives a new phone or adding the app to the Home Screen. */
 import type { TopicKey, Story, LearnCard, Quiz, HubItem } from './types';
 
 const P = 'kf2-';
 export const load = <T>(k: string, d: T): T => { try { const v = localStorage.getItem(P + k); return v ? JSON.parse(v) : d; } catch { return d; } };
-export const save = (k: string, v: unknown) => { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
-export const remove = (k: string) => { try { localStorage.removeItem(P + k); } catch { /* blocked */ } };
+let changed: (k: string) => void = () => {};
+export const onChange = (fn: (k: string) => void) => { changed = fn; };
+export const save = (k: string, v: unknown) => { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } changed(k); };
+export const remove = (k: string) => { try { localStorage.removeItem(P + k); } catch { /* blocked */ } changed(k); };
 export const allKeys = () => { try { return Object.keys(localStorage).filter(k => k.startsWith(P)).map(k => k.slice(P.length)); } catch { return []; } };
 
 export type Slot = 'morning' | 'midday' | 'evening';
@@ -20,7 +23,7 @@ export interface PickedInterest {
 }
 export interface Language { name: string; level: 'new' | 'basics' | 'getting-by' | 'confident'; goal: 'travel' | 'family' | 'work' | 'fun' }
 export interface Place { name: string; country: string; lat: number; lon: number; region?: string; world?: string }
-export interface Job { uri?: string; title: string; raw: string; group?: string }
+export interface Job { uri?: string; title: string; raw: string; group?: string; areas?: string[] }
 export interface SkillPick { id: string; label: string; source: 'job' | 'chosen' }
 
 export interface Profile {
@@ -44,7 +47,8 @@ export const DEFAULT_EDITIONS: Profile['editions'] = { morning: { on: true, time
 export const DEFAULT_QUIET: Profile['quiet'] = { on: true, weekdays: [['09:00', '12:00'], ['13:30', '17:30']] };
 
 /* A card kept whole when saved, since the live data moves on */
-export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub' | 'skill'; title: string; topic: TopicKey; at: string; story?: Story; learn?: LearnCard; quiz?: Quiz; hub?: HubItem; skill?: { id: string; label: string } }
+/* Phrases and skills are kept as references, so Saved always shows their latest version and your progress */
+export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub' | 'skill' | 'phrase'; title: string; topic: TopicKey; at: string; story?: Story; learn?: LearnCard; quiz?: Quiz; hub?: HubItem; skill?: { id: string; label: string }; phrase?: { lang: string; id: string } }
 export interface FollowedStory { id: string; title: string; urls: string[]; names: string[]; at: string; seenCount: number }
 export interface DayStats { read: number; learned: number; quizRight: number; quizDone: number; secs: number; opened: number; finished: number }
 export interface Feedback { at: string; item?: string; title?: string; text: string }

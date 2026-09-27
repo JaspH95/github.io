@@ -13,6 +13,7 @@ import { initWellbeing } from './wellbeing';
 import { startLive } from './live';
 import { closeSheet } from './ui';
 import { log } from './events';
+import * as cloud from './cloud';
 
 initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
 document.getElementById('sheetBg')!.addEventListener('click', closeSheet);
@@ -32,8 +33,18 @@ function open() {
 onChatClosed(() => { if (S.profile) open(); });
 onDevRebuild(() => { showEdition(); if (currentTab() !== 'edition') go('edition'); });
 
+/* After taking newer data from your account, start again so every part of the app reads it (at most once a minute) */
+function reloadForSync(): boolean {
+  let last = 0; try { last = +(sessionStorage.getItem('kf-sync-reload') || 0); } catch { /* blocked */ }
+  if (Date.now() - last < 60_000) return false;
+  try { sessionStorage.setItem('kf-sync-reload', String(Date.now())); } catch { /* blocked */ }
+  location.reload();
+  return true;
+}
+
 async function boot() {
-  await loadData();
+  const [, changed] = await Promise.all([loadData(), cloud.start()]);
+  if (changed && reloadForSync()) return;
   ready();
   if (!S.profile) { startOnboarding(); return; }
   open();
@@ -44,9 +55,12 @@ boot();
    A new edition appears once its time has come; otherwise big news shows as "Just in". */
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', async () => {
-  if (document.hidden) { hiddenAt = Date.now(); return; }
-  if (!hiddenAt || Date.now() - hiddenAt < 10 * 60_000 || !S.profile) return;
+  if (document.hidden) { hiddenAt = Date.now(); if (cloud.signedIn()) cloud.push().catch(() => {}); return; }
+  if (!hiddenAt || !S.profile) return;
   if (document.getElementById('onb')!.classList.contains('open')) return;
+  // Changes made on another phone
+  if (cloud.signedIn() && Date.now() - hiddenAt > 60_000 && await cloud.pull().catch(() => false) && reloadForSync()) return;
+  if (Date.now() - hiddenAt < 10 * 60_000) return;
   await loadData();
   ready();
   if (stale()) { showEdition(); log('edition_open'); if (currentTab() !== 'edition') refreshTab(); }

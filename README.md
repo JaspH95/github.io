@@ -14,6 +14,7 @@ A personal newspaper and learning app that ends. News comes in Morning, Midday a
 | Interests | `content/interests.json` | The ~60 starter interests: news matching terms, Guardian sections, Wikipedia titles for learning |
 | Extra learning topics | `content/topics.json` | Wikipedia titles for topics that aren't news interests (BSL) |
 | Phrase packs | `content/phrases/*.json` | The one fixed content type. See `content/phrases/README.md` |
+| Database | `supabase/schema.sql` | Accounts and sync (Supabase free tier). Paste into the Supabase SQL Editor |
 
 ## The app, file by file
 
@@ -21,9 +22,10 @@ A personal newspaper and learning app that ends. News comes in Morning, Midday a
 - `feed.ts` and `cards.ts`: the full-screen cards and the "You're up to date" screen.
 - `story.ts`: the Particle-style story page, and learning articles.
 - `chat.ts`: onboarding and the settings chat (no AI).
-- `pages.ts`: Learn, Languages, Saved and Search. `lessons.ts`: 5-minute lessons and reviews. `srs.ts`: spaced repetition.
+- `pages.ts`: Learn, Languages, Saved, Search and the menu. `lessons.ts`: 5-minute lessons and reviews. `srs.ts`: spaced repetition.
 - `live.ts`, `audio.ts`, `wellbeing.ts`, `dev.ts`, `backup.ts`, `feedback.ts`, `events.ts`.
-- Everything personal lives in the browser's storage (keys start with `kf2-`).
+- `cloud.ts`: sign-in with an emailed code and sync to Supabase. `workareas.ts` and `jobmatch.ts`: matching someone's work to ESCO.
+- Everything personal lives in the browser's storage (keys start with `kf2-`), and in the person's account if they sign in.
 
 ## Checking sources
 

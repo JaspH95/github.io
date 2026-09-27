@@ -1,6 +1,6 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
-import { S, persist } from './state';
-import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
+import { S, persist, type SavedItem } from './state';
+import { esc, ago, ICON, plural, toast, openSheet, closeSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
 import { learnCard } from './edition';
@@ -9,7 +9,7 @@ import * as srs from './srs';
 import { speakIn } from './audio';
 import { startLesson, startReview } from './lessons';
 import { openChat } from './chat';
-import { onTab, go } from './nav';
+import { onTab, onMenu, go } from './nav';
 import { signSVG } from './scenes';
 import { photo, fixImages, render, type Card } from './cards';
 import type { LearnCard, Story } from './types';
@@ -128,25 +128,53 @@ function packHTML(lang: string): string {
 
 /* ---------- Saved ---------- */
 
+/* Saved keeps what you chose, but always shows the latest version: a story's new coverage, today's text of a learning card,
+   and your progress on a phrase */
+const liveStory = (x: Story) => allStories().find(s => s.id === x.id || s.articles.some(a => x.articles.some(b => b.url === a.url)));
 function savedPage(el: HTMLElement) {
   const items = S.saved;
   const follows = S.follows;
   const ents = [...S.entities];
-  el.innerHTML = `${head('Saved', items.length ? plural(items.length, 'thing') + ' kept for later' : 'Tap the bookmark on any card to keep it here.')}
-    ${items.length ? `<section class="psec"><div class="rows">${items.map(x => {
-      const img = x.story?.image?.url || x.learn?.image || x.hub?.image;
-      return `<div class="row-wrap"><button class="row" data-saved="${esc(x.id)}">${thumb(img, { topic: x.topic, id: x.id })}<span class="rt"><span class="rk">${esc((x.kind === 'story' && x.story ? storyLabel(x.story) : x.kind === 'skill' ? 'Skill' : x.kind === 'quiz' ? 'Quiz' : x.kind === 'hub' ? 'HubSpot' : x.learn ? learnCard(x.learn).label : '').toUpperCase())} · SAVED ${esc(ago(x.at).toUpperCase())}</span><b>${esc(x.title)}</b></span></button><button class="unsave" data-unsave="${esc(x.id)}" aria-label="Remove">${ICON.close}</button></div>`;
-    }).join('')}</div></section>` : ''}
+  const stories = items.filter(x => x.kind === 'story' && x.story);
+  const learning = items.filter(x => ['learn', 'skill', 'quiz', 'hub'].includes(x.kind));
+  const phrases = items.filter(x => x.kind === 'phrase' && x.phrase && PACKS[x.phrase.lang]?.some(p => p.id === x.phrase!.id));
+  const row = (x: SavedItem, kicker: string, title: string, img?: string, extra = '') => `<div class="row-wrap"><button class="row" data-saved="${esc(x.id)}">${img !== undefined ? thumb(img, { topic: x.topic, id: x.id }) : ''}<span class="rt"><span class="rk">${kicker}</span><b>${esc(title)}</b>${extra}</span></button><button class="unsave" data-unsave="${esc(x.id)}" aria-label="Remove from Saved">${ICON.close}</button></div>`;
+  const storyRows = stories.map(x => {
+    const live = liveStory(x.story!); const s = live || x.story!;
+    const more = live && live.articles.length > x.story!.articles.length;
+    return row(x, `${esc(storyLabel(s).toUpperCase())} · ${more ? '<em>NEW COVERAGE</em>' : `SAVED ${esc(ago(x.at).toUpperCase())}`}`, s.title, s.image?.url || '');
+  }).join('');
+  const learnRows = learning.map(x => {
+    const live = x.learn && (data.learn?.cards || []).find(c => c.id === x.learn!.id);
+    const l = live || x.learn;
+    const kick = x.kind === 'skill' ? 'SKILL' : x.kind === 'quiz' ? 'QUIZ' : x.kind === 'hub' ? 'HUBSPOT' : l ? learnCard(l).label.toUpperCase() : '';
+    return row(x, esc(kick), l?.title || (x.kind === 'skill' ? cap(x.title) : x.title), l?.image || x.hub?.image || '');
+  }).join('');
+  const langs = [...new Set(phrases.map(x => x.phrase!.lang))];
+  const phraseRows = (lang: string) => phrases.filter(x => x.phrase!.lang === lang).map(x => {
+    const p = PACKS[lang].find(y => y.id === x.phrase!.id)!;
+    const it = srs.get(srs.phraseKey(lang, p));
+    const state = it?.learned ? 'LEARNED' : it ? 'LEARNING' : 'NEW';
+    return `<div class="row-wrap"><button class="row say-row" data-lang="${esc(lang)}" data-p="${esc(p.id)}" aria-label="Hear ${esc(p.phrase)}"><span class="say-ic">${ICON.speaker}</span><span class="rt"><span class="rk">${state}${p.checked ? '' : ' · NOT YET CHECKED'}</span><b lang="${esc(LANG_CODE[lang] || '')}">${esc(p.phrase)}</b><span class="rs">${esc(p.meaning)} · say it: ${esc(p.say)}</span></span></button><button class="unsave" data-unsave="${esc(x.id)}" aria-label="Remove from Saved">${ICON.close}</button></div>`;
+  }).join('');
+  el.innerHTML = `${head('Saved', items.length ? `${plural(items.length, 'thing')} kept for later. Stories show new coverage, and phrases show your progress.` : 'Tap the bookmark on any card to keep it here: stories, things to learn and phrases.')}
+    ${storyRows ? `<section class="psec"><h2>Stories</h2><div class="rows">${storyRows}</div></section>` : ''}
+    ${learnRows ? `<section class="psec"><h2>Learning</h2><div class="rows">${learnRows}</div></section>` : ''}
+    ${langs.map(l => `<section class="psec"><h2>${esc(l)} phrases</h2><p class="progress-l">${esc(progressLine(l))}</p><div class="rows">${phraseRows(l)}</div><div class="choices"><button class="cta ghost small" data-lesson="${esc(l)}">5-minute lesson</button></div></section>`).join('')}
     <section class="psec"><h2>Following</h2>
       ${follows.length ? `<div class="rows">${follows.map(f => { const s = allStories().find(x => x.id === f.id || x.articles.some(a => f.urls.includes(a.url))); const upd = s && s.articles.length > f.seenCount; return `<div class="row-wrap"><button class="row" data-follow="${esc(f.id)}"><span class="rt"><span class="rk">STORY${upd ? ' · <em>NEW COVERAGE</em>' : s ? '' : ' · NO NEW COVERAGE LATELY'}</span><b>${esc(s?.title || f.title)}</b></span></button><button class="unsave" data-unfollow="${esc(f.id)}" aria-label="Stop following">${ICON.close}</button></div>`; }).join('')}</div>` : '<p class="note">Tap <b>Follow story</b> on any story to get updates at the top of your editions.</p>'}
       ${ents.length ? `<div class="chips">${ents.map(n => `<button class="chip-btn on" data-ent="${esc(n)}">${esc(titleCase(n))} ${ICON.close}</button>`).join('')}</div>` : ''}
     </section>`;
   el.querySelectorAll<HTMLElement>('[data-saved]').forEach(b => b.addEventListener('click', () => {
     const x = S.saved.find(i => i.id === b.dataset.saved); if (!x) return;
-    if (x.story) openStory(x.story); else if (x.learn) openLearn(x.learn); else if (x.skill) openSkill(x.skill);
+    if (x.story) openStory(liveStory(x.story) || x.story);
+    else if (x.learn) openLearn((data.learn?.cards || []).find(c => c.id === x.learn!.id) || x.learn);
+    else if (x.skill) openSkill(x.skill);
     else if (x.hub) window.open(x.hub.url, '_blank', 'noopener');
     else if (x.quiz) { const s = openSheet('<div class="quiz-sheet"></div>', 'Quiz'); const n = render({ id: x.quiz.id, kind: 'quiz', topic: x.quiz.topic, label: 'Quiz', quiz: x.quiz }); n.classList.add('inline'); s.querySelector('.quiz-sheet')!.appendChild(n); }
   }));
+  el.querySelectorAll<HTMLElement>('.say-row').forEach(b => b.addEventListener('click', () => { const ph = PACKS[b.dataset.lang!]?.find(x => x.id === b.dataset.p); if (ph) speakIn(ph.phrase, b.dataset.lang!, 0.85); }));
+  el.querySelectorAll<HTMLElement>('[data-lesson]').forEach(b => b.addEventListener('click', () => startLesson(b.dataset.lesson!)));
   el.querySelectorAll<HTMLElement>('[data-unsave]').forEach(b => b.addEventListener('click', () => { S.saved = S.saved.filter(x => x.id !== b.dataset.unsave); persist.saved(); toast('Removed from Saved'); go('saved'); }));
   el.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => b.addEventListener('click', () => { const f = S.follows.find(x => x.id === b.dataset.follow); const s = f && allStories().find(x => x.id === f.id || x.articles.some(a => f.urls.includes(a.url))); if (s) openStory(s); else toast('No new coverage of this story lately'); }));
   el.querySelectorAll<HTMLElement>('[data-unfollow]').forEach(b => b.addEventListener('click', () => { S.follows = S.follows.filter(x => x.id !== b.dataset.unfollow); persist.follows(); toast('Stopped following'); go('saved'); }));
@@ -181,7 +209,32 @@ function searchPage(el: HTMLElement) {
   setTimeout(() => q.focus(), 50);
 }
 
+/* ---------- The menu ---------- */
+
+function menu() {
+  const p = S.profile; if (!p) return;
+  const due = srs.due({ mark: false, perLang: 99 }).length;
+  const langs = p.languages.filter(l => hasPack(l.name));
+  const row = (k: string, ic: string, t: string, sub: string) => `<button class="menu-row" data-k="${k}"><span class="ic">${ic}</span><span><b>${esc(t)}</b><span>${esc(sub)}</span></span>${ICON.chev}</button>`;
+  const s = openSheet(`<h3>Menu</h3><div class="menu-list">
+    ${row('learn', ICON.book, 'Learn', p.skills.length ? 'Skill of the day, your interests and quizzes' : 'Your interests, quizzes and books')}
+    ${row('langs', ICON.lang, 'Languages', langs.length ? langs.map(l => progressLine(l.name)).join(' · ') : p.languages.length ? p.languages.map(l => l.name).join(', ') : 'Pick a language to learn')}
+    ${due ? row('review', ICON.check, `Review ${due > 5 ? 5 : due} thing${due === 1 ? '' : 's'}`, 'Quick recall, before you forget') : ''}
+    ${row('settings', ICON.settings, 'Settings', 'Interests, work, city, editions, account')}
+    ${row('feedback', ICON.flag, 'Send feedback', 'Something wrong, or an idea?')}
+  </div>`, 'Menu');
+  s.querySelectorAll<HTMLButtonElement>('.menu-row').forEach(b => b.addEventListener('click', () => {
+    closeSheet();
+    const k = b.dataset.k;
+    if (k === 'learn' || k === 'langs') go(k);
+    else if (k === 'review') startReview();
+    else if (k === 'settings') openChat();
+    else if (k === 'feedback') openChat('feedback');
+  }));
+}
+
 export function initPages() {
+  onMenu(menu);
   onTab('learn', learnPage);
   onTab('langs', langsPage);
   onTab('saved', savedPage);

@@ -2,12 +2,13 @@
 
 Knowfeed already runs on free services you've connected: GitHub (code and the hourly news pipeline) and Vercel (hosting). This page covers what's left to switch on, how to get it on your iPhone, and how to test it.
 
-## 1. Put the new version live
+## 1. Where it lives
 
-The new build is on the branch `claude/loving-ptolemy-8iimfd`. Vercel makes a preview of it automatically; merging it into `main` makes it your real site (https://github-io-ten-bice.vercel.app).
+Knowfeed is at **https://knowfeed-nine.vercel.app**. The address never changes.
 
-1. On GitHub, open the pull request for the branch (or create one) and merge it into `main`.
-2. Vercel redeploys within a minute or two.
+- The site shows whatever is on the `main` branch. Vercel rebuilds it a minute or two after anything reaches `main`.
+- Claude Code works on a branch, then merges every finished change into `main` straight away, so the address always has the latest version.
+- On your iPhone, close Knowfeed and open it again to get a new version. There's no need to reinstall.
 
 ## 2. Keys (all free)
 
@@ -56,12 +57,35 @@ npm run dev -- --host        # open the Network link on your iPhone, same Wi-Fi
 - `npm run seed` rebuilds the jobs and cities lists.
 - The `/api` functions (interest search, skills, local news, live football) run on Vercel. Locally, run `npx vercel dev` instead of `npm run dev` to use them.
 
-## 6. Before inviting testers (phase 2)
+## 6. Accounts: so Knowfeed remembers you (Supabase, free)
 
-Accounts, syncing between devices, push notifications, tester invites, the admin page and sending feedback all need a database. The plan is Supabase's free tier:
+Without this, everything is kept only in the browser you used. On iPhone, Safari and the Home Screen app keep **separate** storage, so answers given in Safari don't appear in the Home Screen app. With accounts switched on, you sign in with an email and password and everything comes back, on any phone.
 
-1. Create a project at https://supabase.com (free).
-2. Copy the project URL, the anon key and the service role key (Project Settings → API).
-3. Give them to Claude Code, which will add the tables, sign-in (email link and Google), sync and push notifications.
+You've already made the Supabase project (Knowfeed, London). Four steps:
 
-Until then, everything personal stays on the phone, which is fine for testing on your own.
+1. **Create the tables.** Supabase → your project → **SQL Editor** → **New query**. Open `supabase/schema.sql` in this repo, copy all of it in, press **Run**. You should see "Success. No rows returned".
+2. **Switch off confirmation emails.** Supabase → **Authentication** → **Sign In / Providers** → **Email** → turn **Confirm email** off → **Save**. Knowfeed then never needs to send an email, which matters because Supabase's free email sender is very limited and its emails can't be changed on the free plan.
+3. **Set the site address.** Supabase → **Authentication** → **URL Configuration** → **Site URL**: `https://knowfeed-nine.vercel.app`.
+4. **Give Vercel the two public values.** Supabase → **Project Settings** → **API Keys** (and **Data API** for the URL). In Vercel → your project → **Settings** → **Environment Variables**, add:
+   - `SUPABASE_URL` = `https://nujdjtrmulzgnwcijpqw.supabase.co`
+   - `SUPABASE_ANON_KEY` = the **publishable** key (starts `sb_publishable_`), or the legacy **anon** key
+   Then **Deployments** → the latest one → **⋯** → **Redeploy**.
+
+The **secret** / **service_role** key is never needed by the app. Only put it in GitHub secrets (`SUPABASE_SERVICE_ROLE_KEY`) when the admin page is built, and never paste it into a chat.
+
+Then on your iPhone: open Knowfeed → Settings (top right) → **Sign in to save my answers** → **No, make one**. Your iPhone offers to save the password in Passwords. On a new phone, or the Home Screen app, choose **Sign in and bring back my answers** at the start.
+
+**Forgotten passwords:** there's no reset email yet. In Supabase → **Authentication** → **Users**, find the person and use **⋯** → send a password recovery, or delete the user so they can sign up again (their saved answers go with it).
+
+**Good to know**
+- **Emailed sign-in codes later (optional):** if you connect your own email sender (Supabase → Authentication → Emails → SMTP Settings; your iCloud address works with host `smtp.mail.me.com`, port `587` and an app-specific password from appleid.apple.com), you can edit the emails again. Add `<p>Your Knowfeed code: <strong>{{ .Token }}</strong></p>` to the Magic Link email, then add `SUPABASE_EMAIL_CODES` = `1` in Vercel and redeploy. Knowfeed then signs in with a code instead of a password, and password resets work by email.
+- Free Supabase projects pause after 7 days with no use. Daily use keeps it awake; if it pauses, press Restore in Supabase.
+- Each tester's data is private to them (row-level security on every table).
+
+## 7. A more natural voice for Listen
+
+Listen uses the phone's own voices. The standard iPhone voices sound robotic, but iPhone has natural "Enhanced" and "Premium" voices that are free: **Settings → Accessibility → Spoken Content → Voices → English → pick one marked Enhanced or Premium** (for example Jamie, Serena or Daniel) and download it. Then in Knowfeed: Settings → **Listening voice**, and choose it. Knowfeed picks the best installed voice automatically.
+
+## 8. Still to come before testers
+
+Tester invites, the admin page, push notifications, and Google sign-in.

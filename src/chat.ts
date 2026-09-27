@@ -1,7 +1,7 @@
 /* Onboarding and the settings chat share one screen. Both run on the phone with no AI.
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
-import { S, persist, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
+import { S, persist, load, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
 import { INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data, allStories } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
 import { wait, esc, toast } from './ui';
@@ -12,6 +12,8 @@ import { feedback } from './feedback';
 import { log } from './events';
 import type { Occupation, OccupationsFile, TopicKey } from './types';
 import { makeMatcher } from './jobmatch';
+import * as cloud from './cloud';
+import { AREAS, areaById } from './workareas';
 
 const $ = (id: string) => document.getElementById(id)!;
 const onb = () => $('onb'), lines = () => $('lines'), stream = () => $('stream'), otray = () => $('otray'), orb = () => $('orb');
@@ -68,7 +70,7 @@ function showQ(box: HTMLElement) {
   stream().scrollTop = Math.min(max, Math.max(0, q.offsetTop - 64));
 }
 function makeForm(placeholder: string, cls = '') {
-  const f = document.createElement('form'); f.className = 'oform inline ' + cls;
+  const f = document.createElement('form'); f.className = 'oform inline ' + cls; f.noValidate = true;   // Knowfeed's own messages, not the browser's
   f.innerHTML = `<input aria-label="Your answer" autocomplete="off" autocapitalize="sentences" enterkeyhint="send" maxlength="80"><button class="osend" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>`;
   const input = f.querySelector('input')!;
   input.placeholder = placeholder;
@@ -82,11 +84,11 @@ function tray(label: string, disabled = false): HTMLButtonElement {
 const clearTray = () => { otray().innerHTML = ''; };
 const blurAll = () => { (document.activeElement as HTMLElement | null)?.blur?.(); onb().classList.remove('kb'); fit(); };
 
-function askText(placeholder: string, max = 40): Promise<string> {
+function askText(placeholder: string, max = 40, setup?: (i: HTMLInputElement) => void): Promise<string> {
   return new Promise(res => {
     const f = makeForm(placeholder); lines().appendChild(f); toBottom();
-    const input = f.querySelector('input')!; input.maxLength = max;
-    f.addEventListener('submit', e => { e.preventDefault(); const v = input.value.trim(); if (!v) return; blurAll(); f.remove(); answer(v); res(v); });
+    const input = f.querySelector('input')!; input.maxLength = max; setup?.(input);
+    f.addEventListener('submit', e => { e.preventDefault(); const secret = input.type === 'password'; const v = secret ? input.value : input.value.trim(); if (!v) return; blurAll(); f.remove(); answer(secret ? '•'.repeat(8) : v); res(v); });
     setTimeout(() => showQ(f), 30);
   });
 }
@@ -177,8 +179,9 @@ async function askCity(): Promise<Profile['city']> {
     return r ? { name: r.name, country: 'GB', lat: r.lat, lon: r.lon, region: r.id } : { name: w!.name, country: '', lat: w!.lat, lon: w!.lon, world: w!.id };
   }
   return new Promise(res => {
-    const f = makeForm('Start typing your city or town'); lines().appendChild(f);
-    const sug = document.createElement('div'); sug.className = 'olist sugg'; lines().appendChild(sug);
+    // Suggestions sit above the text box, closest match nearest to it, so the keyboard never covers them
+    const f = makeForm('Start typing your city or town');
+    const sug = document.createElement('div'); sug.className = 'olist sugg'; lines().appendChild(sug); lines().appendChild(f);
     const input = f.querySelector('input')!;
     const draw = () => {
       const q = fold(input.value.trim());
@@ -186,17 +189,17 @@ async function askCity(): Promise<Profile['city']> {
       if (q.length < 2) return;
       const hits = list.filter(c => fold(c[0]).startsWith(q)).slice(0, 5);
       const more = hits.length < 5 ? list.filter(c => !hits.includes(c) && fold(c[0]).includes(q)).slice(0, 5 - hits.length) : [];
-      [...hits, ...more].forEach(c => {
+      [...hits, ...more].reverse().forEach(c => {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'po'; b.innerHTML = `${IC.pin}<span></span>`;
         b.querySelector('span')!.textContent = `${c[0]}, ${countryName(c[1])}`;
         b.addEventListener('click', () => { blurAll(); f.remove(); sug.remove(); answer(`${c[0]}, ${countryName(c[1])}`); res(placeFor(c[0], c[1], c[2], c[3])); });
         sug.appendChild(b);
       });
       if (!hits.length && !more.length) sug.innerHTML = '<p class="ln thinking">No match yet. Try the nearest big town.</p>';
-      toBottom();
+      keepQuestion();
     };
     input.addEventListener('input', draw);
-    f.addEventListener('submit', e => { e.preventDefault(); (sug.querySelector('.po') as HTMLButtonElement | null)?.click(); });
+    f.addEventListener('submit', e => { e.preventDefault(); ([...sug.querySelectorAll('.po')].pop() as HTMLButtonElement | undefined)?.click(); });
     setTimeout(() => showQ(f), 30);
   });
 }
@@ -209,33 +212,56 @@ async function occupations(): Promise<OccupationsFile | null> {
 }
 
 let matcher: ReturnType<typeof makeMatcher> | null = null;
-async function askJob(): Promise<Pick<Profile, 'job' | 'skills'>> {
-  const raw = await askText('Your job title, in your own words', 80);
+async function skillsOf(occs: Occupation[]): Promise<[string, string][]> {
+  const lists = await Promise.all(occs.map(async o => {
+    try { const r = await fetch(`/data/esco/skills-${o.g.slice(0, 2) || 'xx'}.json`); if (r.ok) { const d = await r.json(); const x = d[o.u]; if (x) return [...x.e, ...x.o] as [string, string][]; } } catch { /* offline */ }
+    return [] as [string, string][];
+  }));
+  // Take turns from each occupation so one doesn't crowd out the others
+  const out: [string, string][] = [];
+  for (let i = 0; out.length < 12 && lists.some(l => l[i]); i++) for (const l of lists) if (l[i] && !out.some(s => s[0] === l[i][0]) && out.length < 12) out.push(l[i]);
+  return out;
+}
+
+/* Work: areas first (always something that fits), then the job title or a description, with as many tries as it takes */
+async function askJob(preset?: Profile['job']): Promise<Pick<Profile, 'job' | 'skills'>> {
+  await say('Which areas do you work in? Pick one or two.');
+  const areaIds = await askMany(AREAS.map(a => [a.id, a.label]), { btn: 'Continue', none: 'Not working right now', preset: preset?.areas, compact: true });
+  if (!areaIds.length) { pastAll(); return { job: undefined, skills: [] }; }
+  const areas = areaIds.map(id => areaById.get(id)!).filter(Boolean);
+  const boost = areas.flatMap(a => a.g);
+  pastAll(); await say("And your job title? If it's an unusual one, just describe what you do.");
+  let raw = await askText('Job title, or what you do day to day', 120);
   const file = await occupations();
-  if (!file) { pastAll(); await say("Thanks. I'll use that to find news from your field."); return { job: { title: raw, raw }, skills: [] }; }
+  if (!file) { pastAll(); return { job: { title: raw, raw, areas: areaIds }, skills: [] }; }
   matcher ||= makeMatcher(file.occupations);
-  const hits = matcher(raw, 3);
-  pastAll();
   let pick: Occupation | undefined;
-  if (hits.length) {
-    await say('Which of these is closest?');
-    const k = await askOne([...hits.map(o => [o.u, cap(o.t), 'job'] as [string, string, string]), ['__else', 'Something else', 'dots']]);
-    pick = hits.find(o => o.u === k);
-  }
-  if (!pick) {
+  for (let tries = 1; ; tries++) {
+    const hits = matcher(raw, 6, boost);
     pastAll();
-    await say('No problem. Which broad area is it in?');
-    const majors = Object.entries(file.groups).filter(([c]) => c.length === 1).sort((a, b) => a[0].localeCompare(b[0]));
-    const g = await askOne([...majors.map(([c, l]) => [c, cap(l), 'job'] as [string, string, string]), ['__none', 'None of these', 'dots']]);
-    return { job: { title: raw, raw, ...(g !== '__none' ? { group: g } : {}) }, skills: [] };
+    if (!hits.length) { await say("I couldn't find a match for that."); }
+    else await say('Which of these is closest?');
+    const k = await askOne([
+      ...hits.map(o => [o.u, cap(o.t), 'job'] as [string, string, string]),
+      ...(tries < 4 ? [['__retry', hits.length ? 'None of these. Let me describe it' : 'Try describing it', 'dots'] as [string, string, string]] : []),
+      ['__area', `Skip. Just use ${areas.length > 1 ? 'my areas' : areas[0].label.toLowerCase()}`, 'spark'],
+    ]);
+    pick = hits.find(o => o.u === k);
+    if (k !== '__retry') break;
+    pastAll(); await say('Try it another way. What do you spend most of your day doing?');
+    raw = await askText('For example: I plan email campaigns for a charity', 120);
   }
-  const job = { uri: pick.u, title: cap(pick.t), raw, group: pick.g };
-  // That occupation's skills, from ESCO
-  let skills: [string, string][] = [];
-  try {
-    const r = await fetch(`/data/esco/skills-${pick.g.slice(0, 2) || 'xx'}.json`);
-    if (r.ok) { const d = await r.json(); const o = d[pick.u]; if (o) skills = [...o.e, ...o.o].slice(0, 12); }
-  } catch { /* offline */ }
+  let job: Profile['job'], skills: [string, string][];
+  if (pick) {
+    job = { uri: pick.u, title: cap(pick.t), raw, group: pick.g, areas: areaIds };
+    skills = await skillsOf([pick]);
+  } else {
+    // No exact job: the skills of a few typical jobs in their areas stand in
+    const byTitle = new Map(file.occupations.map(o => [o.t.toLowerCase(), o]));
+    const stand = areas.flatMap(a => a.jobs.slice(0, areas.length > 1 ? 1 : 3)).map(t => byTitle.get(t.toLowerCase())).filter(Boolean) as Occupation[];
+    job = { title: raw, raw, group: stand[0]?.g, areas: areaIds };
+    skills = await skillsOf(stand);
+  }
   if (!skills.length) return { job, skills: [] };
   pastAll();
   await say('Which of these do you want to get better at?');
@@ -279,10 +305,11 @@ const toPicked = (id: string): PickedInterest | null => {
 };
 
 async function askInterests(preset: PickedInterest[] = []): Promise<PickedInterest[]> {
-  const groups: [string, [string, string][]][] = Object.entries(CATEGORIES).map(([c, label]) => [label, INTERESTS.filter(i => i.cat === c).map(i => [i.id, i.label] as [string, string])]);
+  // Sport has its own question, so it isn't repeated here
+  const groups: [string, [string, string][]][] = Object.entries(CATEGORIES).filter(([c]) => c !== 'sport').map(([c, label]) => [label, INTERESTS.filter(i => i.cat === c).map(i => [i.id, i.label] as [string, string])]);
   const extra = preset.filter(p => p.id.startsWith('q:'));
   if (extra.length) groups.unshift(['Found by search', extra.map(p => [p.id, p.label])]);
-  const ids = await askMany([], { btn: 'Continue', groups, preset: preset.map(p => p.id), search: { placeholder: 'Type anything else, like rewilding', find: findInterests } });
+  const ids = await askMany([], { btn: 'Continue', groups, preset: preset.filter(p => !isSport(p)).map(p => p.id), search: { placeholder: 'Type anything else, like rewilding', find: findInterests } });
   const picks = ids.map(toPicked).filter(Boolean) as PickedInterest[];
   if (!picks.length) return [];
   // News, learning, or both? One line per pick, "both" unless changed
@@ -290,6 +317,13 @@ async function askInterests(preset: PickedInterest[] = []): Promise<PickedIntere
   await say('For each one: news, learning, or both?');
   const modes = await askModes(picks.map(p => ({ ...p, mode: preset.find(x => x.id === p.id)?.mode || p.mode })));
   return modes;
+}
+const isSport = (p: PickedInterest) => interestById.get(p.id)?.cat === 'sport';
+/* The sports you follow become news interests too, so their big stories can reach the edition */
+function withSports(list: PickedInterest[], sports: string[]): PickedInterest[] {
+  const keep = list.filter(p => !isSport(p));
+  const add = INTERESTS.filter(i => i.cat === 'sport' && i.sport && sports.includes(i.sport)).map(i => ({ id: i.id, label: i.label, cat: i.cat, mode: 'news' as Mode }));
+  return [...keep, ...add];
 }
 function askModes(list: PickedInterest[]): Promise<PickedInterest[]> {
   return new Promise(res => {
@@ -351,6 +385,87 @@ function askEditions(p: Pick<Profile, 'editions' | 'quiet'>): Promise<Pick<Profi
   });
 }
 
+/* ---------- Account: email and password (or an emailed code, once Supabase has its own email sender) ---------- */
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const emailInput = (i: HTMLInputElement) => { i.type = 'email'; i.inputMode = 'email'; i.autocapitalize = 'off'; i.autocomplete = 'username'; i.spellcheck = false; };
+const codeInput = (i: HTMLInputElement) => { i.inputMode = 'numeric'; i.autocomplete = 'one-time-code'; i.pattern = '[0-9]*'; };
+/* A hidden username next to the password lets iPhone offer a strong password and save both to Passwords */
+const passwordInput = (email: string, isNew: boolean) => (i: HTMLInputElement) => {
+  i.type = 'password'; i.autocapitalize = 'off'; i.spellcheck = false; i.autocomplete = isNew ? 'new-password' : 'current-password';
+  const u = document.createElement('input'); u.type = 'email'; u.autocomplete = 'username'; u.value = email; u.className = 'sr'; u.tabIndex = -1; u.setAttribute('aria-hidden', 'true');
+  i.before(u);
+};
+
+async function askEmail(): Promise<string> {
+  for (;;) {
+    const email = (await askText('you@example.com', 120, emailInput)).trim().toLowerCase();
+    if (EMAIL.test(email)) return email;
+    pastAll(); await say("That doesn't look like an email address. Try again?");
+  }
+}
+
+/* Returns true once signed in, false if they chose to skip */
+async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
+  if (cloud.emailCodes) return codeFlow();
+  await say(mode === 'new' ? "What's your email? It's only used to sign you in." : "What's the email for your Knowfeed account?");
+  let email = await askEmail();
+  for (;;) {
+    pastAll();
+    await say(mode === 'new' ? 'Now choose a password, at least 8 characters.' : 'And your password?');
+    const pw = await askText('Password', 72, passwordInput(email, mode === 'new'));
+    pastAll();
+    if (mode === 'new') {
+      if (pw.length < 8) { await say("That's a bit short. Use at least 8 characters."); continue; }
+      await say('Setting up your account…');
+      const r = await cloud.signUp(email, pw);
+      if (r.ok) return true;
+      pastAll(); await say(r.exists ? "There's already an account with that email. Is it yours?" : r.msg);
+      const c = await askOne(r.exists ? [['in', 'Yes, sign me in', 'heart'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']] : [['again', 'Try again', 'time'], ['skip', 'Skip for now', 'back']]);
+      pastAll();
+      if (c === 'skip') return false;
+      if (c === 'in') mode = 'existing';
+      if (c === 'email') { await say("What's the email?"); email = await askEmail(); }
+      continue;
+    }
+    await say('Signing in…');
+    const err = await cloud.signInPassword(email, pw);
+    if (!err) return true;
+    pastAll(); await say(err);
+    const c = await askOne([['again', 'Try the password again', 'time'], ['new', 'Make a new account with this email', 'spark'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']]);
+    pastAll();
+    if (c === 'skip') return false;
+    if (c === 'new') mode = 'new';
+    if (c === 'email') { await say("What's the email?"); email = await askEmail(); }
+  }
+}
+
+async function codeFlow(): Promise<boolean> {
+  await say("What's your email? I'll send you a code. No password needed.");
+  const email = await askEmail();
+  for (;;) {
+    pastAll();
+    const err = await cloud.sendCode(email);
+    if (err) {
+      await say(`I couldn't send the code. ${err}`);
+      const c = await askOne([['again', 'Try again', 'time'], ['skip', 'Skip for now', 'dots']]);
+      if (c === 'skip') return false;
+      continue;
+    }
+    await say(`I've sent a code to ${email}. Type it here. It can take a minute, so check your junk folder too.`);
+    for (;;) {
+      const code = (await askText('The code from the email', 10, codeInput)).replace(/\D/g, '');
+      const bad = code.length < 6 ? 'Codes are 6 digits or more.' : await cloud.verifyCode(email, code);
+      if (!bad) { pastAll(); return true; }
+      pastAll(); await say(bad);
+      const c = await askOne([['retry', 'Type the code again', 'time'], ['resend', 'Send a new code', 'spark'], ['skip', 'Skip for now', 'dots']]);
+      pastAll();
+      if (c === 'skip') return false;
+      if (c === 'resend') break;
+    }
+  }
+}
+
 /* ---------- Opening and closing the screen ---------- */
 
 function openScreen(mode: 'setup' | 'chat') {
@@ -379,15 +494,26 @@ export async function startOnboarding() {
   openScreen('setup');
   await wait(400);
   await say("Hi. I'm going to ask a few quick questions, then build your first edition. It takes about two minutes.");
+  if (cloud.cloudOn && !cloud.signedIn()) {
+    await say('New here, or have you set up Knowfeed before?');
+    const k = await askOne([['new', "I'm new", 'spark'], ['back', 'Sign in and bring back my answers', 'heart']]);
+    pastAll();
+    if (k === 'back' && await accountFlow('existing')) {
+      await say('Signed in. Looking for your answers…');
+      const got = await cloud.pull().catch(() => false);
+      if (got && load('profile', null)) { await say('Found them. Opening your feed…'); await wait(600); location.reload(); return; }
+      pastAll(); await say("I couldn't find any answers for that email, so let's set you up. They'll be saved to your account as we go.");
+    }
+  }
   await say('First, what should I call you?');
   const name = await askText('Your first name', 30);
   pastAll(); await say(`Good to meet you, ${name}.`);
   await say('Where do you live? Your city or town is enough.');
   const city = await askCity();
   pastAll(); await say(city?.region ? `${city.name}. I'll bring you local news from BBC ${regionName(city)}.` : city?.world ? `${city.name}. I'll keep you across the big stories there.` : `${city?.name}. I'll look for news about ${city?.name} from the Guardian.`);
-  await say('What do you do for work?');
+  await say('Now, your work.');
   const work = await askJob();
-  pastAll(); await say(work.job?.uri ? `${work.job.title}. I'll bring you a skill of the day and news from your field.` : 'Got it.');
+  pastAll(); await say(work.skills.length ? "Thanks. I'll bring you a skill of the day and news from your field." : 'Got it.');
   await say("What are you into? Pick as many as you like, or type anything that's missing.");
   const interests = await askInterests();
   pastAll(); await say(interests.length > 5 ? 'A good mix. Serious, but never dull.' : interests.length ? 'Focused. I like it.' : "No problem. I'll start broad and learn from what you like.");
@@ -406,7 +532,7 @@ export async function startOnboarding() {
   const avoid = await askMany(INTERESTS.filter(i => !chosen.has(i.id) && i.cat !== 'sport').map(i => [i.id, i.label]), { btn: 'Hide these', none: "Nothing, I'm open", compact: true });
   pastAll(); await say(avoid.length ? "Done. You won't see those." : 'Open-minded. Noted.');
 
-  S.profile = { name, city, ...work, interests, languages, sports, teams, avoid, ...eds, created: now().toISOString() };
+  S.profile = { name, city, ...work, interests: withSports(interests, sports), languages, sports, teams, avoid, ...eds, created: now().toISOString() };
   S.weights = {};
   persist.profile(); persist.weights();
   forget();
@@ -424,7 +550,13 @@ export async function startOnboarding() {
     box.innerHTML = `<p class="ogroup">First up</p>${heads.map(h => `<p class="prev">${esc(h)}</p>`).join('')}`;
     lines().appendChild(box); toBottom();
   }
-  if (!standalone()) await say('Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
+  if (cloud.cloudOn && !cloud.signedIn()) {
+    await say("Want me to keep your answers safe? With an account (just an email and a password) they come back if you add Knowfeed to your Home Screen or change phones.", 'small');
+    const k = await askOne([['yes', 'Make an account', 'heart'], ['have', 'I already have one', 'shield'], ['no', 'Not now', 'dots']]);
+    pastAll();
+    if (k !== 'no' && await accountFlow(k === 'yes' ? 'new' : 'existing')) { await cloud.push().catch(() => {}); await say('Saved to your account.', 'small'); }
+  } else if (cloud.signedIn()) cloud.push().catch(() => {});
+  if (!standalone()) await say(cloud.signedIn() ? 'Tip: add Knowfeed to your Home Screen (in Safari, tap Share, then "Add to Home Screen"), open it from there and sign in with the same email and password.' : 'Tip: add Knowfeed to your Home Screen. In Safari, tap Share, then "Add to Home Screen".', 'small');
   await say('You can change anything later from the button at the top right.', 'small');
   const go = tray('Show my feed');
   go.addEventListener('click', () => { clearTray(); closeScreen(); });
@@ -433,7 +565,7 @@ export async function startOnboarding() {
 /* ---------- The settings chat ---------- */
 
 let chatOpen = false;
-type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback';
+type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'voice';
 
 export async function openChat(jump?: Section) {
   if (running || !S.profile) return;
@@ -446,7 +578,7 @@ export async function openChat(jump?: Section) {
     const pick = await askOne([
       ['suggest', 'Suggest something new', 'spark'], ['interests', 'My interests', 'heart'], ['city', 'My city', 'pin'], ['skills', 'My work and skills', 'job'],
       ['languages', 'Languages', 'globe'], ['sport', 'Sports and teams', 'ball'], ['editions', 'Editions and times', 'time'], ['avoid', 'Topics to avoid', 'shield'],
-      ['wellbeing', 'Reading goal and limit', 'book'], ['feedback', 'Feedback and notes', 'flag'], ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
+      ['wellbeing', 'Reading goal and limit', 'book'], ['voice', 'Listening voice', 'spark'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
     ]);
     if (!chatOpen) break;
     pastAll();
@@ -473,14 +605,14 @@ async function section(k: Section) {
     case 'interests': {
       await say('Pick what you want. Tap to add or remove.');
       const list = await askInterests(p.interests);
-      p.interests = list; p.avoid = p.avoid.filter(a => !list.some(i => i.id === a));
+      p.interests = withSports(list, p.sports); p.avoid = p.avoid.filter(a => !list.some(i => i.id === a));
       pastAll(); await saveP(list.length ? `Done. ${list.length} interest${list.length > 1 ? 's' : ''}. Your next edition uses them.` : 'Done. I\'ll keep things broad.');
       return;
     }
     case 'city': { await say('Where do you live now?'); const c = await askCity(); p.city = c; pastAll(); await saveP(`${c?.name} it is.`); return; }
     case 'skills': {
-      await say(p.job ? `You told me: ${p.job.title}. What do you do now?` : 'What do you do for work?');
-      const w = await askJob(); p.job = w.job; p.skills = [...w.skills, ...p.skills.filter(s => s.source === 'chosen' && !w.skills.some(x => x.id === s.id))];
+      if (p.job) await say(`You told me: ${p.job.title}.`);
+      const w = await askJob(p.job); p.job = w.job; p.skills = [...w.skills, ...p.skills.filter(s => s.source === 'chosen' && !w.skills.some(x => x.id === s.id))];
       pastAll(); await saveP(p.skills.length ? `Saved. ${p.skills.length} skill${p.skills.length > 1 ? 's' : ''} for your skill of the day.` : 'Saved.');
       return;
     }
@@ -504,6 +636,7 @@ async function section(k: Section) {
       await say('Which sports do you follow?');
       p.sports = await askMany(Object.keys(SPORT_FEEDS).map(s => [s, s]), { btn: 'Save', none: 'None', preset: p.sports, compact: true });
       if (p.sports.includes('Football')) { pastAll(); await say('Which teams?'); p.teams = await askTeams(p.teams); } else p.teams = [];
+      p.interests = withSports(p.interests, p.sports);
       pastAll(); await saveP(p.sports.length ? 'Saved. Your sports page updates from the next edition.' : "Sport's out.");
       return;
     }
@@ -516,7 +649,7 @@ async function section(k: Section) {
     case 'avoid': {
       await say("What would you rather not see?");
       const mine = new Set(p.interests.map(i => i.id));
-      p.avoid = await askMany(INTERESTS.filter(i => !mine.has(i.id)).map(i => [i.id, i.label]), { btn: 'Save', none: "Nothing, I'm open", preset: p.avoid, compact: true });
+      p.avoid = await askMany(INTERESTS.filter(i => !mine.has(i.id) && i.cat !== 'sport').map(i => [i.id, i.label]), { btn: 'Save', none: "Nothing, I'm open", preset: p.avoid, compact: true });
       pastAll(); await saveP(p.avoid.length ? `Hidden: ${p.avoid.map(a => interestById.get(a)?.label).join(', ')}.` : 'Nothing hidden.');
       return;
     }
@@ -539,16 +672,59 @@ async function section(k: Section) {
       if (c === 'see') { const box = document.createElement('div'); box.className = 'previewbox'; box.innerHTML = S.feedback.slice(0, 20).map(f => `<p class="prev"><b>${esc(new Date(f.at).toLocaleDateString('en-GB'))}</b> ${f.title ? `(${esc(f.title)}) ` : ''}${esc(f.text)}</p>`).join(''); lines().appendChild(box); toBottom(); }
       return;
     }
+    case 'voice': {
+      const { voicesFor, setVoice, sample, currentVoice, goodVoice } = await import('./audio');
+      const vs = voicesFor('en-GB').slice(0, 6);
+      if (!vs.length) { await say("This phone doesn't have an English voice I can use."); return; }
+      await say(goodVoice() ? `I'm reading with ${currentVoice()!.name}. Tap a voice to hear it.` : "The voices that come with an iPhone sound robotic, but it has natural ones you can download free: Settings → Accessibility → Spoken Content → Voices → English, then pick one marked Enhanced or Premium. After that, choose it here.");
+      for (;;) {
+        const k = await askOne([...vs.map(v => [v.voiceURI, `${v.name}${v.voiceURI === currentVoice()?.voiceURI ? ' (in use)' : ''}`, 'spark'] as [string, string, string]), ['done', 'Done', 'back']]);
+        pastAll();
+        if (k === 'done') return;
+        const v = vs.find(x => x.voiceURI === k)!; setVoice(k); sample(v);
+        await say(`Now using ${v.name}.`);
+      }
+    }
+    case 'account': {
+      const u = cloud.signedIn();
+      if (!u) {
+        let ok = false;
+        if (cloud.emailCodes) ok = await codeFlow();
+        else {
+          await say('Do you already have a Knowfeed account?');
+          const h = await askOne([['existing', 'Yes, sign me in', 'heart'], ['new', 'No, make one', 'spark'], ['back', 'Back', 'back']]);
+          pastAll();
+          if (h === 'back') return;
+          ok = await accountFlow(h as 'existing' | 'new');
+        }
+        if (!ok) { await say('No problem. Everything stays on this phone.'); return; }
+        await say('Signed in. Syncing…');
+        const got = await cloud.pull().catch(() => false);
+        if (got) { await say('Your account had newer answers. Reloading with them…'); await wait(700); location.reload(); return; }
+        await say('Done. Your answers, saves and progress are now kept with your account.');
+        return;
+      }
+      const t = cloud.lastSynced();
+      await say(`Signed in as ${u.email}.${t ? ` Last synced ${new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.` : ''}`);
+      const c = await askOne([['sync', 'Sync now', 'time'], ['out', 'Sign out', 'back'], ['back', 'Back', 'dots']]);
+      pastAll();
+      if (c === 'sync') { const got = await cloud.pull().catch(() => null); if (got === null) await say("Couldn't reach Knowfeed just now. It'll try again later."); else if (got) { await say('Got newer answers from your account. Reloading…'); await wait(700); location.reload(); } else await say('All up to date.'); }
+      if (c === 'out') { await cloud.signOut(); await say('Signed out. Everything is still on this phone.'); }
+      return;
+    }
     case 'data': {
-      await say('Everything personal is stored on this phone. What would you like to do?');
+      await say(cloud.signedIn() ? 'Your data is on this phone and in your Knowfeed account. What would you like to do?' : 'Everything personal is stored on this phone. What would you like to do?');
       const c = await askOne([['export', 'Back up to a file', 'book'], ['import', 'Restore from a file', 'time'], ['delete', 'Delete everything', 'shield'], ['back', 'Back', 'back']]);
       pastAll();
       if (c === 'export') { await exportData(); await say('Saved a backup file.'); }
       if (c === 'import') { importData(); await say('Pick your backup file.'); }
       if (c === 'delete') {
-        await say('This removes your settings, likes, saves and progress from this phone. Are you sure?');
+        await say(cloud.signedIn() ? 'This deletes your Knowfeed account and removes your settings, likes, saves and progress from this phone. Are you sure?' : 'This removes your settings, likes, saves and progress from this phone. Are you sure?');
         const y = await askOne([['no', 'No, keep everything', 'back'], ['yes', 'Yes, delete everything', 'shield']]);
-        if (y === 'yes') { deleteEverything(); return; }
+        if (y === 'yes') {
+          if (cloud.signedIn() && !(await cloud.deleteAccount())) { pastAll(); await say("I couldn't delete your account just now, so nothing's been deleted. Try again when you have signal."); return; }
+          deleteEverything(); return;
+        }
         pastAll(); await say('Nothing deleted.');
       }
       return;

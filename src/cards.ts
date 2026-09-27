@@ -59,21 +59,39 @@ export function photo(url: string | undefined, c: { topic: TopicKey; id: string;
   const ph = img?.lqip ? `background-image:url(${img.lqip});` : '';
   return `<img class="${cls} photo" src="${safeUrl(url)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer" style="${pos}${ph}" data-topic="${c.topic}" data-seed="${seedFor(c.id)}" data-label="${esc(c.label || '')}">`;
 }
+/* Feed cards are tall and most photos are wide. Filling the card would zoom a wide photo in about four times,
+   so wide photos sit whole at the top over a blurred, darkened copy of themselves. Tall photos still fill the card. */
+export function framed(url: string | undefined, c: { topic: TopicKey; id: string; label?: string }, img?: { lqip?: string; focus?: [number, number]; w?: number; h?: number }): string {
+  if (!url) return cover(c.topic, seedFor(c.id), c.label);
+  const ar = img?.w && img?.h ? img.w / img.h : 0;
+  if (ar && ar < 0.9) return photo(url, c, img);
+  const pos = img?.focus ? `object-position:${img.focus[0]}% ${img.focus[1]}%;` : '';
+  const ph = img?.lqip ? `background-image:url(${img.lqip});` : '';
+  return `<div class="frame"${ar ? ` style="--ar:${Math.min(2, ar).toFixed(3)}"` : ''}><img class="bg" src="${img?.lqip && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(img.lqip) ? img.lqip : safeUrl(url)}" alt="" aria-hidden="true" referrerpolicy="no-referrer"><img class="fg photo" src="${safeUrl(url)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer" style="${pos}${ph}" data-topic="${c.topic}" data-seed="${seedFor(c.id)}" data-label="${esc(c.label || '')}"></div>`;
+}
 /* If a photo fails to load, the topic's cover takes its place */
 export function fixImages(root: HTMLElement) {
   root.querySelectorAll<HTMLImageElement>('img.photo').forEach(img => {
-    const swap = () => { const t = document.createElement('div'); t.innerHTML = cover(img.dataset.topic as TopicKey, +(img.dataset.seed || 1), img.dataset.label); img.replaceWith(t.firstElementChild!); };
+    const frame = img.closest<HTMLElement>('.frame');
+    const swap = () => { const t = document.createElement('div'); t.innerHTML = cover(img.dataset.topic as TopicKey, +(img.dataset.seed || 1), img.dataset.label); (frame || img).replaceWith(t.firstElementChild!); };
     if (img.complete && img.naturalWidth === 0 && img.src) swap(); else img.addEventListener('error', swap, { once: true });
-    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+    const loaded = () => {
+      img.classList.add('loaded');
+      if (frame && img.naturalWidth) {
+        const ar = img.naturalWidth / img.naturalHeight;
+        if (ar < 0.9) frame.classList.add('tall'); else if (!frame.style.getPropertyValue('--ar')) frame.style.setProperty('--ar', Math.min(2, ar).toFixed(3));
+      }
+    };
+    if (img.complete && img.naturalWidth) loaded(); else img.addEventListener('load', loaded, { once: true });
   });
 }
 
 function background(c: Card): string {
   switch (c.kind) {
-    case 'story': return photo(c.story!.image?.url, { ...c, label: c.label }, c.story!.image);
-    case 'learn': return photo(c.learn!.image, { ...c, label: c.label });
-    case 'hub': return photo(c.hub!.image, c);
-    case 'quiz': return photo(c.quiz!.article?.image, { ...c, label: 'Quiz' });
+    case 'story': return framed(c.story!.image?.url, { ...c, label: c.label }, c.story!.image);
+    case 'learn': return framed(c.learn!.image, { ...c, label: c.label });
+    case 'hub': return framed(c.hub!.image, c);
+    case 'quiz': return framed(c.quiz!.article?.image, { ...c, label: 'Quiz' });
     case 'sign': return signSVG();
     case 'sports': return cover('sport', seedFor(c.id), 'Sport', 'pitch');
     case 'phrase': case 'review': return cover('lang', seedFor(c.id), undefined, 'lang');
@@ -166,9 +184,10 @@ export function snapshot(c: Card): SavedItem | null {
   if (c.quiz) return { ...base, kind: 'quiz', title: c.quiz.q, quiz: c.quiz };
   if (c.hub) return { ...base, kind: 'hub', title: c.hub.title, hub: c.hub };
   if (c.skill) return { ...base, id: `skill-${c.skill.id}`, kind: 'skill', title: c.skill.label, skill: c.skill };
+  if (c.phrase) { const p = PACKS[c.phrase.lang]?.find(x => x.id === c.phrase!.id); if (p) return { ...base, id: `phrase-${c.phrase.lang}-${c.phrase.id}`, kind: 'phrase', title: p.phrase, topic: 'lang', phrase: c.phrase }; }
   return null;
 }
-const saveId = (c: Card) => c.story?.id || (c.skill ? `skill-${c.skill.id}` : c.id);
+const saveId = (c: Card) => c.story?.id || (c.skill ? `skill-${c.skill.id}` : c.phrase ? `phrase-${c.phrase.lang}-${c.phrase.id}` : c.id);
 const likeId = saveId;
 
 export function toggleSave(c: Card) {
@@ -238,7 +257,7 @@ export function render(c: Card): HTMLElement {
   el.setAttribute('aria-label', c.label);
   (el as any)._card = c;
   const id = likeId(c);
-  const canSave = !!snapshot(c) && !['phrase', 'review', 'sign', 'sports'].includes(c.kind);
+  const canSave = !!snapshot(c) && !['sign', 'sports'].includes(c.kind);
   const rail = ['sports', 'sign', 'catchup', 'done'].includes(c.kind) ? '' : `<div class="rail">
       <button class="rb glass" data-like="${esc(id)}" aria-label="Like" aria-pressed="${S.liked.has(id)}">${ICON.heart}</button>
       ${canSave ? `<button class="rb glass" data-save="${esc(saveId(c))}" aria-label="Save" aria-pressed="${isSaved(saveId(c))}">${ICON.mark}</button>` : ''}
@@ -296,7 +315,7 @@ function wire(c: Card, el: HTMLElement) {
     const p = el.querySelector('.skill-desc'); if (!p) return;
     if (s?.description) p.textContent = sentences(s.description, 2);
     else p.textContent = "Couldn't load this skill's description just now.";
-    if (s?.wiki?.image && !el.querySelector('img.photo')) { const t = document.createElement('div'); t.innerHTML = photo(s.wiki.image, c); el.querySelector('.cover')?.replaceWith(t.firstElementChild!); fixImages(el); }
+    if (s?.wiki?.image && !el.querySelector('img.photo')) { const t = document.createElement('div'); t.innerHTML = framed(s.wiki.image, c); el.querySelector('.cover')?.replaceWith(t.firstElementChild!); fixImages(el); }
   });
   if (c.kind === 'skill') srs.add(`skill:${c.skill!.id}`, 'skill', { skill: c.skill });
   el.querySelectorAll<HTMLElement>('.srow[data-story]').forEach(r => r.addEventListener('click', e => {
