@@ -138,7 +138,7 @@ export const dismissed = (id: string) => ['done', 'know', 'hide'].includes(S.his
 
 /* Learning about a topic skips articles most people already know (by Wikipedia views a day).
    Each "I know this" halves the limit for that interest, so it goes deeper. */
-export const knownLimit = (interest?: string) => Math.max(150, 2500 / 2 ** (interest ? S.depth[interest] || 0 : 0));
+export const knownLimit = (interest?: string) => Math.max(60, 1000 / 2 ** (interest ? S.depth[interest] || 0 : 0));
 export const tooKnown = (c: { pop?: number; interest?: string }) => (c.pop ?? 0) > knownLimit(c.interest);
 
 export const isSaved = (id: string) => S.saved.some(x => x.id === id);

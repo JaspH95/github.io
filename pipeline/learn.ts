@@ -51,13 +51,13 @@ export async function wikiSummary(title: string): Promise<WikiSummary | null> {
 
 /* The most surprising sentence in an intro (not the definition that opens it): numbers, firsts, records, origins.
    Taken word for word from the article, so nothing is invented. */
-const HOOKY = /\b(first|only|oldest|largest|biggest|smallest|longest|tallest|fastest|highest|deepest|earliest|record|originally|named after|nicknamed|invented|discovered|despite|although|surprising|unusual|rare|banned|secret|accident|once|never|world's)\b/gi;
+const HOOKY = /\b(first|oldest|largest|biggest|smallest|longest|tallest|fastest|deepest|earliest|record|originally|named after|nicknamed|invented|discovered|surprising|unusual|banned|secret|accident|by chance|mistake|world's)\b/gi;
 export function hookSentence(extract: string): string | undefined {
   const sents = extract.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z"‘“(])/).map(x => x.trim());
-  let best: string | undefined, score = 1;
+  let best: string | undefined, score = 2.5;
   sents.slice(1).forEach((x, k) => {
     if (x.length < 60 || x.length > 230 || /^(It|This|These|They|He|She|His|Her|Its|There)\b/.test(x) || /[:;]$/.test(x)) return;
-    const sc = (x.match(HOOKY) || []).length * 2 + (/\d/.test(x) ? 1 : 0) - k * 0.2;
+    const sc = (x.match(HOOKY) || []).length * 2 + (/\b\d{2,4}\b/.test(x) ? 1 : 0) - k * 0.2;
     if (sc > score) { score = sc; best = x; }
   });
   return best;
@@ -220,11 +220,31 @@ async function wikiBatch(titles: string[]): Promise<Map<string, WikiSummary>> {
     }
     await sleep(250);
   }
+  // Page views come back for only some pages in a combined request, so fetch the rest on their own (following "continue")
+  const noViews = [...new Set([...out.values()].filter(x => x.pop === undefined))];
+  const byTitle = new Map(noViews.map(x => [x.title, x]));
+  for (let i = 0; i < noViews.length; i += 20) {
+    const base = `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=pageviews&pvipdays=30&titles=${encodeURIComponent(noViews.slice(i, i + 20).map(x => x.title).join('|'))}`;
+    let cont = '';
+    for (let round = 0; round < 5; round++) {
+      let r: any = null;
+      try { r = await fetchJSON<any>(base + cont); } catch { break; }
+      for (const p of r?.query?.pages || []) {
+        const views = Object.values(p.pageviews || {}).filter((x): x is number => typeof x === 'number');
+        const x = byTitle.get(p.title);
+        if (x && views.length && x.pop === undefined) x.pop = Math.round(views.reduce((a, b) => a + b, 0) / views.length);
+      }
+      if (!r?.continue?.pvipcontinue) break;
+      cont = `&pvipcontinue=${encodeURIComponent(r.continue.pvipcontinue)}&continue=${encodeURIComponent(r.continue.continue || '')}`;
+      await sleep(150);
+    }
+    await sleep(150);
+  }
   return out;
 }
 
 /* Articles this well known (average daily views) are general knowledge: most people know the basics already */
-export const TOO_KNOWN = 6000;
+export const TOO_KNOWN = 3000;
 
 export async function topicCards(interests: Interest[], extra: Record<string, string[]>, date: Date, pools: LearnPool = {}, perTopic = 7): Promise<LearnCard[]> {
   const jobs: { topic: TopicKey; interest?: string; title: string }[] = [];
@@ -274,7 +294,7 @@ const decode = (x: string) => x.replace(/&#(\d+);/g, (_, n) => String.fromCodePo
 
 export function parseHooks(html: string): { hook: string; title: string }[] {
   const out: { hook: string; title: string }[] = [];
-  for (const m of html.matchAll(/<li>\s*(?:\.\.\.|…)\s*that\b([\s\S]*?)<\/li>/g)) {
+  for (const m of html.matchAll(/<li[^>]*>(?:\s|<[^>]+>|&#160;|&nbsp;)*(?:\.\.\.|…|&#8230;)(?:\s|&#160;|&nbsp;|<[^>]+>)*that\b([\s\S]*?)<\/li>/g)) {
     const inner = m[1];
     // The article the fact comes from is the bold link
     const b = inner.match(/<b>(?:\s*<i>)?\s*<a [^>]*href="\/wiki\/([^"#?]+)"/);
@@ -320,7 +340,11 @@ export async function didYouKnow(pool0: FactPool, date: Date): Promise<{ pool: F
   if (pool0.archived !== archive) pages.push(archive);
   let ok = 0; const errs: string[] = [];
   for (const pg of pages) {
-    try { const hs = parseHooks(await parsed(pg)); ok += hs.length; add(hs); } catch (e: any) { errs.push(`${pg}: ${e?.message}`); }
+    try {
+      const html = await parsed(pg); const hs = parseHooks(html); ok += hs.length; add(hs);
+      // Nothing found: note what the page looks like, so the parser can be fixed
+      if (!hs.length) { const i = html.search(/that\b/); errs.push(`${pg}: no facts in ${html.length} chars; sample ${JSON.stringify(html.slice(Math.max(0, i - 160), i + 80))}`); }
+    } catch (e: any) { errs.push(`${pg}: ${e?.message}`); }
     await sleep(300);
   }
   record('Wikipedia: Did you know', 'https://en.wikipedia.org/wiki/Wikipedia:Recent_additions', ok > 0, ok, errs.length ? errs.join('; ') : `${fresh.length} new`);
