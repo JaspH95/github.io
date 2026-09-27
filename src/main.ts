@@ -15,6 +15,17 @@ import { closeSheet } from './ui';
 import { log } from './events';
 import * as cloud from './cloud';
 
+/* Home Screen app on iPhone: if the phone reports no top safe area, keep the top bar clear of the status bar anyway */
+(function safeTop() {
+  const standalone = (navigator as any).standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (!standalone || !/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const h = probe.getBoundingClientRect().height; probe.remove();
+  if (h < 20) document.documentElement.style.setProperty('--safe-t', `${screen.height >= 812 ? 50 : 20}px`);
+})();
+
 initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
 document.getElementById('sheetBg')!.addEventListener('click', closeSheet);
 
@@ -30,7 +41,11 @@ function open() {
   log('edition_open');
 }
 
-onChatClosed(() => { if (S.profile) open(); });
+onChatClosed(() => {
+  if (!S.profile) return;
+  // Back to Profile if the chat was opened from there; the edition is rebuilt with any changes either way
+  if (currentTab() === 'profile') { showEdition(); startLive(); go('profile'); } else open();
+});
 onDevRebuild(() => { showEdition(); if (currentTab() !== 'edition') go('edition'); });
 
 /* After taking newer data from your account, start again so every part of the app reads it (at most once a minute) */

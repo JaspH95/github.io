@@ -5,6 +5,7 @@ import { esc, safeUrl, ago, sentences, toast, seedFor, options, ICON } from './u
 import { cover } from './covers';
 import { signSVG } from './scenes';
 import { PACKS, progressLine, LANG_CODE } from './languages';
+import { afterLike, offer } from './suggest';
 import * as srs from './srs';
 import { speakIn } from './audio';
 import { openStory, openLearn, openSkill } from './story';
@@ -128,7 +129,7 @@ function body(c: Card): string {
         <button class="readbtn glass open">About ${esc(l.title)} ${ICON.chev}</button>${attrib('Wikipedia', l.url, lic)}`;
       if (l.kind === 'potd') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><p class="lead">${esc(sentences(l.extract, 2))}</p>${attrib('Wikimedia Commons', l.url)}${credit(c)}`;
       return `<div class="meta"><span>${esc(c.label.toUpperCase())} · ${esc(src.toUpperCase())}</span></div><h2>${esc(l.title)}</h2>
-        <p>${esc(sentences(l.extract, 2))}</p><button class="readbtn glass open">Read more ${ICON.chev}</button>${attrib(src, l.url, lic)}${credit(c)}`;
+        <p>${esc(sentences(l.extract, 2))}</p><button class="readbtn ${l.kind === 'topic' ? 'solid' : 'glass'} open">${l.kind === 'topic' ? 'Start learning' : 'Read more'} ${ICON.chev}</button>${attrib(src, l.url, lic)}${credit(c)}`;
     }
     case 'quiz': {
       const q = c.quiz!;
@@ -137,7 +138,7 @@ function body(c: Card): string {
         <div class="explain"><p>${esc(q.explain)}</p>${q.article ? `<button class="readbtn glass open">About ${esc(q.article.title)} ${ICON.chev}</button>` : ''}${attrib(q.source.name, q.source.url)}</div>`;
     }
     case 'skill': return `<div class="meta"><span>SKILL OF THE DAY · YOUR WORK</span></div><h2>${esc(cap(c.skill!.label))}</h2>
-        <p class="skill-desc"><span class="skel"></span><span class="skel short"></span></p><button class="readbtn glass open">Learn more ${ICON.chev}</button><p class="attrib">From ESCO, the EU's skills classification</p>`;
+        <p class="skill-desc"><span class="skel"></span><span class="skel short"></span></p><button class="readbtn solid open">Start learning ${ICON.chev}</button><p class="attrib">From ESCO, the EU's skills classification</p>`;
     case 'phrase': case 'review': {
       const { lang, id } = c.phrase!;
       const p = PACKS[lang]?.find(x => x.id === id);
@@ -145,7 +146,7 @@ function body(c: Card): string {
       const unchecked = p.checked ? '' : '<span class="unchecked">Not yet checked</span>';
       const phraseBlock = `${unchecked}<h2 class="phrase" lang="${esc(LANG_CODE[lang] || '')}">${esc(p.phrase)}</h2>${p.romanisation ? `<p class="roman">${esc(p.romanisation)}</p>` : ''}<p class="say">Say it: <b>${esc(p.say)}</b></p>
         <div class="choices"><button class="choice hear">${ICON.speaker} Hear it</button><button class="choice slow">Slowly</button></div>`;
-      if (c.kind === 'phrase') return `<div class="meta"><span>${esc(lang.toUpperCase())} · PHRASE OF THE DAY</span></div>${phraseBlock}<p class="lead"><b>${esc(p.meaning)}</b>. ${esc(p.when)}</p><p class="progress-line">${esc(progressLine(lang))}</p>`;
+      if (c.kind === 'phrase') return `<div class="meta"><span>${esc(lang.toUpperCase())} · PHRASE OF THE DAY</span></div>${phraseBlock}<p class="lead"><b>${esc(p.meaning)}</b>. ${esc(p.when)}</p><button class="readbtn solid start-lesson">Start 5-minute lesson ${ICON.chev}</button><p class="progress-line">${esc(progressLine(lang))}</p>`;
       return `<div class="meta"><span>REMEMBER THIS? · ${esc(lang.toUpperCase())}</span></div><h2>${esc(p.meaning)}</h2><p class="lead">${esc(p.when)}</p>
         <button class="readbtn solid show-phrase">Show the phrase</button><div class="reveal">${phraseBlock}
         <div class="choices grade"><button class="choice yes got">Got it</button><button class="choice notyet">Not yet</button></div></div>`;
@@ -172,7 +173,7 @@ function sportsBody(sp: SportsPage): string {
   const f1Row = f1?.last ? `<div class="srow static"><b>F1 · ${esc(f1.last.race)}</b><span>${f1.last.results.slice(0, 3).map(r => `${r.pos}. ${esc(r.driver)}`).join('  ')}</span></div>` : '';
   const f1Next = f1?.next ? `<div class="srow static"><b>Next race</b><span>${esc(f1.next.race)}, ${new Date(`${f1.next.date}T${f1.next.time || '12:00:00Z'}`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>` : '';
   const heads = sp.headlines.map(s => `<button class="srow" data-story="${esc(s.id)}"><b>${esc(s.tag || 'Sport')}</b><span>${esc(s.title)}</span><i>${ago(s.published)}</i></button>`).join('');
-  return `<div class="meta"><span>SPORTS PAGE</span></div><h2>Your sport, in one place</h2><div class="sports">${rows}${f1Row}${f1Next}${heads}</div>${f1 ? '<p class="attrib">Formula 1 results from Jolpica F1</p>' : ''}`;
+  return `<div class="meta"><span>SPORTS PAGE</span></div><h2>Your sport, in one place</h2><div class="sports">${rows}${f1Row}${f1Next}${heads}</div><button class="readbtn glass see-sport">All your sport ${ICON.chev}</button>${f1 ? '<p class="attrib">Formula 1 results from Jolpica F1</p>' : ''}`;
 }
 
 /* ---------- Actions ---------- */
@@ -209,6 +210,8 @@ export function toggleLike(c: Card, el?: HTMLElement) {
   sync(id);
   document.querySelectorAll(`[data-like="${CSS.escape(id)}"]`).forEach(b => { b.classList.remove('pop'); void (b as HTMLElement).offsetWidth; b.classList.add('pop'); });
   if (on && el) pullUpSameTopic(c, el);
+  // Likes also lead to suggestions: a topic or person from this card worth following
+  if (on) { const sg = afterLike(c.story?.tags || (c.learn?.interest ? [c.learn.interest] : []), c.story?.entities); if (sg) setTimeout(() => offer(sg), 700); }
 }
 
 /* Liking a card pulls the next card on the same topic up the feed */
@@ -281,8 +284,24 @@ function wire(c: Card, el: HTMLElement) {
     else if (c.skill) openSkill(c.skill);
   };
   el.querySelector('.open')?.addEventListener('click', e => { e.stopPropagation(); open(); });
-  // Tapping a story or learning card opens it (buttons and links keep their own jobs)
-  if (['story', 'learn'].includes(c.kind)) el.addEventListener('click', e => { if (!(e.target as HTMLElement).closest('button,a,.opts')) open(); });
+  // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
+  // The single tap waits a moment, so a double tap never opens the story by accident.
+  const canLike = !['sports', 'sign', 'catchup', 'done'].includes(c.kind);
+  const opens = ['story', 'learn', 'skill'].includes(c.kind) || (c.kind === 'quiz' && !!c.quiz?.article);
+  let last = 0, pending: ReturnType<typeof setTimeout> | undefined;
+  el.addEventListener('click', e => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button,a,.opts,input')) return;
+    const t = Date.now();
+    if (canLike && t - last < 320) {
+      clearTimeout(pending); last = 0;
+      const b = el.getBoundingClientRect(); burst(el, e.clientX - b.left, e.clientY - b.top);
+      if (!S.liked.has(likeId(c))) toggleLike(c, el);
+      return;
+    }
+    last = t;
+    if (opens && target.closest('.inner h2, .inner p, .inner .meta')) { clearTimeout(pending); pending = setTimeout(open, canLike ? 320 : 0); }
+  });
 
   if (c.kind === 'quiz') {
     el.querySelectorAll<HTMLButtonElement>('.opt').forEach(o => o.addEventListener('click', e => {
@@ -302,6 +321,7 @@ function wire(c: Card, el: HTMLElement) {
     const p = PACKS[lang]?.find(x => x.id === id);
     el.querySelectorAll('.hear').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); if (p) speakIn(p.phrase, lang, 0.9); }));
     el.querySelectorAll('.slow').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); if (p) speakIn(p.phrase, lang, 0.55); }));
+    el.querySelector('.start-lesson')?.addEventListener('click', e => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('kf-lesson', { detail: lang })); });
     el.querySelector('.show-phrase')?.addEventListener('click', e => { e.stopPropagation(); (e.currentTarget as HTMLElement).remove(); el.querySelector('.reveal')!.classList.add('show'); });
     const grade = (ok: boolean) => {
       srs.answer(c.review!, ok);
@@ -318,22 +338,13 @@ function wire(c: Card, el: HTMLElement) {
     if (s?.wiki?.image && !el.querySelector('img.photo')) { const t = document.createElement('div'); t.innerHTML = framed(s.wiki.image, c); el.querySelector('.cover')?.replaceWith(t.firstElementChild!); fixImages(el); }
   });
   if (c.kind === 'skill') srs.add(`skill:${c.skill!.id}`, 'skill', { skill: c.skill });
+  el.querySelector('.see-sport')?.addEventListener('click', e => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('kf-go', { detail: 'sport' })); });
   el.querySelectorAll<HTMLElement>('.srow[data-story]').forEach(r => r.addEventListener('click', e => {
     e.stopPropagation();
     const s = [...(c.sports?.headlines || []), ...(c.sports?.teams.flatMap(t => t.stories) || [])].find(x => x.id === r.dataset.story);
     if (s) openStory(s);
   }));
 
-  // Double tap to like, with a heart burst
-  if (!['sports', 'sign', 'catchup', 'done'].includes(c.kind)) {
-    let last = 0;
-    el.addEventListener('pointerup', e => {
-      if ((e.target as HTMLElement).closest('button,a')) return;
-      const t = Date.now();
-      if (t - last < 300) { const b = el.getBoundingClientRect(); burst(el, e.clientX - b.left, e.clientY - b.top); if (!S.liked.has(likeId(c))) toggleLike(c, el); last = 0; }
-      else last = t;
-    });
-  }
 }
 
 function burst(el: HTMLElement, x: number, y: number) {
