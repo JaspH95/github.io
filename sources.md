@@ -143,6 +143,62 @@ Team feeds follow the pattern https://feeds.bbci.co.uk/sport/football/teams/{tea
 - **News:** the feed's own media image (`media:thumbnail` or `media:content`), or the Guardian `thumbnail` field.
 - **Learning cards:** the Wikipedia or NASA image. If there isn't one, use the topic's illustrated SVG scene from the prototype.
 
+## Jobs and skills (for onboarding and learning)
+
+- **ESCO (European Skills, Competences, Qualifications and Occupations):**
+  - About 3,000 occupations with alternative job titles, descriptions, and links to essential and optional skills. Free to use.
+  - Download: https://esco.ec.europa.eu/en/use-esco/download
+  - API: https://ec.europa.eu/esco/api
+  - Import the English occupations, skills and occupation–skill relations into Supabase once, and refresh when ESCO releases a new version.
+  - Show the ESCO attribution in the app's About page.
+- **ISCO groups** (included in ESCO): used for the roughly 20 broad job families when nothing matches.
+
+## Interests (free-text search)
+
+- **Guardian tags API:** https://content.guardianapis.com/tags?q={text}&api-key=...
+  - Turns any typed interest into a followable news tag.
+- **Wikipedia search:** https://en.wikipedia.org/w/api.php?action=opensearch&search={text}
+  - Turns an interest into learning topics.
+- **Wikidata:** for entity IDs, so "F1", "Formula One" and "Formula 1" become the same interest.
+
+## Cities
+
+- **GeoNames cities** (free, CC BY): https://download.geonames.org/export/dump/ (use `cities15000.zip` for autocomplete).
+- **Local news:** map each city to its nearest BBC regional feed, plus a Guardian search by city name.
+
+## Images
+
+- **Article images:** `og:image` from the article page, or `media:content` and `media:thumbnail` in RSS, or the Guardian `thumbnail` field.
+- **Wikimedia Commons and Wikipedia page images:**
+  - https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=original&titles={title}
+  - Check the licence and credit in the image's Commons page metadata.
+- **Unsplash API:** https://api.unsplash.com
+  - Free with attribution.
+  - Rules: use their image URLs, credit the photographer, and trigger the download endpoint when an image is used.
+  - Apply for production access before the beta grows.
+- **Pexels API:** https://api.pexels.com. Free with attribution.
+- **Tools (npm, free):**
+  - `smartcrop` for focal-point cropping
+  - `blurhash` for placeholders
+  - `probe-image-size` to check resolution
+
+## Books
+
+- **Open Library:**
+  - Search: https://openlibrary.org/search.json?subject={topic}
+  - Covers: https://covers.openlibrary.org/b/id/{cover_id}-L.jpg
+  - Used for recommendations only.
+- **Project Gutenberg via Gutendex:** https://gutendex.com. For out-of-copyright classics that can be turned into Series.
+
+## Notifications
+
+- **Web Push** with VAPID keys, using the `web-push` npm library, sent from GitHub Actions.
+- **iPhone:** web push only works for home-screen web apps on iOS 16.4 or later.
+
+## On-device search
+
+- **Fuse.js** for fuzzy matching of job titles and interests.
+
 ## Verification log
 
 - 2026-09-26: The build environment couldn't reach external sites, so no URL was verified at build time. The pipeline writes `public/data/status.json` on every run, listing each source with `ok`, item count and error. Check it after the first run and note replacements here.
@@ -153,3 +209,10 @@ Team feeds follow the pattern https://feeds.bbci.co.uk/sport/football/teams/{tea
   - **HubSpot blog: fixed.** The feed has more XML entities than the parser allows, so entities are now decoded separately. It returns 50 items.
   - **HubSpot developer changelog: working** at `https://developers.hubspot.com/changelog/rss.xml`.
   - **World cities (Toronto, Dublin, Singapore, Dubai, Sydney): few or no stories** until `GUARDIAN_API_KEY` is set. The BBC regional feeds rarely mention those cities by name.
+- 2026-09-27, pipeline v2 on GitHub Actions: 151 of 151 sources OK.
+  - **BBC Derby: replaced** by `england/derbyshire` (the old path returns 404).
+  - **NASA news feed:** its "APOD:" items are skipped, because the picture of the day has its own card.
+  - **Guardian:** 21 sections, plus a search for each of 20 world cities. About 750 calls a day, well within the free developer limit.
+  - **Gemini:** the newest Flash model can hit its daily free quota; the pipeline then moves to the next Flash or Flash-Lite model.
+  - **ESCO:** the API works for walking ISCO groups to occupations (2,909 occupations).
+  - **GeoNames `cities15000`:** works (13,036 cities kept).

@@ -1,11 +1,10 @@
-/* Export and import likes, saves, follows and settings as a JSON file */
-import { toast } from './util';
-
-const KEYS = ['kf-liked', 'kf-later2', 'kf-weights', 'kf-declined', 'kf-accepted', 'kf-profile3', 'kf-follow2', 'kf-work2', 'kf-seen', 'kf-phrases', 'kf-pod'];
+/* Your data: back up to a file, restore from one, or delete everything (UK GDPR). All of it lives on this phone. */
+import { allKeys, load, save, remove } from './state';
+import { toast } from './ui';
 
 export async function exportData() {
-  const out: Record<string, unknown> = { app: 'knowfeed', version: 1, exported: new Date().toISOString() };
-  for (const k of KEYS) { try { const v = localStorage.getItem(k); if (v) out[k] = JSON.parse(v); } catch { /* skip */ } }
+  const out: Record<string, unknown> = { app: 'knowfeed', version: 2, exported: new Date().toISOString() };
+  for (const k of allKeys()) out[k] = load(k, null);
   const name = `knowfeed-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const file = new File([JSON.stringify(out, null, 1)], name, { type: 'application/json' });
   // On iPhone the share sheet is the easiest way to save it to Files
@@ -17,18 +16,29 @@ export async function exportData() {
   toast('Backup saved');
 }
 
-const input = document.getElementById('importFile') as HTMLInputElement;
-input.addEventListener('change', async () => {
-  const f = input.files?.[0]; input.value = '';
-  if (!f) return;
-  try {
-    const data = JSON.parse(await f.text());
-    if (data?.app !== 'knowfeed') throw new Error('not a Knowfeed backup');
-    for (const k of KEYS) if (k in data) localStorage.setItem(k, JSON.stringify(data[k]));
-    toast('Restored. Reloading…');
-    setTimeout(() => location.reload(), 800);
-  } catch {
-    toast("That file isn't a Knowfeed backup");
-  }
-});
-export function importData() { input.click(); }
+export function importData() { (document.getElementById('importFile') as HTMLInputElement).click(); }
+
+export function initBackup() {
+  const input = document.getElementById('importFile') as HTMLInputElement;
+  input.addEventListener('change', async () => {
+    const f = input.files?.[0]; input.value = '';
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data?.app !== 'knowfeed' || data.version !== 2) throw new Error('not a Knowfeed backup');
+      for (const [k, v] of Object.entries(data)) if (!['app', 'version', 'exported'].includes(k)) save(k, v);
+      toast('Restored. Reloading…');
+      setTimeout(() => location.reload(), 800);
+    } catch {
+      toast("That file isn't a Knowfeed backup");
+    }
+  });
+}
+
+export async function deleteEverything() {
+  for (const k of allKeys()) remove(k);
+  try { localStorage.clear(); } catch { /* blocked */ }
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch { /* no caches */ }
+  toast('Deleted. Starting fresh…');
+  setTimeout(() => location.reload(), 700);
+}

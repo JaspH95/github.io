@@ -1,53 +1,27 @@
 {
-  "_note": "Wikipedia article titles per learning topic. Edit freely. Each day the pipeline picks 4 titles per topic (rotating through the list) and fetches Wikipedia's live summary and photo. Titles it can't find are listed in public/data/status.json.",
-  "ai": [
-    "Large language model", "Transformer (deep learning architecture)", "Generative artificial intelligence", "Retrieval-augmented generation",
-    "Neural network (machine learning)", "Machine learning", "Reinforcement learning from human feedback", "Hallucination (artificial intelligence)",
-    "AI alignment", "Prompt engineering", "Word embedding", "Diffusion model", "Turing test", "Alan Turing", "Deep learning", "Backpropagation",
-    "Computer vision", "Natural language processing", "Intelligent agent", "Artificial general intelligence", "Chatbot", "ELIZA", "AlphaGo",
-    "Geoffrey Hinton", "Fine-tuning (deep learning)"
-  ],
-  "future": [
-    "Solid-state battery", "Humanoid robot", "Quantum computing", "Fusion power", "Self-driving car", "Brain–computer interface",
-    "CRISPR gene editing", "Perovskite solar cell", "Vertical farming", "3D printing", "Augmented reality", "Powered exoskeleton",
-    "Cultured meat", "Smart grid", "Graphene", "Direct air capture", "Small modular reactor", "Delivery drone", "Starlink",
-    "Neuromorphic computing", "Heat pump", "Lidar", "Space-based solar power", "Carbon capture and storage"
-  ],
-  "crm": [
-    "Customer relationship management", "HubSpot", "Salesforce", "Lead scoring", "Marketing automation", "Customer lifetime value",
-    "Churn rate", "Customer success", "Net promoter score", "Email marketing", "Inbound marketing", "Data quality", "Data deduplication",
-    "Record linkage", "General Data Protection Regulation", "Customer data platform", "Account-based marketing", "A/B testing",
-    "Conversion rate optimization", "Customer acquisition cost", "Purchase funnel", "Webhook", "Application programming interface",
-    "Customer journey", "Lead generation"
-  ],
-  "psych": [
-    "Anchoring effect", "Zeigarnik effect", "Confirmation bias", "Dunning–Kruger effect", "Loss aversion", "Sunk cost", "Cognitive dissonance",
-    "Flow (psychology)", "Placebo", "Availability heuristic", "Bystander effect", "Framing effect (psychology)", "Spacing effect",
-    "Forgetting curve", "Hawthorne effect", "Impostor syndrome", "Overchoice", "Peak–end rule", "Decision fatigue", "Social proof",
-    "Halo effect", "Pygmalion effect", "IKEA effect", "Planning fallacy", "Parkinson's law"
-  ],
-  "money": [
-    "Inflation", "Bank of England", "Interest rate", "Compound interest", "Rule of 72", "Quantitative easing", "Gross domestic product",
-    "Recession", "Individual savings account", "Index fund", "FTSE 100 Index", "Bond (finance)", "Mortgage loan", "Consumer price index",
-    "Supply and demand", "Opportunity cost", "Dollar cost averaging", "Diversification (finance)", "Pound sterling", "Exchange rate",
-    "Stagflation", "Monetary Policy Committee", "Fiscal policy", "Behavioral economics", "Pension"
-  ],
-  "sign": [
-    "British Sign Language", "British Sign Language Act 2022", "Deaf culture", "Fingerspelling", "BANZSL", "Sign language",
-    "American Sign Language", "Cochlear implant", "Makaton", "British Deaf Association", "Royal National Institute for Deaf People",
-    "Deaf President Now", "Nicaraguan Sign Language", "Home sign", "Rose Ayling-Ellis", "Deaflympics", "Hearing loss", "Lip reading",
-    "Tactile signing", "Irish Sign Language", "Martha's Vineyard Sign Language", "Sign Supported English"
-  ],
-  "space": [
-    "Venus", "Speed of light", "James Webb Space Telescope", "Black hole", "Andromeda Galaxy", "Mars", "Jupiter", "Saturn",
-    "Europa (moon)", "Titan (moon)", "International Space Station", "Apollo 11", "Voyager 1", "Exoplanet", "Big Bang", "Dark matter",
-    "Neutron star", "Aurora", "Octopus", "Photosynthesis", "DNA", "Plate tectonics", "Higgs boson", "Periodic table", "Tardigrade",
-    "Great Barrier Reef", "Carbon cycle", "Solar eclipse"
-  ],
-  "culture": [
-    "Marathon", "Premier League", "Wimbledon Championships", "Shakespeare's Globe", "British Museum", "The Beatles", "Stonehenge",
-    "London Underground", "Magna Carta", "Tower of London", "Notting Hill Carnival", "Glastonbury Festival", "Doctor Who", "Banksy",
-    "Mona Lisa", "Great Fire of London", "Big Ben", "Edinburgh Festival Fringe", "Afternoon tea", "Fish and chips", "The Proms",
-    "Frida Kahlo", "The Great Wave off Kanagawa", "Tennis scoring system", "Offside (association football)"
-  ]
+ "_note": "Wikipedia article titles for learning topics that aren't news interests. Edit freely. Each day the pipeline picks a few titles per topic (rotating through the list) and fetches Wikipedia's live summary and photo. The titles for each interest live in content/interests.json. Titles it can't find are listed in public/data/status.json.",
+ "sign": [
+  "British Sign Language",
+  "British Sign Language Act 2022",
+  "Deaf culture",
+  "Fingerspelling",
+  "BANZSL",
+  "Sign language",
+  "American Sign Language",
+  "Cochlear implant",
+  "Makaton",
+  "British Deaf Association",
+  "Royal National Institute for Deaf People",
+  "Deaf President Now",
+  "Nicaraguan Sign Language",
+  "Home sign",
+  "Rose Ayling-Ellis",
+  "Deaflympics",
+  "Hearing loss",
+  "Lip reading",
+  "Tactile signing",
+  "Irish Sign Language",
+  "Martha's Vineyard Sign Language",
+  "Sign Supported English"
+ ]
 }

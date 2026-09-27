@@ -2,63 +2,141 @@ import type { TopicKey } from '../src/types';
 
 /* Keep in step with sources.md */
 
-export interface FeedDef { name: string; url: string; outlet: string; topic: TopicKey }
+export interface FeedDef { name: string; url: string; outlet: string; topic: TopicKey; tags: string[]; front?: boolean }
 
 export const NEWS_FEEDS: FeedDef[] = [
-  { name: 'BBC top stories', url: 'https://feeds.bbci.co.uk/news/rss.xml', outlet: 'BBC', topic: 'world' },
-  { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', outlet: 'BBC', topic: 'world' },
-  { name: 'BBC UK', url: 'https://feeds.bbci.co.uk/news/uk/rss.xml', outlet: 'BBC', topic: 'world' },
-  { name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', outlet: 'BBC', topic: 'money' },
-  { name: 'BBC Technology', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', outlet: 'BBC', topic: 'tech' },
-  { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', outlet: 'The Verge', topic: 'tech' },
-  { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', outlet: 'Ars Technica', topic: 'tech' },
-  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', outlet: 'TechCrunch', topic: 'ai' },
-  { name: 'MIT Technology Review', url: 'https://www.technologyreview.com/feed/', outlet: 'MIT Technology Review', topic: 'ai' },
-  { name: 'BBC Science & Environment', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', outlet: 'BBC', topic: 'space' },
-  { name: 'NASA news', url: 'https://www.nasa.gov/news-release/feed/', outlet: 'NASA', topic: 'space' },
-  { name: 'Bank of England news', url: 'https://www.bankofengland.co.uk/rss/news', outlet: 'Bank of England', topic: 'money' },
+  { name: 'BBC top stories', url: 'https://feeds.bbci.co.uk/news/rss.xml', outlet: 'BBC News', topic: 'news', tags: [], front: true },
+  { name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', outlet: 'BBC News', topic: 'news', tags: ['world'] },
+  { name: 'BBC UK', url: 'https://feeds.bbci.co.uk/news/uk/rss.xml', outlet: 'BBC News', topic: 'news', tags: [] },
+  { name: 'BBC Politics', url: 'https://feeds.bbci.co.uk/news/politics/rss.xml', outlet: 'BBC News', topic: 'news', tags: ['ukpolitics'] },
+  { name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', outlet: 'BBC News', topic: 'money', tags: ['business'] },
+  { name: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', outlet: 'BBC News', topic: 'news', tags: ['health'] },
+  { name: 'BBC Education', url: 'https://feeds.bbci.co.uk/news/education/rss.xml', outlet: 'BBC News', topic: 'news', tags: ['education'] },
+  { name: 'BBC Entertainment & Arts', url: 'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml', outlet: 'BBC News', topic: 'culture', tags: [] },
+  { name: 'BBC Technology', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', outlet: 'BBC News', topic: 'tech', tags: [] },
+  { name: 'BBC Science & Environment', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', outlet: 'BBC News', topic: 'science', tags: [] },
+  { name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', outlet: 'The Verge', topic: 'tech', tags: [] },
+  { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', outlet: 'Ars Technica', topic: 'tech', tags: [] },
+  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', outlet: 'TechCrunch', topic: 'tech', tags: ['ai'] },
+  { name: 'MIT Technology Review', url: 'https://www.technologyreview.com/feed/', outlet: 'MIT Technology Review', topic: 'tech', tags: [] },
+  { name: 'NASA news', url: 'https://www.nasa.gov/news-release/feed/', outlet: 'NASA', topic: 'science', tags: ['space'] },
+  { name: 'Bank of England news', url: 'https://www.bankofengland.co.uk/rss/news', outlet: 'Bank of England', topic: 'money', tags: ['economy'] },
 ];
 
-export const GUARDIAN_SECTIONS: { section: string; topic: TopicKey }[] = [
-  { section: 'world', topic: 'world' },
-  { section: 'uk-news', topic: 'world' },
-  { section: 'technology', topic: 'tech' },
-  { section: 'science', topic: 'space' },
-  { section: 'business', topic: 'money' },
+/* Guardian sections fetched every run. Stories are tagged with interests from their Guardian keyword tags too. */
+export const GUARDIAN_SECTIONS: { section: string; topic: TopicKey; tags: string[] }[] = [
+  { section: 'world', topic: 'news', tags: ['world'] },
+  { section: 'uk-news', topic: 'news', tags: [] },
+  { section: 'politics', topic: 'news', tags: ['ukpolitics'] },
+  { section: 'us-news', topic: 'news', tags: ['uspolitics'] },
+  { section: 'business', topic: 'money', tags: ['business'] },
+  { section: 'money', topic: 'money', tags: ['personalfinance'] },
+  { section: 'environment', topic: 'science', tags: ['environment'] },
+  { section: 'science', topic: 'science', tags: [] },
+  { section: 'technology', topic: 'tech', tags: [] },
+  { section: 'society', topic: 'news', tags: [] },
+  { section: 'education', topic: 'news', tags: ['education'] },
+  { section: 'film', topic: 'culture', tags: ['film'] },
+  { section: 'music', topic: 'culture', tags: ['music'] },
+  { section: 'books', topic: 'culture', tags: ['books'] },
+  { section: 'artanddesign', topic: 'culture', tags: ['art'] },
+  { section: 'tv-and-radio', topic: 'culture', tags: ['tv'] },
+  { section: 'fashion', topic: 'culture', tags: ['fashion'] },
+  { section: 'food', topic: 'culture', tags: ['food'] },
+  { section: 'travel', topic: 'culture', tags: ['travel'] },
+  { section: 'lifeandstyle', topic: 'life', tags: [] },
+  { section: 'games', topic: 'tech', tags: ['gaming'] },
 ];
 
-export const UK_CITIES: Record<string, string> = {
-  London: 'https://feeds.bbci.co.uk/news/england/london/rss.xml',
-  Manchester: 'https://feeds.bbci.co.uk/news/england/manchester/rss.xml',
-  Birmingham: 'https://feeds.bbci.co.uk/news/england/birmingham_and_black_country/rss.xml',
-  Leeds: 'https://feeds.bbci.co.uk/news/england/leeds_and_west_yorkshire/rss.xml',
-  Bristol: 'https://feeds.bbci.co.uk/news/england/bristol/rss.xml',
-  Liverpool: 'https://feeds.bbci.co.uk/news/england/merseyside/rss.xml',
-  Glasgow: 'https://feeds.bbci.co.uk/news/scotland/glasgow_and_west/rss.xml',
-  Edinburgh: 'https://feeds.bbci.co.uk/news/scotland/edinburgh_east_and_fife/rss.xml',
-  Cardiff: 'https://feeds.bbci.co.uk/news/wales/south_east_wales/rss.xml',
-  Belfast: 'https://feeds.bbci.co.uk/news/northern_ireland/rss.xml',
-};
+/* BBC local news regions, with a rough centre so any city can be matched to its nearest region */
+export interface Region { id: string; name: string; url: string; lat: number; lon: number }
+const bbc = (path: string) => `https://feeds.bbci.co.uk/news/${path}/rss.xml`;
+export const BBC_REGIONS: Region[] = [
+  { id: 'london', name: 'London', url: bbc('england/london'), lat: 51.507, lon: -0.128 },
+  { id: 'beds_bucks_herts', name: 'Beds, Herts & Bucks', url: bbc('england/beds_bucks_and_herts'), lat: 51.9, lon: -0.5 },
+  { id: 'berkshire', name: 'Berkshire', url: bbc('england/berkshire'), lat: 51.45, lon: -1.0 },
+  { id: 'birmingham', name: 'Birmingham & Black Country', url: bbc('england/birmingham_and_black_country'), lat: 52.486, lon: -1.89 },
+  { id: 'bristol', name: 'Bristol', url: bbc('england/bristol'), lat: 51.454, lon: -2.588 },
+  { id: 'cambridgeshire', name: 'Cambridgeshire', url: bbc('england/cambridgeshire'), lat: 52.3, lon: 0.05 },
+  { id: 'cornwall', name: 'Cornwall', url: bbc('england/cornwall'), lat: 50.3, lon: -4.95 },
+  { id: 'coventry', name: 'Coventry & Warwickshire', url: bbc('england/coventry_and_warwickshire'), lat: 52.35, lon: -1.55 },
+  { id: 'cumbria', name: 'Cumbria', url: bbc('england/cumbria'), lat: 54.6, lon: -3.0 },
+  { id: 'derby', name: 'Derbyshire', url: bbc('england/derbyshire'), lat: 52.95, lon: -1.6 },
+  { id: 'devon', name: 'Devon', url: bbc('england/devon'), lat: 50.7, lon: -3.7 },
+  { id: 'essex', name: 'Essex', url: bbc('england/essex'), lat: 51.75, lon: 0.6 },
+  { id: 'gloucestershire', name: 'Gloucestershire', url: bbc('england/gloucestershire'), lat: 51.85, lon: -2.2 },
+  { id: 'hampshire', name: 'Hampshire', url: bbc('england/hampshire'), lat: 50.95, lon: -1.3 },
+  { id: 'hereford', name: 'Hereford & Worcester', url: bbc('england/hereford_and_worcester'), lat: 52.15, lon: -2.4 },
+  { id: 'humberside', name: 'Humberside', url: bbc('england/humberside'), lat: 53.75, lon: -0.4 },
+  { id: 'kent', name: 'Kent', url: bbc('england/kent'), lat: 51.25, lon: 0.75 },
+  { id: 'lancashire', name: 'Lancashire', url: bbc('england/lancashire'), lat: 53.8, lon: -2.6 },
+  { id: 'leeds', name: 'Leeds & West Yorkshire', url: bbc('england/leeds_and_west_yorkshire'), lat: 53.8, lon: -1.55 },
+  { id: 'leicester', name: 'Leicester', url: bbc('england/leicester'), lat: 52.64, lon: -1.13 },
+  { id: 'lincolnshire', name: 'Lincolnshire', url: bbc('england/lincolnshire'), lat: 53.1, lon: -0.35 },
+  { id: 'manchester', name: 'Manchester', url: bbc('england/manchester'), lat: 53.48, lon: -2.24 },
+  { id: 'merseyside', name: 'Liverpool & Merseyside', url: bbc('england/merseyside'), lat: 53.41, lon: -2.98 },
+  { id: 'norfolk', name: 'Norfolk', url: bbc('england/norfolk'), lat: 52.63, lon: 1.0 },
+  { id: 'northamptonshire', name: 'Northamptonshire', url: bbc('england/northamptonshire'), lat: 52.27, lon: -0.9 },
+  { id: 'nottingham', name: 'Nottingham', url: bbc('england/nottingham'), lat: 52.95, lon: -1.15 },
+  { id: 'oxford', name: 'Oxford', url: bbc('england/oxford'), lat: 51.75, lon: -1.26 },
+  { id: 'sheffield', name: 'Sheffield & South Yorkshire', url: bbc('england/south_yorkshire'), lat: 53.38, lon: -1.47 },
+  { id: 'shropshire', name: 'Shropshire', url: bbc('england/shropshire'), lat: 52.7, lon: -2.75 },
+  { id: 'somerset', name: 'Somerset', url: bbc('england/somerset'), lat: 51.1, lon: -3.0 },
+  { id: 'stoke', name: 'Stoke & Staffordshire', url: bbc('england/stoke_and_staffordshire'), lat: 52.9, lon: -2.1 },
+  { id: 'suffolk', name: 'Suffolk', url: bbc('england/suffolk'), lat: 52.2, lon: 1.0 },
+  { id: 'surrey', name: 'Surrey', url: bbc('england/surrey'), lat: 51.25, lon: -0.4 },
+  { id: 'sussex', name: 'Sussex', url: bbc('england/sussex'), lat: 50.9, lon: -0.2 },
+  { id: 'tees', name: 'Tees', url: bbc('england/tees'), lat: 54.57, lon: -1.23 },
+  { id: 'tyne_wear', name: 'Tyne & Wear', url: bbc('england/tyne_and_wear'), lat: 54.97, lon: -1.6 },
+  { id: 'wiltshire', name: 'Wiltshire', url: bbc('england/wiltshire'), lat: 51.35, lon: -1.95 },
+  { id: 'york', name: 'York & North Yorkshire', url: bbc('england/york_and_north_yorkshire'), lat: 54.0, lon: -1.3 },
+  { id: 'glasgow', name: 'Glasgow & West Scotland', url: bbc('scotland/glasgow_and_west'), lat: 55.86, lon: -4.25 },
+  { id: 'edinburgh', name: 'Edinburgh, Fife & East Scotland', url: bbc('scotland/edinburgh_east_and_fife'), lat: 55.95, lon: -3.19 },
+  { id: 'highlands', name: 'Highlands & Islands', url: bbc('scotland/highlands_and_islands'), lat: 57.48, lon: -4.9 },
+  { id: 'north_east_scotland', name: 'NE Scotland, Orkney & Shetland', url: bbc('scotland/north_east_orkney_and_shetland'), lat: 57.15, lon: -2.1 },
+  { id: 'south_scotland', name: 'South Scotland', url: bbc('scotland/south_scotland'), lat: 55.3, lon: -3.4 },
+  { id: 'tayside', name: 'Tayside & Central Scotland', url: bbc('scotland/tayside_and_central'), lat: 56.4, lon: -3.45 },
+  { id: 'south_east_wales', name: 'South East Wales', url: bbc('wales/south_east_wales'), lat: 51.48, lon: -3.18 },
+  { id: 'south_west_wales', name: 'South West Wales', url: bbc('wales/south_west_wales'), lat: 51.62, lon: -3.95 },
+  { id: 'mid_wales', name: 'Mid Wales', url: bbc('wales/mid_wales'), lat: 52.4, lon: -3.5 },
+  { id: 'north_west_wales', name: 'North West Wales', url: bbc('wales/north_west_wales'), lat: 53.1, lon: -4.1 },
+  { id: 'north_east_wales', name: 'North East Wales', url: bbc('wales/north_east_wales'), lat: 53.05, lon: -3.0 },
+  { id: 'northern_ireland', name: 'Northern Ireland', url: bbc('northern_ireland'), lat: 54.6, lon: -5.93 },
+];
 
-const REGION = {
+/* Cities outside the UK: the BBC regional world feed filtered to stories that mention the place, plus a Guardian search */
+const WORLD = {
   usca: 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
   europe: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml',
   me: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml',
   asia: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml',
   aus: 'https://feeds.bbci.co.uk/news/world/australia/rss.xml',
+  africa: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml',
+  latam: 'https://feeds.bbci.co.uk/news/world/latin_america/rss.xml',
 };
-
-/* World cities: the BBC regional feed filtered to stories mentioning the place, plus a Guardian search */
-export const WORLD_CITIES: Record<string, { feed: string; words: RegExp }> = {
-  'New York': { feed: REGION.usca, words: /\bnew york\b|\bnyc\b|manhattan|brooklyn/i },
-  Toronto: { feed: REGION.usca, words: /toronto|ontario|canada|canadian/i },
-  Paris: { feed: REGION.europe, words: /paris|france|french/i },
-  Dublin: { feed: REGION.europe, words: /dublin|ireland|irish/i },
-  Berlin: { feed: REGION.europe, words: /berlin|germany|german/i },
-  Dubai: { feed: REGION.me, words: /dubai|uae|emirat/i },
-  Singapore: { feed: REGION.asia, words: /singapore/i },
-  Sydney: { feed: REGION.aus, words: /sydney|new south wales|\bnsw\b/i },
-};
+export interface WorldCity { id: string; name: string; feed: string; words: RegExp; lat: number; lon: number; guardian: string }
+export const WORLD_CITIES: WorldCity[] = [
+  { id: 'new_york', name: 'New York', feed: WORLD.usca, words: /\bnew york\b|\bnyc\b|manhattan|brooklyn/i, lat: 40.71, lon: -74.0, guardian: 'New York' },
+  { id: 'washington', name: 'Washington DC', feed: WORLD.usca, words: /washington|white house|congress/i, lat: 38.9, lon: -77.04, guardian: 'Washington DC' },
+  { id: 'los_angeles', name: 'Los Angeles', feed: WORLD.usca, words: /los angeles|california|\bla\b/i, lat: 34.05, lon: -118.24, guardian: 'Los Angeles' },
+  { id: 'toronto', name: 'Toronto', feed: WORLD.usca, words: /toronto|ontario|canada|canadian/i, lat: 43.65, lon: -79.38, guardian: 'Toronto' },
+  { id: 'paris', name: 'Paris', feed: WORLD.europe, words: /paris|france|french/i, lat: 48.86, lon: 2.35, guardian: 'Paris' },
+  { id: 'dublin', name: 'Dublin', feed: WORLD.europe, words: /dublin|ireland|irish/i, lat: 53.35, lon: -6.26, guardian: 'Dublin' },
+  { id: 'berlin', name: 'Berlin', feed: WORLD.europe, words: /berlin|germany|german/i, lat: 52.52, lon: 13.4, guardian: 'Berlin' },
+  { id: 'madrid', name: 'Madrid', feed: WORLD.europe, words: /madrid|spain|spanish/i, lat: 40.42, lon: -3.7, guardian: 'Madrid' },
+  { id: 'amsterdam', name: 'Amsterdam', feed: WORLD.europe, words: /amsterdam|netherlands|dutch/i, lat: 52.37, lon: 4.9, guardian: 'Amsterdam' },
+  { id: 'rome', name: 'Rome', feed: WORLD.europe, words: /\brome\b|italy|italian/i, lat: 41.9, lon: 12.5, guardian: 'Rome' },
+  { id: 'dubai', name: 'Dubai', feed: WORLD.me, words: /dubai|uae|emirat/i, lat: 25.2, lon: 55.27, guardian: 'Dubai' },
+  { id: 'singapore', name: 'Singapore', feed: WORLD.asia, words: /singapore/i, lat: 1.35, lon: 103.82, guardian: 'Singapore' },
+  { id: 'hong_kong', name: 'Hong Kong', feed: WORLD.asia, words: /hong kong/i, lat: 22.32, lon: 114.17, guardian: 'Hong Kong' },
+  { id: 'tokyo', name: 'Tokyo', feed: WORLD.asia, words: /tokyo|japan|japanese/i, lat: 35.68, lon: 139.69, guardian: 'Tokyo' },
+  { id: 'mumbai', name: 'Mumbai', feed: WORLD.asia, words: /mumbai|india|indian/i, lat: 19.08, lon: 72.88, guardian: 'Mumbai' },
+  { id: 'sydney', name: 'Sydney', feed: WORLD.aus, words: /sydney|new south wales|\bnsw\b/i, lat: -33.87, lon: 151.21, guardian: 'Sydney' },
+  { id: 'melbourne', name: 'Melbourne', feed: WORLD.aus, words: /melbourne|victoria/i, lat: -37.81, lon: 144.96, guardian: 'Melbourne' },
+  { id: 'johannesburg', name: 'Johannesburg', feed: WORLD.africa, words: /johannesburg|south africa/i, lat: -26.2, lon: 28.05, guardian: 'Johannesburg' },
+  { id: 'lagos', name: 'Lagos', feed: WORLD.africa, words: /lagos|nigeria/i, lat: 6.52, lon: 3.38, guardian: 'Lagos' },
+  { id: 'sao_paulo', name: 'São Paulo', feed: WORLD.latam, words: /são paulo|sao paulo|brazil/i, lat: -23.55, lon: -46.63, guardian: 'São Paulo' },
+];
 
 /* Sport names match the onboarding choices */
 export const SPORT_FEEDS: Record<string, string> = {
@@ -75,18 +153,28 @@ export const SPORT_FEEDS: Record<string, string> = {
   Basketball: 'https://feeds.bbci.co.uk/sport/basketball/rss.xml',
 };
 
-/* Team names match the onboarding list. Teams typed in by hand fall back to filtering the football feed in the app. */
+/* Premier League and Scottish clubs with BBC team feeds. Teams typed in by hand fall back to filtering the football feed in the app. */
 export const TEAM_SLUGS: Record<string, string> = {
   Arsenal: 'arsenal',
   'Aston Villa': 'aston-villa',
+  Bournemouth: 'afc-bournemouth',
+  Brentford: 'brentford',
+  Brighton: 'brighton-and-hove-albion',
+  Burnley: 'burnley',
   Chelsea: 'chelsea',
+  'Crystal Palace': 'crystal-palace',
   Everton: 'everton',
+  Fulham: 'fulham',
+  'Leeds United': 'leeds-united',
   Liverpool: 'liverpool',
   'Man City': 'manchester-city',
   'Man United': 'manchester-united',
   Newcastle: 'newcastle-united',
+  "Nott'm Forest": 'nottingham-forest',
+  Sunderland: 'sunderland',
   Spurs: 'tottenham-hotspur',
   'West Ham': 'west-ham-united',
+  Wolves: 'wolverhampton-wanderers',
   Celtic: 'celtic',
   Rangers: 'rangers',
 };

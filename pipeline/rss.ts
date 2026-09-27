@@ -1,8 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
-import { fetchText, normaliseUrl, stripHtml, clip, record, hash, decodeEntities } from './util';
-import type { Story, TopicKey } from '../src/types';
+import { fetchText, normaliseUrl, stripHtml, clip, record, decodeEntities } from './util';
+import type { TopicKey } from '../src/types';
 
-export interface FeedItem { title: string; url: string; summary: string; image?: string; published: string; outlet: string }
+export interface FeedItem {
+  title: string; url: string; summary: string; image?: string; imageW?: number; published: string; outlet: string;
+  pos?: number;               // position in the feed (0 = top), for spotting front-page stories
+  topic?: TopicKey; tags?: string[]; kw?: string[]; front?: boolean;
+}
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@', textNodeName: '#text', htmlEntities: false, processEntities: false });
 /* Entities are decoded by stripHtml/decodeEntities instead: some feeds (HubSpot) exceed the parser's entity limit */
@@ -65,7 +69,16 @@ export function parseFeed(xml: string, outlet: string): FeedItem[] {
       });
     }
   }
-  return items.filter(i => i.title && /^https?:/.test(i.url));
+  return items
+    .filter(i => i.title && /^https?:/.test(i.url))
+    .filter(i => !/^APOD:/.test(i.title))            // NASA's picture of the day has its own card
+    .map((i, pos) => ({ ...i, summary: junk(i.summary) ? '' : i.summary, pos }));
+}
+
+/* Some feeds put page navigation in the description ("Archive Submissions Index Search Calendar RSS") */
+const NAV = /\b(archive|submissions|index|search|calendar|rss|subscribe|menu|sign in|log in|newsletter|cookies)\b/gi;
+export function junk(s: string): boolean {
+  return (s.match(NAV) || []).length >= 4;
 }
 
 function toISO(s: string): string {
@@ -83,21 +96,6 @@ export async function getFeed(name: string, url: string, outlet: string): Promis
     record(name, url, false, 0, e?.message || String(e));
     return [];
   }
-}
-
-export function toStory(it: FeedItem, topic: TopicKey, tag?: string): Story {
-  return {
-    id: hash(it.url),
-    title: it.title,
-    standfirst: it.summary,
-    url: it.url,
-    outlet: it.outlet,
-    ...(it.image ? { image: it.image } : {}),
-    published: it.published,
-    topic,
-    ...(tag ? { tag } : {}),
-    also: [],
-  };
 }
 
 /* Keep items from the last `hours`, newest first, de-duplicated by URL */

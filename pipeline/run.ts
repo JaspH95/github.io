@@ -1,179 +1,174 @@
-/* Knowfeed pipeline: runs hourly on GitHub Actions and writes public/data/*.json */
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+/* Knowfeed pipeline: runs hourly on GitHub Actions and writes public/data/*.json
+   npm run pipeline                       everything
+   npm run pipeline -- --only=news        one part: news | local | sport | learning | images
+   npm run pipeline -- --record           also save every response to fixtures/
+   OFFLINE=1 npm run pipeline             replay the saved responses with no internet */
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { getFeed, toStory, fresh, type FeedItem } from './rss';
-import { cluster } from './cluster';
-import { extractText, htmlToText } from './fulltext';
-import { pickModel, summarise } from './summarise';
+import { getFeed, fresh, type FeedItem } from './rss';
+import { guardianSearch, guardianBody } from './guardian';
+import { merge, publicStory, setInterests, type Bucket, type Stored } from './stories';
+import { readPage, htmlToText } from './fulltext';
+import { Summariser, type Source } from './summarise';
+import { enrich, pruneEntities, type EntityCache } from './entities';
+import { chooseImages, pruneImages, imageStats, type ImageCache } from './images';
 import { wikipediaDaily, topicCards, apod, wikidataQuizzes, hubspot } from './learn';
-import { NEWS_FEEDS, GUARDIAN_SECTIONS, UK_CITIES, WORLD_CITIES, SPORT_FEEDS, TEAM_SLUGS } from './sources';
-import { fetchJSON, record, status, hash, normaliseUrl, clip, stripHtml, todayUTC, pool } from './util';
-import type { Story, NewsFile, LocalFile, SportFile, LearnFile, StatusFile, F1Data, TopicKey, Summary } from '../src/types';
+import { NEWS_FEEDS, GUARDIAN_SECTIONS, BBC_REGIONS, WORLD_CITIES, SPORT_FEEDS, TEAM_SLUGS } from './sources';
+import { fetchJSON, record, status, hash, todayUTC, pool } from './util';
+import { OFFLINE, RECORD } from './http';
+import type { NewsFile, LocalFile, SportFile, LearnFile, StatusFile, F1Data, InterestsFile } from '../src/types';
 
 const OUT = 'public/data';
-const CACHE = 'pipeline/cache/summaries.json';
+const CACHE = 'pipeline/cache';
 const MAX_SUMMARIES = Number(process.env.MAX_SUMMARIES || 25);
-const PRIORITY_CITY = process.env.PRIORITY_CITY || 'London';
+/* Local regions summarised first (the rest keep the outlet's standfirst). Comma-separated region ids. */
+const PRIORITY_REGIONS = (process.env.PRIORITY_REGIONS || 'london').split(',').map(s => s.trim()).filter(Boolean);
 
-/* Guardian article bodies, kept in memory only as input for summaries */
-const guardianBody = new Map<string, string>();
+const only = process.argv.find(a => a.startsWith('--only='))?.split('=')[1];
+const want = (part: string) => !only || only.split(',').includes(part);
 
-async function guardian(params: string, label: string): Promise<FeedItem[]> {
-  const key = process.env.GUARDIAN_API_KEY;
-  if (!key) return [];
-  const url = `https://content.guardianapis.com/search?${params}&show-fields=trailText,thumbnail,body&page-size=20&order-by=newest&api-key=${key}`;
-  try {
-    const r = await fetchJSON<any>(url);
-    const items: FeedItem[] = (r.response?.results || []).filter((x: any) => x.type === 'article').map((x: any) => {
-      const u = normaliseUrl(x.webUrl);
-      if (x.fields?.body) guardianBody.set(u, x.fields.body);
-      return { title: stripHtml(x.webTitle), url: u, summary: clip(stripHtml(x.fields?.trailText || '')), image: x.fields?.thumbnail, published: x.webPublicationDate, outlet: 'The Guardian' };
-    });
-    record(label, url.replace(key, '***'), items.length > 0, items.length);
-    return items;
-  } catch (e: any) {
-    record(label, url.replace(key, '***'), false, 0, e?.message);
-    return [];
-  }
+interface Store { news: Bucket; local: Record<string, Bucket>; sport: Record<string, Bucket>; teams: Record<string, Bucket>; f1?: F1Data }
+
+async function readJSON<T>(path: string, fallback: T): Promise<T> {
+  try { return existsSync(path) ? JSON.parse(await readFile(path, 'utf8')) : fallback; } catch { return fallback; }
 }
 
-async function hackerNews(): Promise<Story[]> {
-  const url = 'https://hacker-news.firebaseio.com/v0/topstories.json';
-  try {
-    const ids: number[] = (await fetchJSON<number[]>(url)).slice(0, 15);
-    const items = await pool(ids, 5, id => fetchJSON<any>(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).catch(() => null));
-    const stories = items.filter(i => i && i.url && i.title && i.type === 'story').map((i: any): Story => ({
-      id: hash(i.url), title: i.title,
-      standfirst: `${i.score} points and ${i.descendants || 0} comments on Hacker News. From ${new URL(i.url).hostname.replace(/^www\./, '')}.`,
-      url: normaliseUrl(i.url), outlet: 'Hacker News', published: new Date(i.time * 1000).toISOString(), topic: 'tech', also: [],
-    }));
-    record('Hacker News top stories', url, stories.length > 0, stories.length);
-    return stories;
-  } catch (e: any) {
-    record('Hacker News top stories', url, false, 0, e?.message);
-    return [];
-  }
-}
+/* ---------- Fetching ---------- */
 
-async function news(): Promise<Story[]> {
-  const byTopic = new Map<TopicKey, Story[]>();
-  const add = (t: TopicKey, xs: Story[]) => byTopic.set(t, [...(byTopic.get(t) || []), ...xs]);
-  await pool(NEWS_FEEDS, 4, async f => add(f.topic, fresh(await getFeed(f.name, f.url, f.outlet), 36, 25).map(i => toStory(i, f.topic))));
-  await pool(GUARDIAN_SECTIONS, 2, async g => add(g.topic, fresh(await guardian(`section=${g.section}`, `Guardian: ${g.section}`), 36, 20).map(i => toStory(i, g.topic))));
-  add('tech', await hackerNews());
-  // Group across outlets within each topic, then across topics so one story appears once
-  const clustered = cluster([...byTopic.entries()].flatMap(([, xs]) => cluster(xs)).sort((a, b) => b.also.length - a.also.length));
-  return clustered.sort((a, b) => +new Date(b.published) - +new Date(a.published)).slice(0, 160);
-}
-
-async function local(): Promise<Record<string, Story[]>> {
-  const cities: Record<string, Story[]> = {};
-  await pool(Object.entries(UK_CITIES), 4, async ([city, url]) => {
-    cities[city] = cluster(fresh(await getFeed(`BBC local: ${city}`, url, 'BBC'), 72, 20).map(i => toStory(i, 'local', city)));
+async function newsItems(): Promise<{ items: FeedItem[]; front: Set<string> }> {
+  const items: FeedItem[] = [];
+  const front = new Set<string>();
+  await pool(NEWS_FEEDS, 4, async f => {
+    const got = fresh(await getFeed(f.name, f.url, f.outlet), 36, 30);
+    // The first few stories on BBC News's front page count as "leading the news"
+    if (f.front) got.filter(i => (i.pos ?? 99) < 6).forEach(i => front.add(i.url));
+    items.push(...got.map(i => ({ ...i, topic: f.topic, tags: f.tags })));
   });
-  const regionCache = new Map<string, Promise<FeedItem[]>>();
-  await pool(Object.entries(WORLD_CITIES), 2, async ([city, def]) => {
-    if (!regionCache.has(def.feed)) regionCache.set(def.feed, getFeed(`BBC region: ${def.feed.split('/world/')[1]?.split('/')[0]}`, def.feed, 'BBC'));
-    const region = (await regionCache.get(def.feed)!).filter(i => def.words.test(i.title + ' ' + i.summary));
-    const g = await guardian(`q=${encodeURIComponent(`"${city}"`)}`, `Guardian search: ${city}`);
-    cities[city] = cluster(fresh([...region, ...g], 72, 20).map(i => toStory(i, 'local', city)));
+  await pool(GUARDIAN_SECTIONS, 2, async g => {
+    const got = await guardianSearch(`section=${g.section}`, `Guardian: ${g.section}`, { topic: g.topic, tags: g.tags });
+    items.push(...fresh(got, 36, 25));
   });
-  return cities;
+  return { items, front };
+}
+
+async function localItems(store: Store) {
+  await pool(BBC_REGIONS, 4, async r => {
+    const got = fresh(await getFeed(`BBC local: ${r.name}`, r.url, 'BBC News'), 72, 25);
+    store.local[r.id] ||= { stories: [] };
+    merge(store.local[r.id], got.map(i => ({ ...i, topic: 'local' as const })), { topic: 'local', tag: r.name, keepHours: 72 });
+  });
+  const regionFeeds = new Map<string, Promise<FeedItem[]>>();
+  await pool(WORLD_CITIES, 2, async c => {
+    if (!regionFeeds.has(c.feed)) regionFeeds.set(c.feed, getFeed(`BBC world region: ${c.feed.split('/world/')[1]?.split('/')[0]}`, c.feed, 'BBC News'));
+    const region = (await regionFeeds.get(c.feed)!).filter(i => c.words.test(`${i.title} ${i.summary}`));
+    const g = await guardianSearch(`q=${encodeURIComponent(`"${c.guardian}"`)}`, `Guardian search: ${c.name}`, {}, 20);
+    store.local[c.id] ||= { stories: [] };
+    merge(store.local[c.id], fresh([...region, ...g], 72, 30).map(i => ({ ...i, topic: 'local' as const })), { topic: 'local', tag: c.name, keepHours: 72 });
+  });
 }
 
 async function f1(): Promise<F1Data | undefined> {
   const out: F1Data = {};
+  const lastUrl = 'https://api.jolpi.ca/ergast/f1/current/last/results.json';
+  const calUrl = 'https://api.jolpi.ca/ergast/f1/current.json';
   try {
-    const r = await fetchJSON<any>('https://api.jolpi.ca/ergast/f1/current/last/results.json');
+    const r = await fetchJSON<any>(lastUrl);
     const race = r.MRData?.RaceTable?.Races?.[0];
     if (race) out.last = {
       race: race.raceName, round: +race.round, date: race.date, url: race.url,
       results: (race.Results || []).slice(0, 10).map((x: any) => ({ pos: +x.position, driver: `${x.Driver.givenName} ${x.Driver.familyName}`, team: x.Constructor?.name || '', detail: x.Time?.time || x.status || '' })),
     };
-    record('Jolpica F1 last results', 'https://api.jolpi.ca/ergast/f1/current/last/results.json', !!race, race ? 1 : 0);
-  } catch (e: any) { record('Jolpica F1 last results', 'https://api.jolpi.ca/ergast/f1/current/last/results.json', false, 0, e?.message); }
+    record('Jolpica F1 last results', lastUrl, !!race, race ? 1 : 0);
+  } catch (e: any) { record('Jolpica F1 last results', lastUrl, false, 0, e?.message); }
   try {
-    const r = await fetchJSON<any>('https://api.jolpi.ca/ergast/f1/current.json');
+    const r = await fetchJSON<any>(calUrl);
     const races = r.MRData?.RaceTable?.Races || [];
-    const today = todayUTC();
-    const nx = races.find((x: any) => x.date >= today);
+    const nx = races.find((x: any) => x.date >= todayUTC());
     if (nx) out.next = { race: nx.raceName, round: +nx.round, date: nx.date, ...(nx.time ? { time: nx.time } : {}), circuit: nx.Circuit?.circuitName || '', locality: nx.Circuit?.Location?.locality || '', country: nx.Circuit?.Location?.country || '', url: nx.url };
-    record('Jolpica F1 calendar', 'https://api.jolpi.ca/ergast/f1/current.json', races.length > 0, races.length);
-  } catch (e: any) { record('Jolpica F1 calendar', 'https://api.jolpi.ca/ergast/f1/current.json', false, 0, e?.message); }
+    record('Jolpica F1 calendar', calUrl, races.length > 0, races.length);
+  } catch (e: any) { record('Jolpica F1 calendar', calUrl, false, 0, e?.message); }
   return out.last || out.next ? out : undefined;
 }
 
-async function sport(): Promise<SportFile> {
-  const sports: Record<string, Story[]> = {}, teams: Record<string, Story[]> = {};
-  await pool(Object.entries(SPORT_FEEDS), 4, async ([s, url]) => {
-    sports[s] = cluster(fresh(await getFeed(`BBC Sport: ${s}`, url, 'BBC Sport'), 48, 20).map(i => toStory(i, 'sport', s)));
+async function sportItems(store: Store) {
+  await pool(Object.entries(SPORT_FEEDS), 4, async ([name, url]) => {
+    const got = fresh(await getFeed(`BBC Sport: ${name}`, url, 'BBC Sport'), 48, 25);
+    store.sport[name] ||= { stories: [] };
+    merge(store.sport[name], got.map(i => ({ ...i, topic: 'sport' as const })), { topic: 'sport', tag: name, keepHours: 48 });
   });
   await pool(Object.entries(TEAM_SLUGS), 4, async ([team, slug]) => {
-    const url = `https://feeds.bbci.co.uk/sport/football/teams/${slug}/rss.xml`;
-    teams[team] = fresh(await getFeed(`BBC Sport team: ${team}`, url, 'BBC Sport'), 96, 10).map(i => toStory(i, 'sport', team));
+    const got = fresh(await getFeed(`BBC Sport team: ${team}`, `https://feeds.bbci.co.uk/sport/football/teams/${slug}/rss.xml`, 'BBC Sport'), 96, 12);
+    store.teams[team] ||= { stories: [] };
+    merge(store.teams[team], got.map(i => ({ ...i, topic: 'sport' as const })), { topic: 'sport', tag: team, keepHours: 96 });
   });
   const f = await f1();
-  return { generated: new Date().toISOString(), sports, teams, ...(f ? { f1: f } : {}) };
+  if (f) store.f1 = f;
 }
 
-/* ---------- AI summaries: new stories only, cached by URL ---------- */
+/* ---------- AI summaries: new or changed stories, most important first ---------- */
 
-type Cache = Record<string, { summary?: Summary; failed?: boolean; at: string }>;
+function needsSummary(s: Stored): boolean {
+  if (s.summary) return s.articles.length >= s.summary.n + 2 && Date.now() - +new Date(s.summary.at) > 3 * 3600_000;
+  if (s._.sumFail === 'perm') return false;
+  return true;
+}
 
-async function summaries(groups: Story[][]): Promise<StatusFile['summaries']> {
-  const cache: Cache = existsSync(CACHE) ? JSON.parse(await readFile(CACHE, 'utf8')) : {};
-  const stats = { made: 0, cached: 0, failed: 0 } as StatusFile['summaries'];
-  const all = groups.flat();
-  // Attach what we already have
-  for (const s of all) { const c = cache[s.url]; if (c?.summary) { s.summary = c.summary; stats.cached++; } }
+async function textFor(url: string, outlet: string): Promise<string | null> {
+  const body = guardianBody.get(url);
+  if (body) return htmlToText(body);
+  if (outlet === 'The Guardian') return null; // live blogs and the like
+  return (await readPage(url))?.text ?? null;
+}
 
+async function summaries(store: Store, entityCache: EntityCache): Promise<StatusFile['summaries']> {
+  const stats: StatusFile['summaries'] = { made: 0, cached: 0, failed: 0, skipped: 0 };
+  const all: Stored[] = [
+    ...store.news.stories,
+    ...Object.values(store.teams).flatMap(b => b.stories),
+    ...PRIORITY_REGIONS.flatMap(r => store.local[r]?.stories || []),
+    ...Object.values(store.sport).flatMap(b => b.stories),
+  ];
+  stats.cached = all.filter(s => s.summary).length;
   const key = process.env.GEMINI_API_KEY;
-  if (key) {
-    const model = await pickModel(key);
-    stats.model = model;
-    console.log(`Summaries with ${model}`);
-    const todo = groups.flatMap((g, gi) => g.map((s, i) => ({ s, rank: gi * 1000 + i }))).filter(x => !cache[x.s.url]).sort((a, b) => a.rank - b.rank).slice(0, MAX_SUMMARIES);
-    for (const { s } of todo) {
-      const body = guardianBody.get(s.url);
-      const text = body ? htmlToText(body) : await extractText(s.url);
-      if (!text) { cache[s.url] = { failed: true, at: new Date().toISOString() }; stats.failed++; continue; }
-      const sum = await summarise(key, model, s.title, text);
-      if (sum) { s.summary = sum; cache[s.url] = { summary: sum, at: new Date().toISOString() }; stats.made++; }
-      else { cache[s.url] = { failed: true, at: new Date().toISOString() }; stats.failed++; }
+  if (!key) { console.log('GEMINI_API_KEY not set: skipping AI summaries (stories show the standfirst)'); return stats; }
+  const sum = new Summariser(key);
+  await sum.init();
+  // News by importance, then everything else by freshness
+  const newsIds = new Set(store.news.stories.map(s => s.id));
+  const todo = [...new Map(all.filter(needsSummary).map(s => [s.id, s])).values()]
+    .sort((a, b) => (newsIds.has(b.id) ? 1 : 0) - (newsIds.has(a.id) ? 1 : 0) || b.importance - a.importance || +new Date(b.updated) - +new Date(a.updated));
+  stats.skipped = Math.max(0, todo.length - MAX_SUMMARIES);
+  for (const s of todo.slice(0, MAX_SUMMARIES)) {
+    if (!sum.available.length) { stats.skipped! += 1; continue; }
+    const sources: Source[] = [];
+    for (const a of s.articles.slice(0, 6)) {
+      if (sources.length >= 5) break;
+      const t = await textFor(a.url, a.outlet);
+      if (t && t.length > 400) sources.push({ outlet: a.outlet, title: a.title, text: t, url: a.url });
     }
-    // Share summaries between copies of the same story in different files
-    for (const s of all) if (!s.summary && cache[s.url]?.summary) s.summary = cache[s.url].summary;
-  } else {
-    console.log('GEMINI_API_KEY not set: skipping AI summaries (cards show the standfirst)');
+    s._.sumTried = new Date().toISOString();
+    if (!sources.length) { s._.sumFail = 'perm'; stats.failed++; console.log(`  no readable text: ${s.title}`); continue; }
+    const r = await sum.run(s.title, sources);
+    if (r === 'transient') { s._.sumFail = 'transient'; stats.skipped! += 1; continue; }
+    if (r === 'failed') { if (!s.summary) s._.sumFail = 'perm'; stats.failed++; continue; }
+    s.summary = r.summary; delete s._.sumFail;
+    s.entities = await enrich(r.entities, entityCache);
+    stats.made++;
   }
-  // Forget entries older than 10 days
-  const cutoff = Date.now() - 10 * 86400_000;
-  for (const [u, c] of Object.entries(cache)) if (+new Date(c.at) < cutoff) delete cache[u];
-  await mkdir('pipeline/cache', { recursive: true });
-  await writeFile(CACHE, JSON.stringify(cache, null, 1) + '\n');
+  stats.model = [...sum.used].join(', ') || undefined;
+  if (sum.notes.length) stats.notes = [...new Set(sum.notes)];
   return stats;
 }
 
-/* ---------- Output ---------- */
+/* ---------- Learning ---------- */
 
-const strip = (o: any) => JSON.stringify({ ...o, generated: undefined });
-async function writeIfChanged(name: string, data: any) {
-  const path = `${OUT}/${name}`;
-  if (existsSync(path)) {
-    const old = JSON.parse(await readFile(path, 'utf8'));
-    if (strip(old) === strip(data)) { console.log(`unchanged ${name}`); return; }
-  }
-  await writeFile(path, JSON.stringify(data) + '\n');
-  console.log(`wrote ${name}`);
-}
-
-async function learn(): Promise<LearnFile> {
+async function learn(interests: InterestsFile): Promise<LearnFile> {
   const now = new Date();
   const date = todayUTC(now);
-  const topics = JSON.parse(await readFile('content/topics.json', 'utf8'));
-  const topicsHash = hash(JSON.stringify(topics));
+  const extra = JSON.parse(await readFile('content/topics.json', 'utf8'));
+  const topicsHash = hash(JSON.stringify([interests.interests.map(i => [i.id, i.wiki]), extra]));
   const path = `${OUT}/learn.json`;
-  const old: LearnFile | null = existsSync(path) ? JSON.parse(await readFile(path, 'utf8')) : null;
+  const old = await readJSON<LearnFile | null>(path, null);
   const hub = await hubspot();
   // Wikipedia, NASA and Wikidata: once a day (or when the topic lists change)
   if (old && old.date === date && old.topicsHash === topicsHash && old.cards.length) {
@@ -181,29 +176,84 @@ async function learn(): Promise<LearnFile> {
     return { ...old, generated: now.toISOString(), hubspot: hub.length ? hub : old.hubspot };
   }
   const daily = await wikipediaDaily(now);
-  const [topicList, pic, wd] = [await topicCards(topics, now), await apod(), await wikidataQuizzes(now)];
+  const topicList = await topicCards(interests.interests, extra, now);
+  const pic = await apod();
+  const wd = await wikidataQuizzes(now);
   const cards = [...daily.cards, ...(pic ? [pic] : []), ...topicList];
   return { generated: now.toISOString(), date, topicsHash, cards, quizzes: [...daily.quizzes, ...wd], hubspot: hub.length ? hub : old?.hubspot || [] };
 }
 
-async function main() {
-  await mkdir(OUT, { recursive: true });
-  const [stories, cities, sp, lf] = [await news(), await local(), await sport(), await learn()];
+/* ---------- Output ---------- */
 
-  const priorityLocal = cities[PRIORITY_CITY] || [];
-  const otherLocal = Object.entries(cities).filter(([c]) => c !== PRIORITY_CITY).flatMap(([, xs]) => xs.slice(0, 3));
-  const topNews = [...stories].sort((a, b) => b.also.length - a.also.length);
-  const sum = await summaries([topNews, priorityLocal, Object.values(sp.teams).flat(), Object.values(sp.sports).flat(), otherLocal]);
+const strip = (o: any) => JSON.stringify({ ...o, generated: undefined });
+async function writeIfChanged(name: string, data: any) {
+  const path = `${OUT}/${name}`;
+  const old = await readJSON<any>(path, null);
+  if (old && strip(old) === strip(data)) { console.log(`unchanged ${name}`); return; }
+  await writeFile(path, JSON.stringify(data) + '\n');
+  console.log(`wrote ${name}`);
+}
+
+const byRank = (a: Stored, b: Stored) => b.importance - a.importance || +new Date(b.updated) - +new Date(a.updated);
+const recent = (a: Stored, b: Stored) => +new Date(b.updated) - +new Date(a.updated);
+
+async function main() {
+  if (OFFLINE) console.log('OFFLINE: replaying recorded responses from fixtures/');
+  if (RECORD) console.log('RECORD: saving every response to fixtures/');
+  await mkdir(OUT, { recursive: true });
+  await mkdir(CACHE, { recursive: true });
+  const interests = JSON.parse(await readFile('content/interests.json', 'utf8')) as InterestsFile;
+  setInterests(interests.interests);
+
+  const store = await readJSON<Store>(`${CACHE}/stories.json`, { news: { stories: [] }, local: {}, sport: {}, teams: {} });
+  const entityCache = await readJSON<EntityCache>(`${CACHE}/entities.json`, {});
+  const imageCache = await readJSON<ImageCache>(`${CACHE}/images.json`, {});
+
+  if (want('news')) {
+    const { items, front } = await newsItems();
+    merge(store.news, items, { topic: 'news', keepHours: 48, frontUrls: front });
+  }
+  if (want('local')) await localItems(store);
+  if (want('sport')) await sportItems(store);
+
+  const sum = (want('news') || want('local') || want('sport')) ? await summaries(store, entityCache) : { made: 0, cached: 0, failed: 0 };
+
+  if (want('news') || want('local') || want('sport') || want('images')) {
+    // Stock photo searches use the story's first interest
+    const label = new Map(interests.interests.map(i => [i.id, i.label]));
+    const q = (s: Stored) => s.tags.map(t => label.get(t)).find(Boolean) || s.tag;
+    await chooseImages([...store.news.stories].sort(byRank), imageCache, 120, q);
+    await chooseImages([...Object.values(store.teams), ...Object.values(store.sport)].flatMap(b => b.stories).sort(recent), imageCache, 40, q);
+    await chooseImages(Object.values(store.local).flatMap(b => b.stories).sort(recent), imageCache, 60, q);
+  }
 
   const now = new Date().toISOString();
-  await writeIfChanged('news.json', { generated: now, stories } satisfies NewsFile);
-  await writeIfChanged('local.json', { generated: now, cities } satisfies LocalFile);
-  await writeIfChanged('sport.json', { ...sp, generated: now } satisfies SportFile);
-  await writeIfChanged('learn.json', lf);
-  await writeIfChanged('status.json', { generated: now, sources: status, summaries: sum } satisfies StatusFile);
+  if (want('news')) await writeIfChanged('news.json', { generated: now, stories: [...store.news.stories].sort(byRank).slice(0, 220).map(publicStory) } satisfies NewsFile);
+  if (want('local')) {
+    const regions: LocalFile['regions'] = {};
+    for (const [id, b] of Object.entries(store.local)) regions[id] = [...b.stories].sort(recent).slice(0, 20).map(publicStory);
+    await writeIfChanged('local.json', { generated: now, regions } satisfies LocalFile);
+  }
+  if (want('sport')) {
+    const pub = (r: Record<string, Bucket>, n: number) => Object.fromEntries(Object.entries(r).map(([k, b]) => [k, [...b.stories].sort(recent).slice(0, n).map(publicStory)]));
+    await writeIfChanged('sport.json', { generated: now, sports: pub(store.sport, 20), teams: pub(store.teams, 10), ...(store.f1 ? { f1: store.f1 } : {}) } satisfies SportFile);
+  }
+  if (want('learning')) await writeIfChanged('learn.json', await learn(interests));
+
+  pruneEntities(entityCache); pruneImages(imageCache);
+  await writeFile(`${CACHE}/stories.json`, JSON.stringify(store) + '\n');
+  await writeFile(`${CACHE}/entities.json`, JSON.stringify(entityCache) + '\n');
+  await writeFile(`${CACHE}/images.json`, JSON.stringify(imageCache) + '\n');
+  if (existsSync(`${CACHE}/summaries.json`)) await rm(`${CACHE}/summaries.json`); // replaced by summaries stored on each story
+
+  // A partial run keeps the other parts' source results from the last full run
+  const prev = await readJSON<StatusFile | null>(`${OUT}/status.json`, null);
+  const names = new Set(status.map(s => s.name));
+  const sources = [...status, ...(only && prev ? prev.sources.filter(s => !names.has(s.name)) : [])];
+  await writeIfChanged('status.json', { generated: now, sources, summaries: sum, images: imageStats } satisfies StatusFile);
 
   const failed = status.filter(s => !s.ok);
-  console.log(`\n${status.length - failed.length}/${status.length} sources OK, summaries: ${JSON.stringify(sum)}`);
+  console.log(`\n${status.length - failed.length}/${status.length} sources OK, summaries: ${JSON.stringify(sum)}, images: ${JSON.stringify(imageStats)}`);
   if (failed.length) console.log('Failed:\n' + failed.map(f => `  ${f.name}: ${f.error || ''} ${f.url}`).join('\n'));
 }
 

@@ -4,3 +4,6 @@ dist
 .env
 .env.*
 *.log
+tmp-tests
+fixtures
+!.env.example

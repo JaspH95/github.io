@@ -1,48 +1,113 @@
-import type { TopicKey } from './types';
-import type { Card } from './cards';
+/* Everything personal lives in this browser's storage. Nothing leaves the phone. */
+import type { TopicKey, Story, LearnCard, Quiz, HubItem } from './types';
 
-/* Everything personal lives in this browser's localStorage */
-export const load = <T>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-export const save = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
+const P = 'kf2-';
+export const load = <T>(k: string, d: T): T => { try { const v = localStorage.getItem(P + k); return v ? JSON.parse(v) : d; } catch { return d; } };
+export const save = (k: string, v: unknown) => { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
+export const remove = (k: string) => { try { localStorage.removeItem(P + k); } catch { /* blocked */ } };
+export const allKeys = () => { try { return Object.keys(localStorage).filter(k => k.startsWith(P)).map(k => k.slice(P.length)); } catch { return []; } };
 
-export interface Profile { name: string; place: string; work: string; mins: number; sports: string[]; teams: string[]; langs?: string[] }
-export interface Followed { id: string; title: string; seen: string[]; at: string }
-export interface WorkItem { id: string; title: string; url: string; done: boolean }
+export type Slot = 'morning' | 'midday' | 'evening';
+export type Mode = 'news' | 'learn' | 'both';
+
+export interface PickedInterest {
+  id: string;                 // starter id, or "q:<label>" for one found by search
+  label: string;
+  cat: TopicKey;
+  mode: Mode;
+  guardian?: string;          // Guardian keyword tag for searched interests
+  wiki?: string;              // Wikipedia title for searched interests
+}
+export interface Language { name: string; level: 'new' | 'basics' | 'getting-by' | 'confident'; goal: 'travel' | 'family' | 'work' | 'fun' }
+export interface Place { name: string; country: string; lat: number; lon: number; region?: string; world?: string }
+export interface Job { uri?: string; title: string; raw: string; group?: string }
+export interface SkillPick { id: string; label: string; source: 'job' | 'chosen' }
+
+export interface Profile {
+  name: string;
+  city?: Place;
+  job?: Job;
+  skills: SkillPick[];
+  interests: PickedInterest[];
+  languages: Language[];
+  sports: string[];
+  teams: string[];
+  avoid: string[];            // interest ids
+  editions: Record<Slot, { on: boolean; time: string }>;
+  quiet: { on: boolean; weekdays: [string, string][] };
+  goalMin?: number;
+  limitMin?: number;
+  created: string;
+}
+
+export const DEFAULT_EDITIONS: Profile['editions'] = { morning: { on: true, time: '07:00' }, midday: { on: true, time: '12:30' }, evening: { on: true, time: '18:00' } };
+export const DEFAULT_QUIET: Profile['quiet'] = { on: true, weekdays: [['09:00', '12:00'], ['13:30', '17:30']] };
+
+/* A card kept whole when saved, since the live data moves on */
+export interface SavedItem { id: string; kind: 'story' | 'learn' | 'quiz' | 'hub' | 'skill'; title: string; topic: TopicKey; at: string; story?: Story; learn?: LearnCard; quiz?: Quiz; hub?: HubItem; skill?: { id: string; label: string } }
+export interface FollowedStory { id: string; title: string; urls: string[]; names: string[]; at: string; seenCount: number }
+export interface DayStats { read: number; learned: number; quizRight: number; quizDone: number; secs: number; opened: number; finished: number }
+export interface Feedback { at: string; item?: string; title?: string; text: string }
 
 export const S = {
-  liked: new Set<string>(load<string[]>('kf-liked', [])),
-  later: load<Card[]>('kf-later2', []),                 // cards saved to read later (kept whole, since the data moves on)
-  weights: load<Partial<Record<TopicKey, number>>>('kf-weights', {}),
-  declined: new Set<TopicKey>(load<TopicKey[]>('kf-declined', [])),
-  accepted: new Set<TopicKey>(load<TopicKey[]>('kf-accepted', [])),
-  profile: load<Profile | null>('kf-profile3', null),
-  followed: load<Followed[]>('kf-follow2', []),
-  work: load<WorkItem[]>('kf-work2', []),
-  seen: load<Record<string, string>>('kf-seen', {}),    // card id -> date last seen, to favour fresh cards
-  quiz: { right: 0, done: 0 },
+  profile: load<Profile | null>('profile', null),
+  liked: new Set<string>(load<string[]>('liked', [])),
+  saved: load<SavedItem[]>('saved', []),
+  follows: load<FollowedStory[]>('follows', []),
+  entities: new Set<string>(load<string[]>('entities', [])),     // followed people, places and things (lower case)
+  weights: load<Record<string, number>>('weights', {}),           // interest ids and topic keys, nudged by likes and "fewer like this"
+  seen: load<Record<string, string>>('seen', {}),                 // card id -> date last seen
+  read: load<Record<string, string>>('read', {}),                 // story ids opened -> date
+  stats: load<Record<string, DayStats>>('stats', {}),
+  feedback: load<Feedback[]>('feedback', []),
 };
 
-export const w = (t: TopicKey) => 1 + (S.weights[t] || 0);
-export const isLater = (id: string) => S.later.some(c => c.id === id);
+export const persist = {
+  profile: () => save('profile', S.profile),
+  liked: () => save('liked', [...S.liked]),
+  saved: () => save('saved', S.saved),
+  follows: () => save('follows', S.follows),
+  entities: () => save('entities', [...S.entities]),
+  weights: () => save('weights', S.weights),
+  seen: () => save('seen', S.seen),
+  read: () => save('read', S.read),
+  stats: () => save('stats', S.stats),
+  feedback: () => save('feedback', S.feedback),
+};
 
-export function saveAll() {
-  save('kf-weights', S.weights);
-  save('kf-declined', [...S.declined]);
-  save('kf-accepted', [...S.accepted]);
-  save('kf-profile3', S.profile);
+/* ---------- Time (the dev menu can fake it) ---------- */
+let offset = load<number>('dev-offset', 0);
+export const now = () => new Date(Date.now() + offset);
+export const setFakeTime = (d: Date | null) => { offset = d ? +d - Date.now() : 0; save('dev-offset', offset); };
+export const faking = () => offset !== 0;
+
+export const ymd = (d = now()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const today = () => ymd(now());
+export const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+
+export function day(date = today()): DayStats {
+  return (S.stats[date] ||= { read: 0, learned: 0, quizRight: 0, quizDone: 0, secs: 0, opened: 0, finished: 0 });
 }
-export const saveLater = () => save('kf-later2', S.later);
-export const saveFollowed = () => save('kf-follow2', S.followed);
-export const saveWork = () => save('kf-work2', S.work);
-export const saveLiked = () => save('kf-liked', [...S.liked]);
+export function bump(k: keyof DayStats, n = 1) { day()[k] += n; persist.stats(); }
 
 export function markSeen(id: string) {
+  if (S.seen[id]) return false;
   S.seen[id] = today();
-  // Keep a week of history
-  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const cutoff = addDays(today(), -10);
   for (const [k, d] of Object.entries(S.seen)) if (d < cutoff) delete S.seen[k];
-  save('kf-seen', S.seen);
+  persist.seen();
+  return true;
+}
+export function markRead(id: string) {
+  const first = !S.read[id];
+  S.read[id] = today();
+  const cutoff = addDays(today(), -10);
+  for (const [k, d] of Object.entries(S.read)) if (d < cutoff) delete S.read[k];
+  persist.read();
+  return first;
 }
 
-export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-export const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+export const isSaved = (id: string) => S.saved.some(x => x.id === id);
+export const isFollowing = (id: string) => S.follows.some(f => f.id === id);
+export const weight = (k: string) => S.weights[k] || 0;
+export function nudge(k: string, by: number) { S.weights[k] = Math.max(-3, Math.min(6, (S.weights[k] || 0) + by)); persist.weights(); }

@@ -1,40 +1,40 @@
 # Knowfeed
 
-A swipe-to-learn feed of live news, knowledge and languages, built as a home-screen web app for iPhone. See `CLAUDE.md` for the full brief and `sources.md` for every feed.
+A personal newspaper and learning app that ends. News comes in Morning, Midday and Evening editions that finish; when you're up to date, learning takes over (your job's skills, your interests, a language). It's a home-screen web app for iPhone. See `PRODUCT.md` for the why, `CLAUDE.md` for the build brief, and `SETUP.md` for getting it running.
 
 ## How it fits together
 
 | Part | Where | What it does |
 |---|---|---|
-| App | `index.html`, `src/` | Vite + TypeScript PWA, ported from `reference/knowfeed-prototype.html` |
-| Pipeline | `pipeline/`, `.github/workflows/pipeline.yml` | Runs hourly on GitHub Actions, fetches every source, writes `public/data/*.json`, commits only if something changed |
-| Live football | `api/live.ts` | Vercel function holding the API-Football key, cached 2 minutes |
-| Topic lists | `content/topics.json` | Wikipedia titles per learning topic. Edit freely |
-| Phrase packs | `content/phrases/<language>.json` | The one fixed content type (see `CLAUDE.md`) |
+| App | `index.html`, `src/` | Vite + TypeScript PWA. Editions are built on the phone from the latest data |
+| Pipeline | `pipeline/run.ts`, `.github/workflows/pipeline.yml` | Hourly on GitHub Actions: fetches every source, groups articles into stories, scores importance, writes AI summaries, picks images, writes `public/data/*.json` |
+| Seed | `pipeline/seed.ts`, `.github/workflows/seed.yml` | Monthly: ESCO occupations and skills, and the GeoNames city list, for onboarding |
+| Health check | `pipeline/check.ts`, `.github/workflows/check.yml` | Tests every key, source and serverless function |
+| Serverless functions | `api/` | Live football, interest search, skill of the day, local news for any city. Keys stay on the server |
+| Interests | `content/interests.json` | The ~60 starter interests: news matching terms, Guardian sections, Wikipedia titles for learning |
+| Extra learning topics | `content/topics.json` | Wikipedia titles for topics that aren't news interests (BSL) |
+| Phrase packs | `content/phrases/*.json` | The one fixed content type. See `content/phrases/README.md` |
 
-## Setup (one time)
+## The app, file by file
 
-1. **Free API keys**
-   - Gemini (AI summaries): https://aistudio.google.com/apikey
-   - The Guardian: https://open-platform.theguardian.com/access/ (developer key)
-   - NASA: https://api.nasa.gov (works without one, but a key avoids rate limits)
-   - API-Football: https://dashboard.api-football.com/register (free plan)
-2. **GitHub secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
-   `GEMINI_API_KEY`, `GUARDIAN_API_KEY`, `NASA_API_KEY`.
-3. **Vercel** (https://vercel.com/new, Hobby plan): import this GitHub repo. The settings come from `vercel.json`, so leave the defaults. Then add the environment variable `API_FOOTBALL_KEY`. Every push redeploys, including the hourly data commits.
-4. **iPhone**: open the Vercel URL in Safari → Share → Add to Home Screen.
-
-The hourly schedule only runs on the repo's default branch. To refresh by hand: Actions → Refresh feed data → Run workflow.
+- `edition.ts`: which edition it is, catch-up, ranking (relevance, importance, freshness, personal ties, variety), the news and learning mix.
+- `feed.ts` and `cards.ts`: the full-screen cards and the "You're up to date" screen.
+- `story.ts`: the Particle-style story page, and learning articles.
+- `chat.ts`: onboarding and the settings chat (no AI).
+- `pages.ts`: Learn, Languages, Saved and Search. `lessons.ts`: 5-minute lessons and reviews. `srs.ts`: spaced repetition.
+- `live.ts`, `audio.ts`, `wellbeing.ts`, `dev.ts`, `backup.ts`, `feedback.ts`, `events.ts`.
+- Everything personal lives in the browser's storage (keys start with `kf2-`).
 
 ## Checking sources
 
-After each pipeline run, `public/data/status.json` lists every source with `ok`, the item count and any error. Sources that fail are skipped quietly and the rest still show. Update `sources.md` if you replace one.
+After each pipeline run, `public/data/status.json` lists every source with `ok`, the item count and any error, plus summary and image stats. Failing sources are skipped and the rest still show. Note replacements in `sources.md`.
 
-## Local development
+## Commands
 
 ```bash
-npm install
-npm run pipeline   # fetch live data into public/data (keys read from env vars)
-npm run dev        # http://localhost:5173
-npm run build      # typecheck + production build into dist/
+npm run dev          # the app at http://localhost:5173
+npm run build        # typecheck + production build
+npm run pipeline     # fetch everything into public/data (see SETUP.md for options)
+npm run seed         # jobs and cities
+npm run check        # health check
 ```

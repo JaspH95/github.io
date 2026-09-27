@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { SourceStatus } from '../src/types';
 
-export const UA = 'Knowfeed/1.0 (personal news reader; contact: jasperhayward@me.com)';
+export { UA, fetchText, fetchJSON } from './http';
 
 export const status: SourceStatus[] = [];
 export function record(name: string, url: string, ok: boolean, items: number, error?: string) {
@@ -10,23 +10,6 @@ export function record(name: string, url: string, ok: boolean, items: number, er
 }
 
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-export async function fetchText(url: string, init: RequestInit & { timeout?: number } = {}): Promise<string> {
-  const { timeout = 20000, ...rest } = init;
-  const res = await fetch(url, {
-    ...rest,
-    headers: { 'User-Agent': UA, Accept: '*/*', ...(rest.headers || {}) },
-    signal: AbortSignal.timeout(timeout),
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.text();
-}
-
-export async function fetchJSON<T = any>(url: string, init: RequestInit & { timeout?: number } = {}): Promise<T> {
-  const text = await fetchText(url, { ...init, headers: { Accept: 'application/json', ...(init.headers || {}) } });
-  return JSON.parse(text) as T;
-}
 
 export const hash = (s: string) => createHash('sha1').update(s).digest('hex').slice(0, 12);
 
