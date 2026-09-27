@@ -57,7 +57,7 @@ export interface Feedback { at: string; item?: string; title?: string; text: str
 /* Stories you've already had: seen in a feed, opened, marked as read, or said no to. Kept with the headline,
    so the same news from another outlet (a different id) is recognised and left out too. */
 export type GoneWhy = 'seen' | 'read' | 'done' | 'know' | 'hide';
-export interface Gone { t: string; d: string; k: GoneWhy; u?: string }
+export interface Gone { t: string; d: string; k: GoneWhy; u?: string; l?: 1 }   // l: a learning card, not a story
 
 export const S = {
   profile: load<Profile | null>('profile', null),
@@ -71,6 +71,7 @@ export const S = {
   stats: load<Record<string, DayStats>>('stats', {}),
   feedback: load<Feedback[]>('feedback', []),
   history: load<Record<string, Gone>>('history', {}),
+  depth: load<Record<string, number>>('depth', {}),                // interest id -> how many times you've said "I know this"
 };
 
 export const persist = {
@@ -85,6 +86,7 @@ export const persist = {
   stats: () => save('stats', S.stats),
   feedback: () => save('feedback', S.feedback),
   history: () => save('history', S.history),
+  depth: () => save('depth', S.depth),
 };
 
 /* ---------- Time (the dev menu can fake it) ---------- */
@@ -121,10 +123,10 @@ export function markRead(id: string) {
 
 /* Remember a story as had. A stronger reason replaces a weaker one; seen stories are kept 7 days, the rest 21. */
 const RANK: Record<GoneWhy, number> = { seen: 0, read: 1, done: 2, know: 3, hide: 3 };
-export function remember(s: { id: string; title: string; url?: string }, k: GoneWhy) {
+export function remember(s: { id: string; title: string; url?: string }, k: GoneWhy, learning = false) {
   const had = S.history[s.id];
   if (had && RANK[had.k] >= RANK[k] && had.d === today()) return;
-  S.history[s.id] = { t: s.title, d: today(), k: had && RANK[had.k] > RANK[k] ? had.k : k, ...(s.url ? { u: s.url } : {}) };
+  S.history[s.id] = { t: s.title, d: today(), k: had && RANK[had.k] > RANK[k] ? had.k : k, ...(s.url ? { u: s.url } : {}), ...(learning ? { l: 1 as const } : {}) };
   const seenCut = addDays(today(), -7), cut = addDays(today(), -21);
   for (const [id, g] of Object.entries(S.history)) if (g.d < (g.k === 'seen' ? seenCut : cut)) delete S.history[id];
   const ids = Object.keys(S.history);
@@ -133,6 +135,11 @@ export function remember(s: { id: string; title: string; url?: string }, k: Gone
 }
 /* Said no to, or marked as read: these never show again, even in an edition you've already opened */
 export const dismissed = (id: string) => ['done', 'know', 'hide'].includes(S.history[id]?.k || '');
+
+/* Learning about a topic skips articles most people already know (by Wikipedia views a day).
+   Each "I know this" halves the limit for that interest, so it goes deeper. */
+export const knownLimit = (interest?: string) => Math.max(150, 2500 / 2 ** (interest ? S.depth[interest] || 0 : 0));
+export const tooKnown = (c: { pop?: number; interest?: string }) => (c.pop ?? 0) > knownLimit(c.interest);
 
 export const isSaved = (id: string) => S.saved.some(x => x.id === id);
 export const isFollowing = (id: string) => S.follows.some(f => f.id === id);

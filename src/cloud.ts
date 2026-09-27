@@ -19,7 +19,7 @@ declare const __SUPABASE_EMAIL_CODES__: boolean;
 export const emailCodes = __SUPABASE_EMAIL_CODES__;
 export const cloudOn = !!(__SUPABASE_URL__ && __SUPABASE_ANON_KEY__);
 
-const SYNCED = ['profile', 'liked', 'saved', 'follows', 'entities', 'weights', 'seen', 'read', 'stats', 'feedback', 'srs', 'srs-shown', 'pod', 'series', 'history'];
+const SYNCED = ['profile', 'liked', 'saved', 'follows', 'entities', 'weights', 'seen', 'read', 'stats', 'feedback', 'srs', 'srs-shown', 'pod', 'series', 'history', 'depth'];
 type Doc = Record<string, { t: number; v: unknown }>;
 
 let meta = load<Record<string, number>>('sync-meta', {});

@@ -100,7 +100,7 @@ export interface SportFile {
 
 export interface LearnCard {
   id: string;
-  kind: 'featured' | 'mostread' | 'potd' | 'onthisday' | 'topic' | 'apod';
+  kind: 'featured' | 'mostread' | 'potd' | 'onthisday' | 'topic' | 'apod' | 'fact';
   topic: TopicKey;
   interest?: string;          // interest id for topic cards
   title: string;
@@ -112,6 +112,9 @@ export interface LearnCard {
   year?: number;
   event?: string;             // "On this day" event text
   credit?: string;
+  hook?: string;              // "Did you know" fact, from Wikipedia's main page (kind 'fact')
+  fact?: string;              // the most surprising sentence of the intro (topic cards)
+  pop?: number;               // average daily Wikipedia views: how well known it already is
 }
 
 export interface QuizArticle { title: string; extract: string; image?: string; url: string; source: 'Wikipedia' | 'Wikidata' }

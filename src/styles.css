@@ -621,3 +621,8 @@ body.series-open .tabbar{ display:none; }
 .sp-zone.next{ right:0; width:70%; }
 .sp-body.end{ pointer-events:auto; }
 .sp-body .unchecked{ align-self:flex-start; }
+
+/* Did you know… */
+.dyk-hook{ font-size:1.12rem; line-height:1.4; font-weight:600; margin:0 0 16px; }
+.dyk-hook b{ display:block; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; color:var(--yellow); margin-bottom:4px; }
+.row .rhook{ font-weight:600; line-height:1.3; }

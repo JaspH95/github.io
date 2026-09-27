@@ -1,7 +1,7 @@
 /* Editions: Morning, Midday and Evening. Each is a finite set, built on the phone from the latest data
    and kept for that slot so it doesn't reshuffle while you read. If you've missed earlier editions today,
    they're merged into one catch-up ("While you were away"). Anything below the cut goes to "Earlier today". */
-import { S, load, save, now, ymd, addDays, weight, dismissed, type Slot, type Profile } from './state';
+import { S, load, save, now, ymd, addDays, weight, dismissed, tooKnown, type Slot, type Profile } from './state';
 import { data, localStories, interestById, storyLabel, TOPIC_LABEL } from './data';
 import { heads, sameEvent, type Heads } from './similar';
 import { matcher, matches } from './match';
@@ -84,7 +84,7 @@ function shownIds(): Set<string> {
 const headCache = new Map<string, Heads>();
 export const headsOf = (s: { id: string; title: string }) => { let h = headCache.get(s.id); if (!h) { h = heads(s.title); headCache.set(s.id, h); } return h; };
 export function hadBefore(): (s: Story) => boolean {
-  const past = Object.entries(S.history).map(([id, g]) => ({ id, u: g.u, h: headsOf({ id: 'h:' + id, title: g.t }) }));
+  const past = Object.entries(S.history).filter(([, g]) => !g.l).map(([id, g]) => ({ id, u: g.u, h: headsOf({ id: 'h:' + id, title: g.t }) }));
   const urls = new Set(past.map(x => x.u).filter(Boolean));
   const memo = new Map<string, boolean>();
   return (s: Story) => {
@@ -208,7 +208,7 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   const learn = data.learn;
   const learning: Card[] = [];
   const light: Card[] = [];
-  const fresh = (id: string) => !used.has(id) && !S.seen[id];
+  const fresh = (id: string) => !used.has(id) && !S.seen[id] && !S.history[id];
 
   // Today's Series episode leads the learning (one a day per Series)
   const t = todays(p);
@@ -236,16 +236,25 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   const learnIds = new Set(p.interests.filter(i => i.mode !== 'news').map(i => i.id));
   const avoid = new Set(p.avoid);
   // Includes related Wikipedia articles for topics you typed in yourself
-  const topicCards = [...(learn?.cards || []), ...(data.live?.learn || [])].filter(c => c.kind === 'topic' && fresh(c.id) && (c.interest ? learnIds.has(c.interest) && !avoid.has(c.interest) : c.topic === 'sign' && p.languages.some(l => l.name === 'British Sign Language')));
+  // Articles most people already know are skipped (each "I know this" makes an interest go deeper)
+  const topicCards = [...(learn?.cards || []), ...(data.live?.learn || [])].filter(c => c.kind === 'topic' && fresh(c.id) && !tooKnown(c) && (c.interest ? learnIds.has(c.interest) && !avoid.has(c.interest) : c.topic === 'sign' && p.languages.some(l => l.name === 'British Sign Language')));
   // Rotate interests so one doesn't take over, favouring the ones you like
   const byInterest = new Map<string, LearnCard[]>();
   for (const c of topicCards) { const k = c.interest || c.topic; byInterest.set(k, [...(byInterest.get(k) || []), c]); }
   const order = [...byInterest.keys()].sort((a, b) => weight(b) - weight(a) || (seedOf(a) % 97) - (seedOf(b) % 97));
+  // "Did you know…": surprising facts from Wikipedia's main page, favouring the kinds of things you learn about
+  const cats = new Set(p.interests.filter(i => i.mode !== 'news').map(i => i.cat));
+  const facts = (learn?.cards || []).filter(c => c.kind === 'fact' && fresh(c.id))
+    .sort((a, b) => (cats.has(b.topic) ? 1 : 0) - (cats.has(a.topic) ? 1 : 0) + (weight(b.topic) - weight(a.topic)) * 0.5);
+  const nFacts = firstToday ? 3 : 2;
+  learning.push(...facts.splice(0, nFacts).map(learnCard));
   let round = 0;
   while (learning.length < count && round < 4) {
     for (const k of order) { const c = byInterest.get(k)![round]; if (c && learning.length < count) learning.push(learnCard(c)); }
     round++;
   }
+  // Not enough on your topics yet: more facts rather than basics
+  while (learning.length < count && facts.length) learning.push(learnCard(facts.shift()!));
   // A data quiz
   const quiz = (learn?.quizzes || []).find(q => fresh(q.id));
   if (quiz) learning.splice(Math.min(3, learning.length), 0, { id: quiz.id, kind: 'quiz', topic: quiz.topic, label: 'Quiz', quiz });
@@ -257,7 +266,7 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   }
 
   // Light: one thing worth knowing (on this day, picture of the day, NASA, most read)
-  const lightPool = (learn?.cards || []).filter(c => c.kind !== 'topic' && fresh(c.id))
+  const lightPool = (learn?.cards || []).filter(c => c.kind !== 'topic' && c.kind !== 'fact' && fresh(c.id))
     .filter(c => c.kind !== 'apod' || learnIds.has('space') || learnIds.size === 0 || p.interests.some(i => i.cat === 'science'));
   const pickLight = lightPool.find(c => c.kind === (firstToday ? 'onthisday' : 'mostread')) || lightPool[0];
   if (pickLight) light.push(learnCard(pickLight));
@@ -269,7 +278,7 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
 const seedOf = (s: string) => [...s].reduce((a, ch) => a + ch.charCodeAt(0), 0) + Math.floor(+now() / 86400_000);
 
 export function learnCard(c: LearnCard): Card {
-  const label = c.kind === 'onthisday' ? 'On this day' : c.kind === 'potd' ? 'Picture of the day' : c.kind === 'apod' ? 'NASA picture of the day'
+  const label = c.kind === 'fact' ? 'Did you know?' : c.kind === 'onthisday' ? 'On this day' : c.kind === 'potd' ? 'Picture of the day' : c.kind === 'apod' ? 'NASA picture of the day'
     : c.kind === 'featured' ? "Wikipedia's featured article" : c.kind === 'mostread' ? 'Most read today'
     : (c.interest && interestById.get(c.interest)?.label) || TOPIC_LABEL[c.topic];
   return { id: c.id, kind: 'learn', topic: c.kind === 'apod' ? 'space' : c.topic, label, learn: c };
