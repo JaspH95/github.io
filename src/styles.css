@@ -21,9 +21,11 @@
 *,*::before,*::after{ box-sizing:inherit; }
 html{ height:100%; background:var(--bg); overflow:hidden; overscroll-behavior:none; touch-action:pan-x pan-y; }
 /* iOS 26 Home Screen apps report a page shorter than the screen (WebKit bug 301108), leaving a black strip at the bottom.
-   main.ts measures the shortfall; the page is stretched into it and nothing clips it. */
-html.ios-shim{ height:calc(100% + var(--shim, 0px)); overflow:visible; }
-html.ios-shim body{ overflow:visible; }
+   main.ts measures the shortfall and the page is stretched into it, so the root mustn't clip vertically.
+   The body (stretched with it) still clips: panels waiting off-screen, like the story view parked one screen
+   to the right, would otherwise become blank space you can drag the app sideways or down into. */
+html.ios-shim{ height:calc(100% + var(--shim, 0px)); overflow:visible; overflow-x:clip; }
+html.ios-shim body{ overflow:clip; }
 body{ position:relative; margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:var(--ui); -webkit-font-smoothing:antialiased; overflow:hidden; -webkit-tap-highlight-color:transparent; }
 button{ font:inherit; color:inherit; }
 a{ color:inherit; }
