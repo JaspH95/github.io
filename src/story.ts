@@ -63,6 +63,7 @@ export function close() {
 
 function show(v: View) {
   stopAudio();
+  document.title = `${v.kind === 'story' ? v.s.title : v.kind === 'learn' ? v.l.title : v.kind === 'skill' ? v.label : v.title} · Knowfeed`;
   const el = story();
   if (v.kind === 'story') storyView(v.s);
   else if (v.kind === 'learn') learnView(v.l);
@@ -84,7 +85,7 @@ function panelHTML(s: Story, tab: Tab): string {
     ? `The headline and summary are from ${esc(s.outlet)}.${s.paywall ? ' The full article may need a subscription.' : ''} <a href="${safeUrl(s.url)}" target="_blank" rel="noopener">Read it on ${esc(s.outlet)}</a>.`
     : `From ${esc(s.outlet)}. A summary appears here once the story has been read in full.`}</p>`;
   return `<ul class="gist">${sum.gist.map(g => `<li>${hl(g, s.entities)}</li>`).join('')}</ul>
-    ${sum.sections.map(x => `<h4>${esc(x.heading)}</h4><p>${hl(x.text, s.entities)}</p>`).join('')}`;
+    ${sum.sections.map(x => `<h2 class="ph">${esc(x.heading)}</h2><p>${hl(x.text, s.entities)}</p>`).join('')}`;
 }
 const when = (iso: string) => {
   const d = new Date(iso), n = now();
@@ -129,20 +130,20 @@ function storyView(given: Story) {
       <div class="panel" id="panel" role="tabpanel">${panelHTML(s, 'overview')}</div>
       ${sum ? `<p class="ai-label">Summary by AI from ${plural(sum.n, 'article')} · ${esc(sum.model)}</p>` : ''}
 
-      <section class="sec"><div class="sech"><h3>${plural(s.articles.length, 'Article')} ${ICON.chev}</h3><button class="collapse" aria-label="Collapse">–</button></div>
+      <section class="sec"><div class="sech"><h2>${plural(s.articles.length, 'Article')} ${ICON.chev}</h2><button class="collapse" aria-label="Collapse">–</button></div>
         <div class="secbody hscroll">${s.articles.map(a => { const b = outletBadge(a.outlet); return `<a class="acard" href="${safeUrl(a.url)}" target="_blank" rel="noopener"><div class="arow"><span class="logo" style="background:${b.col};color:${b.ink}">${esc(b.ini)}</span><span class="outlet">${esc(a.outlet)}</span><span class="age">${age(a.published)}</span></div><div class="ahead">${esc(a.title)}</div></a>`; }).join('')}</div></section>
 
-      ${sum?.quotes?.length ? `<section class="sec"><div class="sech"><h3>Quotes ${ICON.chev}</h3><button class="collapse" aria-label="Collapse">–</button></div><div class="secbody">${sum.quotes.map(q => { const b = outletBadge(q.who); return `<div class="qwho"><span class="logo" style="background:${b.col}">${esc(b.ini)}</span><span><b>${esc(q.who)}</b>${q.role ? `<span>${esc(q.role)}</span>` : ''}</span></div><div class="qcard"><blockquote>“${esc(q.text)}”</blockquote><span class="chip">From the articles above</span></div>`; }).join('')}</div></section>` : ''}
+      ${sum?.quotes?.length ? `<section class="sec"><div class="sech"><h2>Quotes ${ICON.chev}</h2><button class="collapse" aria-label="Collapse">–</button></div><div class="secbody">${sum.quotes.map(q => { const b = outletBadge(q.who); return `<div class="qwho"><span class="logo" style="background:${b.col}">${esc(b.ini)}</span><span><b>${esc(q.who)}</b>${q.role ? `<span>${esc(q.role)}</span>` : ''}</span></div><div class="qcard"><blockquote>“${esc(q.text)}”</blockquote><span class="chip">From the articles above</span></div>`; }).join('')}</div></section>` : ''}
 
-      ${ents.length ? `<section class="sec"><div class="sech"><h3>People, Places &amp; Things ${ICON.chev}</h3></div>
+      ${ents.length ? `<section class="sec"><div class="sech"><h2>People, Places &amp; Things ${ICON.chev}</h2></div>
         <p class="follow-intro"><span class="plus">+ Follow</span> <b>People, Places, or Things</b> to get more news you care about</p>
         ${ents.map(e => entityRow(e)).join('')}</section>` : ''}
 
-      ${bg ? `<section class="sec"><div class="sech"><h3>Learn the background</h3></div>
+      ${bg ? `<section class="sec"><div class="sech"><h2>Learn the background</h2></div>
         <button class="learn" data-wiki="${esc(bg.wiki!)}"><span class="ic">${ICON.book}</span><span><b>${esc(bg.wiki!)}</b><span>New to this? Learn the basics in 2 minutes</span></span></button></section>` : ''}
 
-      ${rel.length ? `<section class="sec"><div class="sech"><h3>Related Stories</h3></div>
-        <div class="hscroll">${rel.map(o => `<button class="rcard" data-id="${esc(o.id)}">${photo(o.image?.url, { topic: o.topic, id: o.id, label: storyLabel(o) }, o.image)}<div class="shade"></div><div class="meta">${ICON.bolt}<span>${storyMeta(o)}</span></div><h4>${hl(o.title, o.entities)}</h4><p>${esc(o.standfirst)}</p></button>`).join('')}</div></section>` : ''}
+      ${rel.length ? `<section class="sec"><div class="sech"><h2>Related Stories</h2></div>
+        <div class="hscroll">${rel.map(o => `<button class="rcard" data-id="${esc(o.id)}">${photo(o.image?.url, { topic: o.topic, id: o.id, label: storyLabel(o) }, o.image)}<div class="shade"></div><div class="meta">${ICON.bolt}<span>${storyMeta(o)}</span></div><h3>${hl(o.title, o.entities)}</h3><p>${esc(o.standfirst)}</p></button>`).join('')}</div></section>` : ''}
 
       <p class="fine">${sum ? `Summary written by AI only from the ${plural(sum.n, 'article')} it could read in full, and checked against their text.` : `From ${esc(s.outlet)}${outlets > 1 ? ` and ${plural(outlets - 1, 'other outlet')}` : ''}.`} Tap any article to read the original. <button class="linkish report">Something wrong?</button></p>
     </div>`;
@@ -242,9 +243,9 @@ async function skillView(id: string, label: string) {
   if (current?.card.id !== card.id) return;
   const el = story();
   if (!s) { el.querySelector('#panel')!.innerHTML = "<p>Couldn't load this skill just now. Check your connection and try again.</p>"; return; }
-  el.querySelector('#panel')!.innerHTML = `<h4>What it means</h4><p>${esc(s.description)}</p><p class="panel-note">The official description from ESCO, the EU's classification of skills and occupations.</p>`;
+  el.querySelector('#panel')!.innerHTML = `<h2 class="ph">What it means</h2><p>${esc(s.description)}</p><p class="panel-note">The official description from ESCO, the EU's classification of skills and occupations.</p>`;
   if (s.wiki) {
-    el.querySelector('#panel')!.insertAdjacentHTML('afterend', `<section class="sec"><div class="sech"><h3>The background</h3></div><div class="panel prose">${paras(s.wiki.extract).map(p => `<p>${esc(p)}</p>`).join('')}<p class="panel-note">From <a href="${safeUrl(s.wiki.url)}" target="_blank" rel="noopener">Wikipedia: ${esc(s.wiki.title)}</a> (CC BY-SA)</p></div></section>`);
+    el.querySelector('#panel')!.insertAdjacentHTML('afterend', `<section class="sec"><div class="sech"><h2>The background</h2></div><div class="panel prose">${paras(s.wiki.extract).map(p => `<p>${esc(p)}</p>`).join('')}<p class="panel-note">From <a href="${safeUrl(s.wiki.url)}" target="_blank" rel="noopener">Wikipedia: ${esc(s.wiki.title)}</a> (CC BY-SA)</p></div></section>`);
     if (s.wiki.image) { const h = el.querySelector('.hero')!; h.innerHTML = photo(s.wiki.image, card); fixImages(h as HTMLElement); }
   }
   current.speech = [label, s.description, s.wiki?.extract || ''];

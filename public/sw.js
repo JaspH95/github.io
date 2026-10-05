@@ -1,5 +1,5 @@
 /* Knowfeed service worker: keeps the app and the latest feed available offline (for when there's no signal) */
-const VERSION = 'kf-v2';
+const VERSION = 'kf-v3';
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, IMG = `${VERSION}-img`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
 
@@ -41,12 +41,14 @@ self.addEventListener('fetch', e => {
   if (url.origin === location.origin) {
     if (url.pathname.startsWith('/api/')) return;                          // live data: always the network
     if (url.pathname.startsWith('/data/')) { e.respondWith(networkFirst(req, DATA, url.pathname)); return; }
-    if (req.mode === 'navigate') { e.respondWith(networkFirst(req, SHELL, '/')); return; }
-    e.respondWith(cacheFirst(req, SHELL));                                 // hashed build assets never change
+    // The app itself is cached as "/"; other pages (Privacy, Terms…) are cached under their own address,
+    // so opening one can never replace the app's offline copy
+    if (req.mode === 'navigate') { const app = url.pathname === '/' || url.pathname === '/index.html'; e.respondWith(networkFirst(req, SHELL, app ? '/' : url.pathname)); return; }
+    if (url.pathname.startsWith('/assets/')) { e.respondWith(cacheFirst(req, SHELL)); return; }   // hashed build files never change
+    e.respondWith(networkFirst(req, SHELL));                                                     // everything else: latest when online
     return;
   }
-  // Fonts and card photos: keep what we've seen so the feed still looks right offline
-  if (/fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) { e.respondWith(cacheFirst(req, SHELL)); return; }
+  // Card photos: keep what we've seen so the feed still looks right offline
   if (req.destination === 'image') {
     e.respondWith(cacheFirst(req, IMG).catch(() => Response.error()));
     e.waitUntil(trim(IMG, 150));

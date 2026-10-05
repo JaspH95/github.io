@@ -9,6 +9,11 @@ const renderers: Partial<Record<Tab, (el: HTMLElement) => void>> = {};
 export const onTab = (t: Tab, fn: (el: HTMLElement) => void) => { renderers[t] = fn; };
 export const currentTab = () => tab;
 
+/* Each view gets its own title in the browser tab, the app switcher and screen readers */
+const TITLES: Record<Tab, string> = { edition: 'Your edition', learn: 'Learn', langs: 'Languages', saved: 'Saved', search: 'Search', profile: 'Profile' };
+export const viewTitle = () => `${TITLES[tab]} · Knowfeed`;
+window.addEventListener('kf:story-closed', () => { document.title = viewTitle(); });
+
 export function go(t: Tab) {
   if (isOpen()) closeStory();
   const page = document.getElementById('page')!;
@@ -16,6 +21,9 @@ export function go(t: Tab) {
   if (t !== 'edition') stopAudio();
   tab = t;
   document.body.dataset.tab = t;
+  document.title = viewTitle();
+  // Pages have their own heading; the edition's is in the top bar, for screen readers
+  document.getElementById('viewH1')!.hidden = t !== 'edition';
   document.querySelectorAll<HTMLButtonElement>('.tab').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   if (t === 'edition') { page.hidden = true; feed.hidden = false; return; }
   feed.hidden = true; page.hidden = false;
