@@ -1,6 +1,6 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
 import { statsAllowed } from './consent';
-import { S, persist, tooKnown, type SavedItem } from './state';
+import { S, persist, tooKnown, today, addDays, type SavedItem } from './state';
 import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL, OUTLETS, itemStory, regionOf } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
@@ -15,7 +15,7 @@ import { suggestions, follow } from './suggest';
 import { available, doneEpisodes, isDraft } from './series';
 import * as cloud from './cloud';
 import { signSVG } from './scenes';
-import { photo, fixImages, render, type Card } from './cards';
+import { photo, fixImages, render, type Card, yearText } from './cards';
 import type { LearnCard, Story } from './types';
 import type { NewsItem } from '../api/news';
 
@@ -49,6 +49,8 @@ function learnPage(el: HTMLElement) {
   const byInterest = learnIds.map(id => ({ id, label: interestById.get(id)?.label || p.interests.find(i => i.id === id)?.label || id, cards: cards.filter(c => c.interest === id && !tooKnown(c) && !S.history[c.id]) })).filter(g => g.cards.length);
   const daily = cards.filter(c => c.kind !== 'topic' && c.kind !== 'fact');
   const facts = cards.filter(c => c.kind === 'fact' && !S.history[c.id]).slice(0, 8);
+  const inventions = cards.filter(c => c.kind === 'invention' && !S.history[c.id]).slice(0, 6);
+  const oddities = cards.filter(c => c.kind === 'oddity' && !S.history[c.id]).slice(0, 6);
   const searched = p.interests.filter(i => i.id.startsWith('q:') && i.mode !== 'news' && i.wiki);
   const quiz = (data.learn?.quizzes || [])[0];
   const series = available(p);
@@ -56,6 +58,8 @@ function learnPage(el: HTMLElement) {
   el.innerHTML = `${head('Learn', 'Your work, your interests and today\'s picks. Every session ends; start another when you like.')}
     ${series.length ? `<section class="psec"><h2>Series</h2><div class="rows">${series.map(s => { const d = doneEpisodes(s.id).length; return `<button class="row" data-series="${esc(s.id)}"><span class="series-thumb" style="--c1:${s.colours[0]};--c2:${s.colours[1]}" aria-hidden="true">${s.episodes.length}</span><span class="rt"><span class="rk">${KIND[s.kind] || 'SERIES'} · ${d ? `${d} OF ${s.episodes.length} DONE` : `${s.episodes.length} EPISODES`}${isDraft(s) ? ' · <em>DRAFT</em>' : ''}</span><b>${esc(s.title)}</b><span class="rs">${esc(s.blurb)}</span></span></button>`; }).join('')}</div></section>` : ''}
     ${facts.length ? `<section class="psec"><h2>Did you know…</h2><div class="rows">${facts.map(c => factRow(c)).join('')}</div></section>` : ''}
+    ${inventions.length ? `<section class="psec"><h2>Cool inventions</h2><div class="rows">${inventions.map(c => learnRow(c, `Invented ${yearText(c.year)}`)).join('')}</div></section>` : ''}
+    ${oddities.length ? `<section class="psec"><h2>Fun facts</h2><div class="rows">${oddities.map(c => factRow(c)).join('')}</div></section>` : ''}
     ${todays ? `<section class="psec"><h2>Skill of the day</h2><button class="feature" data-skill="${esc(todays.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(cap(todays.label))}</b><span>From your work${p.job ? `: ${esc(p.job.title)}` : ''}</span></span>${ICON.chev}</button>
       <div class="chips">${skills.map(k => `<button class="chip-btn" data-skill="${esc(k.id)}">${esc(cap(k.label))}</button>`).join('')}<button class="chip-btn add" data-add="skills">${ICON.plus} Skills</button></div></section>`
       : `<section class="psec"><h2>Your work</h2><button class="feature" data-add="skills"><span class="ic">${ICON.book}</span><span><b>Add your job and skills</b><span>Get a skill of the day and industry news</span></span>${ICON.chev}</button></section>`}
@@ -254,23 +258,27 @@ const SETTINGS: [string, string, string][] = [
   ['data', 'Your data and privacy', 'Usage stats, back up, restore or delete'],
 ];
 
+/* Profile is kept short: "Talk to Knowfeed" can change anything, so only the most-used settings show here,
+   with the rest folded under "More settings" and the legal pages under one line. */
+const MAIN_SETTINGS = ['interests', 'editions', 'languages', 'data'];
 function profilePage(el: HTMLElement) {
   const p = S.profile!;
-  const sugg = suggestions(6);
+  const sugg = suggestions(3);
   const u = cloud.signedIn();
   const following = [...p.interests.map(i => i.label), ...(p.outlets || []).map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean) as string[], ...[...S.entities].map(titleCase)];
-  const likes = S.liked.size;
-  el.innerHTML = `<header class="phead prof"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p></span></header>
-    <section class="psec"><button class="feature talk" data-chat=""><span class="ic">${ICON.chat}</span><span><b>Talk to Knowfeed</b><span>Change anything by chatting. It also suggests things from what you like.</span></span>${ICON.chev}</button></section>
-    <section class="psec"><h2>Suggested for you</h2>
-      <p class="note">${likes ? `Based on ${plural(likes, 'thing')} you've liked.` : 'Double tap stories you like.'} Knowfeed learns from your likes: it shows more of what you enjoy and suggests topics and people to follow.</p>
-      ${sugg.length ? `<div class="rows">${sugg.map(x => `<div class="row-wrap"><div class="row static"><span class="rt"><span class="rk">${x.kind === 'interest' ? 'TOPIC' : 'IN THE NEWS'}${x.because ? ` · ${esc(x.because.toUpperCase())}` : ''}</span><b>${esc(x.label)}</b>${x.kind === 'entity' && x.desc ? `<span class="rs">${esc(x.desc)}</span>` : ''}</span></div><button class="follow-btn" data-follow="${esc(x.key)}">Follow</button></div>`).join('')}</div>` : '<p class="note">Nothing new to suggest right now.</p>'}
-    </section>
-    <section class="psec"><h2>You follow</h2>${following.length ? `<div class="chips">${following.map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}</div>` : '<p class="note">Nothing yet.</p>'}
-      <button class="linkish" data-chat="interests">Change interests</button></section>
-    ${cloud.cloudOn ? `<section class="psec"><h2>Account</h2><button class="feature" data-chat="account"><span class="ic">${ICON.check}</span><span><b>${u ? esc(u.email) : 'Not signed in'}</b><span>${u ? 'Your answers, saves and progress are kept with your account' : 'Sign in so your answers are kept if you change phones'}</span></span>${ICON.chev}</button></section>` : ''}
-    <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.map(([k, t, sub]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`).join('')}</div></section>
-    <section class="psec"><h2>About and legal</h2><div class="rows">${LEGAL.map(([href, t, sub]) => `<a class="row" href="${href}" target="_blank" rel="noopener"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</a>`).join('')}</div>
+  // The last 7 days, from the stats kept on this phone
+  const week = Object.entries(S.stats).filter(([d]) => d >= addDays(today(), -6)).map(([, v]) => v);
+  const read = week.reduce((a, d) => a + d.read, 0), learned = week.reduce((a, d) => a + d.learned, 0);
+  const row = ([k, t, sub]: [string, string, string]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`;
+  const SHOW = 10;
+  el.innerHTML = `<header class="phead prof"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p>${read || learned ? `<p class="pweek">This week: ${plural(read, 'story', 'stories')} read · ${plural(learned, 'thing')} learned</p>` : ''}</span></header>
+    <section class="psec"><button class="feature talk" data-chat=""><span class="ic">${ICON.chat}</span><span><b>Talk to Knowfeed</b><span>Change anything just by chatting</span></span>${ICON.chev}</button></section>
+    ${sugg.length ? `<section class="psec"><h2>Suggested for you</h2><div class="rows">${sugg.map(x => `<div class="row-wrap"><div class="row static"><span class="rt"><span class="rk">${x.kind === 'interest' ? 'TOPIC' : 'IN THE NEWS'}${x.because ? ` · ${esc(x.because.toUpperCase())}` : ''}</span><b>${esc(x.label)}</b>${x.kind === 'entity' && x.desc ? `<span class="rs">${esc(x.desc)}</span>` : ''}</span></div><button class="follow-btn" data-follow="${esc(x.key)}">Follow</button></div>`).join('')}</div></section>` : ''}
+    <section class="psec"><h2>You follow</h2>${following.length ? `<div class="chips">${following.slice(0, SHOW).map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}${following.length > SHOW ? `<button class="chip-btn" data-chat="interests">+${following.length - SHOW} more</button>` : ''}</div>` : '<p class="note">Nothing yet. Double tap stories you like and Knowfeed will suggest things.</p>'}</section>
+    <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.filter(([k]) => MAIN_SETTINGS.includes(k)).map(row).join('')}
+      ${cloud.cloudOn ? `<button class="row" data-chat="account"><span class="rt"><b>Account</b><span class="rs">${u ? esc(u.email) : 'Not signed in: sign in to keep your answers if you change phones'}</span></span>${ICON.chev}</button>` : ''}</div>
+      <details class="fold"><summary>More settings</summary><div class="rows">${SETTINGS.filter(([k]) => !MAIN_SETTINGS.includes(k)).map(row).join('')}</div></details>
+      <details class="fold"><summary>About, privacy and terms</summary><div class="rows">${LEGAL.map(([href, t, sub]) => `<a class="row" href="${href}" target="_blank" rel="noopener"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</a>`).join('')}</div></details>
       <p class="pfoot">Knowfeed is a free beta made by Jasper Hayward in the UK. Usage stats are ${statsAllowed() ? 'on' : 'off'}.</p></section>`;
   el.querySelectorAll<HTMLElement>('[data-chat]').forEach(b => b.addEventListener('click', () => openChat((b.dataset.chat || undefined) as any)));
   el.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => b.addEventListener('click', () => {

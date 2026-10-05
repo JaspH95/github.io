@@ -266,7 +266,12 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   }
 
   // Light: one thing worth knowing (on this day, picture of the day, NASA, most read)
-  const lightPool = (learn?.cards || []).filter(c => c.kind !== 'topic' && c.kind !== 'fact' && fresh(c.id))
+  // A cool invention and a fun fact in every edition: things everyone likes to know
+  for (const k of ['invention', 'oddity'] as const) {
+    const pick = (learn?.cards || []).find(c => c.kind === k && fresh(c.id));
+    if (pick) light.push(learnCard(pick));
+  }
+  const lightPool = (learn?.cards || []).filter(c => c.kind !== 'topic' && c.kind !== 'fact' && c.kind !== 'invention' && c.kind !== 'oddity' && fresh(c.id))
     .filter(c => c.kind !== 'apod' || learnIds.has('space') || learnIds.size === 0 || p.interests.some(i => i.cat === 'science'));
   const pickLight = lightPool.find(c => c.kind === (firstToday ? 'onthisday' : 'mostread')) || lightPool[0];
   if (pickLight) light.push(learnCard(pickLight));
@@ -278,7 +283,7 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
 const seedOf = (s: string) => [...s].reduce((a, ch) => a + ch.charCodeAt(0), 0) + Math.floor(+now() / 86400_000);
 
 export function learnCard(c: LearnCard): Card {
-  const label = c.kind === 'fact' ? 'Did you know?' : c.kind === 'onthisday' ? 'On this day' : c.kind === 'potd' ? 'Picture of the day' : c.kind === 'apod' ? 'NASA picture of the day'
+  const label = c.kind === 'fact' ? 'Did you know?' : c.kind === 'invention' ? 'Cool invention' : c.kind === 'oddity' ? 'Fun fact' : c.kind === 'onthisday' ? 'On this day' : c.kind === 'potd' ? 'Picture of the day' : c.kind === 'apod' ? 'NASA picture of the day'
     : c.kind === 'featured' ? "Wikipedia's featured article" : c.kind === 'mostread' ? 'Most read today'
     : (c.interest && interestById.get(c.interest)?.label) || TOPIC_LABEL[c.topic];
   return { id: c.id, kind: 'learn', topic: c.kind === 'apod' ? 'space' : c.topic, label, learn: c };

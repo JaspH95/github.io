@@ -222,7 +222,7 @@ body:not([data-tab="edition"]) .tab.on{ color:var(--p-ink); background:color-mix
 /* ============ Story page and article view ============ */
 .story{ position:absolute; inset:0; z-index:10; background:#000; overflow-y:auto; transform:translateX(100%); transition:transform .34s cubic-bezier(.2,.8,.2,1); visibility:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
 .story.open{ transform:none; visibility:visible; }
-.hero{ position:relative; height:clamp(250px, calc(100vw / var(--ar, 1.5) + var(--safe-t) + 36px), 46vh); overflow:hidden; }
+.hero{ position:relative; height:clamp(250px, calc(var(--colw, 100vw) / var(--ar, 1.5) + var(--safe-t) + 36px), 46vh); overflow:hidden; }
 .hero .scene, .hero .cover{ position:absolute; inset:0; width:100%; height:100%; }
 .hero .cover .mark{ top:calc(var(--safe-t) + 64px); }
 .hero::after{ content:""; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 62%, rgba(0,0,0,.75) 88%, #000 100%); pointer-events:none; }
@@ -679,7 +679,8 @@ body.series-open .tabbar{ display:none; }
    so cards keep the proportions they were designed for instead of stretching across the screen */
 @media (min-width: 900px) and (min-height: 561px){
   html{ background:radial-gradient(60% 50% at 50% 0%, rgba(111,93,255,.16), transparent 70%), radial-gradient(40% 40% at 15% 60%, rgba(64,200,180,.08), transparent 70%), #050508; }
-  body{ width:clamp(420px, 62vh, 640px); margin:0 auto; box-shadow:0 0 0 1px rgba(255,255,255,.07), 0 40px 140px rgba(0,0,0,.7); }
+  :root{ --colw:clamp(420px, 62vh, 640px); }
+  body{ width:var(--colw); margin:0 auto; box-shadow:0 0 0 1px rgba(255,255,255,.07), 0 40px 140px rgba(0,0,0,.7); }
   .card{ padding-left:26px; padding-right:84px; }
   .rail{ right:14px; }
 }
@@ -704,3 +705,22 @@ body.series-open .tabbar{ display:none; }
 .ln.legal-links a{ color:var(--mint, #9FF0CF); text-underline-offset:3px; }
 a.row{ text-decoration:none; color:inherit; }
 @media (max-height: 560px){ .consent{ padding:12px; } .consent h2{ font-size:1rem; margin-bottom:4px; } .consent p{ font-size:.8rem; line-height:1.35; margin-bottom:6px; } .consent-btns button{ min-height:40px; padding:8px; font-size:.85rem; } }
+
+/* ---------- Photos that would look soft if stretched (see sharpen() in cards.ts) ---------- */
+/* Wide photos at the top of a card: no wider than they can carry, centred over the blurred copy */
+.frame .fg.lowres{ width:var(--nw); left:50%; transform:translateX(-50%); border-radius:14px; }
+/* Full-bleed photos (tall cards, story heroes): shown whole at their sharp size over their own blurred preview */
+img.scene.photo.lowres, .hero img.photo.lowres{ object-fit:contain; background-size:cover; background-position:center; }
+/* Cool inventions: the year, big, like On this day */
+.big.inv-year{ font-size:clamp(3.2rem, 18vw, 5.6rem); color:var(--yellow); text-shadow:0 2px 24px rgba(0,0,0,.5); }
+.card p.inv-by{ color:#fff; font-weight:500; -webkit-line-clamp:2; }
+/* Profile: folded sections (More settings, About and legal) */
+.pweek{ font-size:.85rem; font-weight:600; color:var(--p-accent) !important; margin:0 !important; }
+details.fold{ margin-top:10px; }
+details.fold > summary{ list-style:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; background:var(--p-card); border:1px solid var(--p-line); border-radius:18px; font-weight:600; cursor:pointer; color:var(--p-ink); }
+details.fold > summary::-webkit-details-marker{ display:none; }
+details.fold > summary::after{ content:""; width:8px; height:8px; border-right:2px solid var(--p-muted); border-bottom:2px solid var(--p-muted); transform:rotate(45deg) translateY(-2px); transition:transform .2s; }
+details.fold[open] > summary::after{ transform:rotate(225deg) translateY(-2px); }
+details.fold[open] > summary{ border-radius:18px 18px 0 0; border-bottom:0; }
+details.fold[open] > .rows{ border-radius:0 0 18px 18px; }
+details.fold[open] > .rows > .row:first-child{ border-top:1px solid var(--p-line); }

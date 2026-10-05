@@ -71,6 +71,19 @@ export function framed(url: string | undefined, c: { topic: TopicKey; id: string
   const ph = img?.lqip ? `background-image:url(${img.lqip});` : '';
   return `<div class="frame"${ar ? ` style="--ar:${Math.min(2, ar).toFixed(3)}"` : ''}><img class="bg" src="${img?.lqip && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(img.lqip) ? img.lqip : safeUrl(url)}" alt="" aria-hidden="true" referrerpolicy="no-referrer"><img class="fg photo" src="${safeUrl(url)}" alt="" decoding="async" loading="lazy" referrerpolicy="no-referrer" style="${pos}${ph}" data-topic="${c.topic}" data-seed="${seedFor(c.id)}" data-label="${esc(c.label || '')}"></div>`;
 }
+/* Never stretch a photo past what it can carry. On a big screen (or a small photo) a picture blown up more than
+   about 1.6 times its real pixels looks soft, so it's shown no bigger than that, sharp and centred over a blurred
+   copy of itself, instead of filling the space. */
+const MAX_UPSCALE = 1.6;
+export function sharpen(img: HTMLImageElement) {
+  const nw = img.naturalWidth; if (!nw) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const shown = img.getBoundingClientRect().width || img.parentElement?.getBoundingClientRect().width || 0;
+  const max = nw * MAX_UPSCALE / dpr;          // widest it can be shown, in CSS pixels, and still look sharp
+  const low = shown > max + 1;
+  img.classList.toggle('lowres', low);
+  if (low) img.style.setProperty('--nw', `${Math.round(max)}px`); else img.style.removeProperty('--nw');
+}
 /* If a photo fails to load, the topic's cover takes its place */
 export function fixImages(root: HTMLElement) {
   root.querySelectorAll<HTMLImageElement>('img.photo').forEach(img => {
@@ -79,6 +92,7 @@ export function fixImages(root: HTMLElement) {
     if (img.complete && img.naturalWidth === 0 && img.src) swap(); else img.addEventListener('error', swap, { once: true });
     const loaded = () => {
       img.classList.add('loaded');
+      sharpen(img);
       if (frame && img.naturalWidth) {
         const ar = img.naturalWidth / img.naturalHeight;
         if (ar < 0.9) frame.classList.add('tall'); else if (!frame.style.getPropertyValue('--ar')) frame.style.setProperty('--ar', Math.min(2, ar).toFixed(3));
@@ -103,6 +117,10 @@ function background(c: Card): string {
 }
 
 /* ---------- Card bodies ---------- */
+
+/* "1876", "c. 300 BC" */
+export const yearText = (y?: number) => (y === undefined ? '' : y < 0 ? `${-y} BC` : String(y));
+export const listOf = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 const attrib = (src: string, url: string, licence = '') => `<p class="attrib">From <a href="${safeUrl(url)}" target="_blank" rel="noopener">${esc(src)}</a>${licence}</p>`;
 const credit = (c: Card) => {
@@ -132,6 +150,10 @@ function body(c: Card): string {
       const know = `<div class="dismiss"><button class="dz know-it" aria-label="I know this: skip it and go deeper">${ICON.check}<span>I know this</span></button></div>`;
       if (l.kind === 'fact') return `<div class="meta"><span>DID YOU KNOW? · WIKIPEDIA</span></div><h2 class="h-sm${(l.hook || '').length > 140 ? ' h-xs' : ''}">${esc(l.hook || l.title)}</h2>
         <button class="readbtn solid open">Learn the story ${ICON.chev}</button>${know}${attrib('Wikipedia', l.url, lic)}${credit(c)}`;
+      if (l.kind === 'invention') return `<div class="meta"><span>COOL INVENTION · WIKIPEDIA</span></div><div class="big inv-year">${esc(yearText(l.year))}</div><h2 class="h-sm">${esc(l.title)}</h2>
+        ${l.by?.length ? `<p class="inv-by">Invented by <b>${esc(listOf(l.by))}</b></p>` : ''}${l.hook ? `<p>${esc(l.hook)}</p>` : ''}<button class="readbtn solid open">The story behind it ${ICON.chev}</button>${attrib('Wikipedia', l.url, lic)}${credit(c)}`;
+      if (l.kind === 'oddity') return `<div class="meta"><span>FUN FACT · ${esc(l.title.toUpperCase())}</span></div><h2 class="h-sm${(l.hook || '').length > 140 ? ' h-xs' : ''}">${esc(l.hook || l.title)}</h2>
+        <button class="readbtn solid open">Tell me more ${ICON.chev}</button>${attrib('Wikipedia', l.url, lic)}${credit(c)}`;
       if (l.kind === 'potd') return `<div class="meta"><span>${esc(c.label.toUpperCase())}</span></div><p class="lead">${esc(sentences(l.extract, 2))}</p>${attrib('Wikimedia Commons', l.url)}${credit(c)}`;
       return `<div class="meta"><span>${esc(c.label.toUpperCase())} · ${esc(src.toUpperCase())}</span></div><h2>${esc(l.title)}</h2>
         <p>${esc(l.fact || sentences(l.extract, 2))}</p><button class="readbtn ${l.kind === 'topic' ? 'solid' : 'glass'} open">${l.kind === 'topic' ? 'Start learning' : 'Read more'} ${ICON.chev}</button>${l.kind === 'topic' || l.kind === 'featured' ? know : ''}${attrib(src, l.url, lic)}${credit(c)}`;

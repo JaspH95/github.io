@@ -3,7 +3,7 @@
 import { S, persist, isSaved, isFollowing, markRead, bump, now, remember } from './state';
 import { esc, safeUrl, ago, age, toast, options, ICON, outletBadge, $, plural } from './ui';
 import { notInterested } from './dismiss';
-import { hl, photo, fixImages, storyMeta, toggleSave, toggleLike, sync, fewerLikeThis, share, loadSkill, type Card } from './cards';
+import { hl, photo, fixImages, storyMeta, toggleSave, toggleLike, sync, fewerLikeThis, share, loadSkill, type Card, yearText, listOf } from './cards';
 import { findStory, allStories, storyLabel, interestById } from './data';
 import { playQueue, stopAudio, isPlaying } from './audio';
 import { feedback } from './feedback';
@@ -216,14 +216,15 @@ function articleShell(o: { id: string; topic: Card['topic']; label: string; titl
 const paras = (s: string) => s.split(/\n+/).map(x => x.trim()).filter(Boolean);
 
 function learnView(l: LearnCard) {
-  const label = l.kind === 'fact' ? 'Did you know?' : l.kind === 'topic' ? ((l.interest && interestById.get(l.interest)?.label) || 'Learning') : l.kind === 'apod' ? 'NASA picture of the day' : l.kind === 'potd' ? 'Picture of the day' : l.kind === 'onthisday' ? 'On this day' : l.kind === 'featured' ? 'Featured article' : 'Most read today';
+  const label = l.kind === 'fact' ? 'Did you know?' : l.kind === 'invention' ? 'Cool invention' : l.kind === 'oddity' ? 'Fun fact' : l.kind === 'topic' ? ((l.interest && interestById.get(l.interest)?.label) || 'Learning') : l.kind === 'apod' ? 'NASA picture of the day' : l.kind === 'potd' ? 'Picture of the day' : l.kind === 'onthisday' ? 'On this day' : l.kind === 'featured' ? 'Featured article' : 'Most read today';
   const card: Card = { id: l.id, kind: 'learn', topic: l.topic, label, learn: l };
   const src = l.source === 'NASA' ? 'NASA' : l.kind === 'potd' ? 'Wikimedia Commons' : 'Wikipedia';
   const lic = src === 'Wikipedia' ? ' (CC BY-SA)' : '';
   const event = l.kind === 'onthisday' ? `<div class="otd"><b>${l.year}</b><span>${esc(l.event)}</span></div>` : '';
   articleShell({ id: l.id, topic: l.topic, label, title: l.title, sub: l.description, image: l.image, credit: l.credit ? `Image: ${l.credit}` : undefined, paras: paras(l.extract), source: src, url: l.url, licence: lic });
   if (event) story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', event);
-  if (l.hook) story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', `<p class="dyk-hook"><b>Did you know</b> ${esc(l.hook.replace(/^…/, ''))}</p>`);
+  if (l.kind === 'invention') story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', `<div class="otd"><b>${esc(yearText(l.year))}</b><span>${l.by?.length ? `Invented by ${esc(listOf(l.by))}. ` : ''}Year and inventor from Wikidata.</span></div>`);
+  else if (l.hook && l.kind === 'fact') story().querySelector('.panel')!.insertAdjacentHTML('beforebegin', `<p class="dyk-hook"><b>Did you know</b> ${esc(l.hook.replace(/^…/, ''))}</p>`);
   current = { card, speech: [l.title, l.extract], title: l.title, url: l.url };
   setDock(card, false);
   if (markRead(l.id)) bump('learned');
