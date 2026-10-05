@@ -479,3 +479,97 @@ export async function hubspot(): Promise<HubItem[]> {
   blog.slice(0, 10).forEach(i => out.push({ id: `hs-${hash(i.url)}`, kind: 'blog', title: i.title, summary: i.summary, url: i.url, published: i.published, ...(i.image ? { image: i.image } : {}) }));
   return out;
 }
+
+/* ---------- Cool inventions and fun facts ----------
+   Inventions come from Wikidata: things with a human inventor (P61) and a date (P575 discovered/invented, or P571
+   inception), well known enough to have articles in 20+ languages, minus natural things that also use P61 (stars,
+   elements, species, diseases…). The card shows the year and inventor from Wikidata and Wikipedia's own words.
+   Fun facts come from "Wikipedia:Unusual articles", a list Wikipedia's editors keep of its oddest articles; the card
+   quotes the most surprising sentence of the intro word for word. Both rotate slowly so nothing repeats for months. */
+
+export interface Invention { title: string; year: number; by: string[] }
+export interface FunPool { inventions: Invention[]; oddities: string[]; refreshed: string; used: Record<string, string>; v?: number }
+const FUN_VERSION = 2;   // bump when the way the lists are built changes, to rebuild them
+
+const NOT_INVENTIONS = ['Q11344', 'Q3863', 'Q3559', 'Q1022867', 'Q44559', 'Q318', 'Q523', 'Q16521', 'Q65943', 'Q11173', 'Q7187', 'Q8054', 'Q12136', 'Q24034552', 'Q408891', 'Q2221906', 'Q4022', 'Q8502', 'Q5']
+  .map(q => `wd:${q}`).join(' ');
+
+async function inventionList(): Promise<Invention[]> {
+  // Start from people whose occupation is inventor: going through everything with a "discoverer" (P61) also scans
+  // hundreds of thousands of asteroids and times out
+  const rows = await sparql(`SELECT ?article (MIN(?date) AS ?d) (GROUP_CONCAT(DISTINCT ?invLabel; separator="|") AS ?inv) WHERE {
+    ?inventor wdt:P106 wd:Q205375 .
+    ?item wdt:P61 ?inventor .
+    { ?item wdt:P575 ?date } UNION { ?item wdt:P571 ?date }
+    ?item wikibase:sitelinks ?links . FILTER(?links >= 15)
+    FILTER NOT EXISTS { ?item wdt:P31 ?t . VALUES ?t { ${NOT_INVENTIONS} } }
+    ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
+    ?inventor rdfs:label ?invLabel . FILTER(LANG(?invLabel) = "en")
+  } GROUP BY ?article LIMIT 3000`);
+  const out: Invention[] = [];
+  for (const b of rows) {
+    const title = wikiTitleFromUrl(v(b, 'article')); const d = v(b, 'd') || '';
+    const m = d.match(/^(-?)0*(\d{1,4})-/); if (!title || !m) continue;
+    const year = (m[1] ? -1 : 1) * +m[2];
+    const by = (v(b, 'inv') || '').split('|').filter(x => x && !/^Q\d+$/.test(x)).slice(0, 3);
+    if (by.length && year > -3000 && year <= new Date().getUTCFullYear()) out.push({ title, year, by });
+  }
+  return out;
+}
+
+/* Each row of the list's tables starts with the article it's about; the description after it links to ordinary
+   articles too, so only the first article link in each row counts */
+async function oddityList(): Promise<string[]> {
+  const r = await fetchJSON<any>('https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&page=Wikipedia:Unusual_articles', { timeout: 60000 });
+  const html: string = r?.parse?.text || '';
+  const out = new Set<string>();
+  for (const row of html.split(/<tr[\s>]/i).slice(1)) {
+    const cell = row.match(/<td[^>]*>([\s\S]*?)<\/td>/i)?.[1]; if (!cell) continue;
+    const href = cell.match(/<a [^>]*href="\/wiki\/([^"#?]+)"/i)?.[1]; if (!href) continue;
+    const title = decodeURIComponent(href).replace(/_/g, ' ');
+    if (!title.includes(':') && !/^(List of|Lists of|Index of|Outline of)/.test(title)) out.add(title);
+  }
+  return [...out];
+}
+
+/* Each day: a few inventions and fun facts not shown in the last 6 months */
+export async function funCards(pool0: FunPool | null, date: Date, perKind = 4): Promise<{ pool: FunPool; cards: LearnCard[] }> {
+  const day = date.toISOString().slice(0, 10);
+  const pool: FunPool = pool0 ? { ...pool0, used: { ...pool0.used } } : { inventions: [], oddities: [], refreshed: '', used: {} };
+  // Refresh the lists every 2 weeks; keep the old ones if a source is down
+  const stale = pool.v !== FUN_VERSION || !pool.refreshed || (+new Date(day) - +new Date(pool.refreshed)) / 86400000 >= 14;
+  if (pool.v !== FUN_VERSION) { pool.inventions = []; pool.oddities = []; }
+  if (stale || !pool.inventions.length || !pool.oddities.length) {
+    try { const xs = await inventionList(); record('Wikidata: inventions', 'https://query.wikidata.org/sparql', xs.length > 20, xs.length); if (xs.length > 20) pool.inventions = xs; }
+    catch (e: any) { record('Wikidata: inventions', 'https://query.wikidata.org/sparql', false, 0, e?.message); }
+    try { const xs = await oddityList(); record('Wikipedia: Unusual articles', 'https://en.wikipedia.org/wiki/Wikipedia:Unusual_articles', xs.length > 50, xs.length); if (xs.length > 50) pool.oddities = xs; }
+    catch (e: any) { record('Wikipedia: Unusual articles', 'https://en.wikipedia.org/wiki/Wikipedia:Unusual_articles', false, 0, e?.message); }
+    pool.refreshed = day; pool.v = FUN_VERSION;
+  }
+  const cutoff = new Date(+date - 180 * 86400000).toISOString().slice(0, 10);
+  for (const [k, d] of Object.entries(pool.used)) if (d < cutoff) delete pool.used[k];
+  const r = seeded(Math.floor(+date / 86400000) * 31 + 7);
+  const freshFirst = <T>(xs: T[], key: (x: T) => string) => shuffle(xs.filter(x => !pool.used[key(x)]), r);
+  // Ask for a few spares, as some pages have no usable intro
+  const inv = freshFirst(pool.inventions, x => x.title).slice(0, perKind * 3);
+  const odd = freshFirst(pool.oddities, x => x).slice(0, perKind * 3);
+  const sums = await wikiBatch([...inv.map(x => x.title), ...odd]);
+  const cards: LearnCard[] = [];
+  let nInv = 0, nOdd = 0;
+  for (const x of inv) {
+    if (nInv >= perKind) break;
+    const s = sums.get(x.title); if (!s || s.extract.length < 120) continue;
+    const hook = hookSentence(s.extract) || s.extract.split(/(?<=[.!?])\s+/)[0];
+    cards.push(wikiCard(s, 'invention', 'general', { year: x.year, by: x.by, hook, id: `inv-${hash(x.title)}` }));
+    pool.used[x.title] = day; nInv++;
+  }
+  for (const t of odd) {
+    if (nOdd >= perKind) break;
+    const s = sums.get(t); if (!s || s.extract.length < 120) continue;
+    const hook = hookSentence(s.extract) || s.extract.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ');
+    if (!hook || hook.length > 320) continue;
+    cards.push(wikiCard(s, 'oddity', 'general', { hook, id: `odd-${hash(t)}` }));
+    pool.used[t] = day; nOdd++;
+  }
+  return { pool, cards };
+}
