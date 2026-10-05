@@ -1,3 +1,8 @@
+/* Fonts are bundled with the app (SIL Open Font License), so no request goes to Google Fonts */
+import '@fontsource-variable/bricolage-grotesque/opsz.css';
+import '@fontsource-variable/instrument-sans/wght.css';
+import '@fontsource-variable/source-serif-4/opsz.css';
+import '@fontsource-variable/source-serif-4/opsz-italic.css';
 import './styles.css';
 import { S } from './state';
 import { loadData, data, refreshLive } from './data';
@@ -11,10 +16,13 @@ import { initPages } from './pages';
 import { initNav, go, currentTab, refreshTab } from './nav';
 import { initWellbeing } from './wellbeing';
 import { startLive } from './live';
-import { closeSheet } from './ui';
+import { closeSheet, sheetOpen } from './ui';
+import { closeLesson } from './lessons';
 import { log } from './events';
 import * as cloud from './cloud';
-import { initSeries } from './series';
+import { initSeries, loadSeries } from './series';
+import { initConsent } from './consent';
+import { loadPacks } from './languages';
 
 /* Knowfeed is an app, not a web page: no pinch zoom (text size still follows the iPhone's setting). iPhone ignores
    "user-scalable=no" in some cases, so pinches are stopped here too; double-tap zoom is off in CSS (touch-action). */
@@ -47,8 +55,26 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
   window.addEventListener('scroll', () => { if (window.scrollY) window.scrollTo(0, 0); }, { passive: true });
 })();
 
+initConsent();
 initSeries(); initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
 document.getElementById('sheetBg')!.addEventListener('click', closeSheet);
+
+/* Keyboard: Escape closes sheets and lessons; on the edition, the arrow keys, Page Up/Down and J/K move between cards */
+document.addEventListener('keydown', e => {
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable;
+  if (e.key === 'Escape') {
+    if (sheetOpen()) { closeSheet(); e.preventDefault(); return; }
+    if (document.getElementById('lesson')?.classList.contains('open')) { closeLesson(); e.preventDefault(); return; }
+  }
+  if (typing || currentTab() !== 'edition' || document.body.classList.contains('story-open') || sheetOpen()) return;
+  if (document.getElementById('onb')!.classList.contains('open')) return;
+  const feed = document.getElementById('feed')!;
+  const step = ({ ArrowDown: 1, PageDown: 1, j: 1, ArrowUp: -1, PageUp: -1, k: -1 } as Record<string, number>)[e.key];
+  if (!step) return;
+  e.preventDefault();
+  feed.scrollBy({ top: step * feed.clientHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
 
 function ready() {
   document.body.classList.remove('loading');
@@ -81,7 +107,7 @@ function reloadForSync(): boolean {
 }
 
 async function boot() {
-  const [, changed] = await Promise.all([loadData(), cloud.start()]);
+  const [, changed] = await Promise.all([loadData(), cloud.start(), loadPacks(), loadSeries()]);
   if (changed && reloadForSync()) return;
   ready();
   if (!S.profile) { startOnboarding(); return; }

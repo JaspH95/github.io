@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://knowfeed-nine.vercel.app/sitemap.xml

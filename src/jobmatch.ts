@@ -1,7 +1,7 @@
 /* Matching a job title typed in your own words to ESCO occupations.
    Rare words count for more than common ones ("CRM" beats "manager"), common abbreviations are expanded,
    and fuzzy matching (Fuse.js) only steps in for typos. */
-import Fuse from 'fuse.js';
+import type FuseType from 'fuse.js';
 import type { Occupation } from './types';
 
 const ABBR: Record<string, string> = {
@@ -20,7 +20,9 @@ const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g
 const stem = (w: string) => w.replace(/ships?$/, '').replace(/(?<=[a-z]{3})s$/, '') || w;
 const toks = (s: string) => norm(s).split(/\s+/).filter(w => w && !STOP.has(w));
 
-export function makeMatcher(occ: Occupation[]) {
+/* Fuse.js is only fetched when someone types in a job, so it isn't part of the app's first download */
+export async function makeMatcher(occ: Occupation[]) {
+  const Fuse: typeof FuseType = (await import('fuse.js')).default;
   const docs = occ.map(o => [o.t, ...(o.a || [])].map(s => new Set(toks(s).map(stem))));
   const df = new Map<string, number>();
   docs.forEach(d => { const all = new Set<string>(); d.forEach(s => s.forEach(w => all.add(w))); all.forEach(w => df.set(w, (df.get(w) || 0) + 1)); });

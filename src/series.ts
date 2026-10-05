@@ -22,8 +22,15 @@ export interface Series {
   sources: { id: string; title: string; url: string }[]; episodes: Episode[]; book?: { author: string; translator?: string; text: string };
 }
 
-const files = import.meta.glob('../content/series/*.json', { eager: true, import: 'default' });
-export const SERIES: Series[] = (Object.values(files) as Series[]).sort((a, b) => a.title.localeCompare(b.title));
+/* Loaded alongside the day's data when the app starts (main.ts awaits loadSeries), as separate files */
+const files = import.meta.glob('../content/series/*.json', { import: 'default' }) as Record<string, () => Promise<Series>>;
+export const SERIES: Series[] = [];
+let seriesLoaded: Promise<void> | null = null;
+export function loadSeries(): Promise<void> {
+  return seriesLoaded ||= Promise.all(Object.values(files).map(get => get().catch(() => null))).then(list => {
+    SERIES.splice(0, SERIES.length, ...(list.filter(Boolean) as Series[]).sort((a, b) => a.title.localeCompare(b.title)));
+  });
+}
 export const seriesById = (id: string) => SERIES.find(s => s.id === id);
 
 /* ---------- Progress (synced with the account) ---------- */

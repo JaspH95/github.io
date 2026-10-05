@@ -22,13 +22,18 @@ export const LANG_WIKI: Record<string, string> = { ...Object.fromEntries(LANGUAG
 export const LEVELS: [string, string][] = [['new', 'Completely new'], ['basics', 'Some basics'], ['getting-by', 'Getting by'], ['confident', 'Confident']];
 export const GOALS: [string, string][] = [['travel', 'Travel'], ['family', 'Family and friends'], ['work', 'Work'], ['fun', 'Just for fun']];
 
-/* Phrase packs are bundled at build time */
-const files = import.meta.glob('../content/phrases/*.json', { eager: true, import: 'default' }) as Record<string, Phrase[]>;
+/* Phrase packs are bundled at build time as their own files, loaded alongside the day's data when the app starts
+   (main.ts awaits loadPacks before anything reads them), so they don't weigh down the app's first download */
+const files = import.meta.glob('../content/phrases/*.json', { import: 'default' }) as Record<string, () => Promise<Phrase[]>>;
 export const PACKS: Record<string, Phrase[]> = {};
-for (const [path, list] of Object.entries(files)) {
-  const file = path.split('/').pop()!.replace('.json', '').toLowerCase();
-  const lang = LANGUAGES.find(([n]) => n.toLowerCase().replace(/ /g, '-') === file)?.[0];
-  if (lang && Array.isArray(list) && list.length) PACKS[lang] = [...list].sort((a, b) => a.level - b.level);
+let packsLoaded: Promise<void> | null = null;
+export function loadPacks(): Promise<void> {
+  return packsLoaded ||= Promise.all(Object.entries(files).map(async ([path, get]) => {
+    const file = path.split('/').pop()!.replace('.json', '').toLowerCase();
+    const lang = LANGUAGES.find(([n]) => n.toLowerCase().replace(/ /g, '-') === file)?.[0];
+    const list = await get().catch(() => null);
+    if (lang && Array.isArray(list) && list.length) PACKS[lang] = [...list].sort((a, b) => a.level - b.level);
+  })).then(() => {});
 }
 export const hasPack = (lang: string) => !!PACKS[lang]?.length;
 

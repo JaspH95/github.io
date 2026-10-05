@@ -15,6 +15,7 @@ A personal newspaper and learning app that ends. News comes in Morning, Midday a
 | Extra learning topics | `content/topics.json` | Wikipedia titles for topics that aren't news interests (BSL) |
 | Phrase packs | `content/phrases/*.json` | The one fixed content type. See `content/phrases/README.md` |
 | Database | `supabase/schema.sql` | Accounts and sync (Supabase free tier). Paste into the Supabase SQL Editor |
+| Legal pages | `public/about.html`, `privacy.html`, `terms.html`, `cookies.html`, `refunds.html`, `404.html` | Plain HTML with `public/legal.css`. Keep them in step with what the app stores and sends |
 
 ## The app, file by file
 

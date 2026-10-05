@@ -12,6 +12,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { S, load, save, onChange } from './state';
 import type { Event } from './events';
+import { statsAllowed, onStatsWithdrawn } from './consent';
 
 declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_ANON_KEY__: string;
@@ -64,14 +65,23 @@ export async function start(): Promise<boolean> {
 
 const setUser = (u: { id: string; email?: string }, email: string) => { user = { id: u.id, email: u.email || email }; };
 
+/* Plain-English messages instead of the database's own error text, with what to do next */
+const HELP = 'jasperhayward@me.com';
+function friendly(raw: string | undefined, what: string): string {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return `You're offline, so I couldn't ${what}. Try again when you have signal.`;
+  if (/rate|too many|security purposes/i.test(raw || '')) return 'Too many tries in a short time. Wait a minute, then try again.';
+  if (/network|fetch|timeout|failed to fetch/i.test(raw || '')) return `I couldn't reach Knowfeed to ${what}. Check your connection and try again.`;
+  return `I couldn't ${what} just now. Try again in a minute, and if it keeps happening, email ${HELP}.`;
+}
+
 /* Returns null when signed in, or a message to show */
 export async function signInPassword(email: string, password: string): Promise<string | null> {
   const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
   const { data, error } = await c.auth.signInWithPassword({ email, password });
   if (data.user && !error) { setUser(data.user, email); return null; }
-  if (/confirm/i.test(error?.message || '')) return 'That account is waiting for an email confirmation, which Knowfeed doesn’t send yet. Ask the Knowfeed team to switch it on for you.';
-  if (/invalid login|credentials/i.test(error?.message || '')) return 'That email and password don’t match an account. If you’ve forgotten your password, ask the Knowfeed team to reset it.';
-  return error?.message || 'Couldn’t sign in just now.';
+  if (/confirm/i.test(error?.message || '')) return `That account is waiting for an email confirmation, which Knowfeed doesn’t send yet. Email ${HELP} and it’ll be switched on for you.`;
+  if (/invalid login|credentials/i.test(error?.message || '')) return `That email and password don’t match an account. If you’ve forgotten your password, email ${HELP} to reset it.`;
+  return friendly(error?.message, 'sign you in');
 }
 
 export async function signUp(email: string, password: string): Promise<{ ok: true } | { ok: false; exists?: boolean; msg: string }> {
@@ -80,7 +90,8 @@ export async function signUp(email: string, password: string): Promise<{ ok: tru
   if (error) {
     if (/already|registered|exists/i.test(error.message)) return { ok: false, exists: true, msg: 'There’s already an account with that email.' };
     if (/password/i.test(error.message)) return { ok: false, msg: 'That password is too weak. Try a longer one.' };
-    return { ok: false, msg: error.message };
+    if (/valid email|invalid email/i.test(error.message)) return { ok: false, msg: 'That email address doesn’t look right. Check it and try again.' };
+    return { ok: false, msg: friendly(error.message, 'create your account') };
   }
   if (data.session && data.user) { setUser(data.user, email); return { ok: true }; }
   // No session: either the email is taken (Supabase hides that) or email confirmation is switched on
@@ -95,13 +106,13 @@ export async function sendCode(email: string): Promise<string | null> {
   const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: location.origin } });
   if (!error) return null;
   if (/rate|security purposes|too many/i.test(error.message)) return 'Too many codes asked for in a short time. Wait a minute and try again.';
-  return error.message;
+  return friendly(error.message, 'send a code');
 }
 
 export async function verifyCode(email: string, code: string): Promise<string | null> {
   const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
   const { data, error } = await c.auth.verifyOtp({ email, token: code, type: 'email' });
-  if (error || !data.user) return /expired|invalid/i.test(error?.message || '') ? 'That code didn’t work. It may have expired.' : error?.message || 'That code didn’t work.';
+  if (error || !data.user) return /expired|invalid/i.test(error?.message || '') ? 'That code didn’t work. It may have expired, so ask for a new one.' : friendly(error?.message, 'check that code');
   user = { id: data.user.id, email: data.user.email || email };
   return null;
 }
@@ -157,13 +168,22 @@ async function mirrorProfile(c: SupabaseClient) {
 
 /* Usage events go to Knowfeed's own events table, a batch at a time */
 async function flushEvents(c: SupabaseClient) {
-  if (!user) return;
+  if (!user || !statsAllowed()) return;
   const sent = load<string>('events-sent', '');
   const list = load<Event[]>('events', []).filter(e => e.at > sent).slice(-200);
   if (!list.length) return;
   const { error } = await c.from('events').insert(list.map(e => ({ user_id: user!.id, name: e.name, props: e.props ?? null, at: e.at })));
   if (!error) save('events-sent', list[list.length - 1].at);
 }
+
+/* Usage stats turned off: delete the ones already sent */
+export async function deleteMyEvents(): Promise<boolean> {
+  const c = await sb(); if (!c || !user) return true;
+  const { error } = await c.from('events').delete().eq('user_id', user.id);
+  if (!error) save('events-sent', '');
+  return !error;
+}
+onStatsWithdrawn(() => { deleteMyEvents().catch(() => {}); });
 
 export async function sendFeedback(f: { item?: string; title?: string; text: string; at: string }): Promise<boolean> {
   const c = await sb(); if (!c || !user) return false;

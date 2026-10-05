@@ -1,7 +1,8 @@
 /* Onboarding and the settings chat share one screen. Both run on the phone with no AI.
    The look is the prototype's: each question types out mid-screen, earlier lines drift up and fade,
    answers are pill buttons (chosen ones in mint), and the text box sits right under the question. */
-import { S, persist, load, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
+import { statsAllowed, setStats } from './consent';
+import { S, persist, load, save, DEFAULT_EDITIONS, DEFAULT_QUIET, now, type Profile, type PickedInterest, type Language, type Slot, type Mode } from './state';
 import { OUTLETS, regionOf, INTERESTS, CATEGORIES, interestById, placeFor, regionName, TEAM_SLUGS, SPORT_FEEDS, BBC_REGIONS, WORLD_CITIES, data } from './data';
 import { LANGUAGES, BSL, LEVELS, GOALS, hasPack } from './languages';
 import { wait, esc, toast } from './ui';
@@ -213,7 +214,7 @@ async function occupations(): Promise<OccupationsFile | null> {
   return occ;
 }
 
-let matcher: ReturnType<typeof makeMatcher> | null = null;
+let matcher: Awaited<ReturnType<typeof makeMatcher>> | null = null;
 async function skillsOf(occs: Occupation[]): Promise<[string, string][]> {
   const lists = await Promise.all(occs.map(async o => {
     try { const r = await fetch(`/data/esco/skills-${o.g.slice(0, 2) || 'xx'}.json`); if (r.ok) { const d = await r.json(); const x = d[o.u]; if (x) return [...x.e, ...x.o] as [string, string][]; } } catch { /* offline */ }
@@ -236,7 +237,7 @@ async function askJob(preset?: Profile['job']): Promise<Pick<Profile, 'job' | 's
   let raw = await askText('Job title, or what you do day to day', 120);
   const file = await occupations();
   if (!file) { pastAll(); return { job: { title: raw, raw, areas: areaIds }, skills: [] }; }
-  matcher ||= makeMatcher(file.occupations);
+  matcher ||= await makeMatcher(file.occupations);
   let pick: Occupation | undefined;
   for (let tries = 1; ; tries++) {
     const hits = matcher(raw, 6, boost);
@@ -420,6 +421,19 @@ async function askEmail(): Promise<string> {
   }
 }
 
+/* Creating an account means agreeing to the Terms and Privacy Policy: asked plainly, nothing pre-selected */
+async function agreeToTerms(): Promise<boolean> {
+  {
+    await say('One last thing: creating an account means you agree to the Terms of Service and the Privacy Policy. Your email is only used to sign you in, never for marketing.');
+    const links = document.createElement('p'); links.className = 'ln legal-links';
+    links.innerHTML = '<a href="/terms" target="_blank" rel="noopener">Terms of Service</a> · <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>';
+    lines().appendChild(links);
+    const c = await askOne([['agree', 'I agree, create my account', 'shield'], ['skip', 'Not now, skip the account', 'back']]);
+    pastAll();
+    return c === 'agree';
+  }
+}
+
 /* Returns true once signed in, false if they chose to skip */
 async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
   if (cloud.emailCodes) return codeFlow();
@@ -432,6 +446,7 @@ async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
     pastAll();
     if (mode === 'new') {
       if (pw.length < 8) { await say("That's a bit short. Use at least 8 characters."); continue; }
+      if (!(await agreeToTerms())) return false;
       await say('Setting up your account…');
       const r = await cloud.signUp(email, pw);
       if (r.ok) return true;
@@ -456,6 +471,7 @@ async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
 }
 
 async function codeFlow(): Promise<boolean> {
+  if (!(await agreeToTerms())) return false;
   await say("What's your email? I'll send you a code. No password needed.");
   const email = await askEmail();
   for (;;) {
@@ -509,6 +525,17 @@ export async function startOnboarding() {
   openScreen('setup');
   await wait(400);
   await say("Hi. I'm going to ask a few quick questions, then build your first edition. It takes about two minutes.");
+  if (load<boolean | null>('age', null) !== true) {
+    await say('First, are you 13 or older? Knowfeed is for people aged 13 and over.');
+    const age = await askOne([['yes', "Yes, I'm 13 or older", 'heart'], ['no', "No, I'm under 13", 'back']]);
+    pastAll();
+    if (age !== 'yes') {
+      save('age', false);
+      await say("Thanks for being honest. Knowfeed isn't available for under-13s, so nothing has been saved. Wikipedia's kids' pages and BBC Newsround are great places to explore instead.");
+      running = false; return;
+    }
+    save('age', true);
+  }
   if (cloud.cloudOn && !cloud.signedIn()) {
     await say('New here, or have you set up Knowfeed before?');
     const k = await askOne([['new', "I'm new", 'spark'], ['back', 'Sign in and bring back my answers', 'heart']]);
@@ -750,8 +777,12 @@ async function section(k: Section) {
     }
     case 'data': {
       await say(cloud.signedIn() ? 'Your data is on this phone and in your Knowfeed account. What would you like to do?' : 'Everything personal is stored on this phone. What would you like to do?');
-      const c = await askOne([['export', 'Back up to a file', 'book'], ['import', 'Restore from a file', 'time'], ['delete', 'Delete everything', 'shield'], ['back', 'Back', 'back']]);
+      const c = await askOne([['stats', statsAllowed() ? 'Usage stats: on. Turn off' : 'Usage stats: off. Turn on', 'spark'], ['export', 'Back up to a file', 'book'], ['import', 'Restore from a file', 'time'], ['delete', 'Delete everything', 'shield'], ['back', 'Back', 'back']]);
       pastAll();
+      if (c === 'stats') {
+        if (statsAllowed()) { setStats(false); await say("Usage stats are off. Anything already counted has been deleted, here and in your account."); }
+        else { setStats(true); await say("Thanks. Knowfeed will count things like editions finished and stories opened, to improve the beta. Never ads or trackers. You can turn it off here any time."); }
+      }
       if (c === 'export') { await exportData(); await say('Saved a backup file.'); }
       if (c === 'import') { importData(); await say('Pick your backup file.'); }
       if (c === 'delete') {

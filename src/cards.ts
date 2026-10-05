@@ -261,7 +261,8 @@ export async function share(title: string, url: string) {
 /* ---------- Rendering ---------- */
 
 export function render(c: Card): HTMLElement {
-  const el = document.createElement('section');
+  // An article, not a section: a labelled section counts as a landmark, and every card would repeat the same one
+  const el = document.createElement('article');
   el.className = `card k-${c.kind} t-${c.topic}`;
   el.dataset.id = c.id; el.dataset.kind = c.kind; el.dataset.topic = c.topic;
   el.setAttribute('aria-label', c.label);

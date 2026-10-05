@@ -9,16 +9,29 @@
 <meta name="apple-mobile-web-app-title" content="Knowfeed">
 <meta name="theme-color" content="#000000">
 <meta name="description" content="A personal newspaper and learning app that ends: the news you care about, and things worth learning, in editions that finish.">
-<title>Knowfeed</title>
+<title>Knowfeed: news and learning in editions that finish</title>
+<link rel="canonical" href="https://knowfeed-nine.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Knowfeed">
+<meta property="og:title" content="Knowfeed: news and learning in editions that finish">
+<meta property="og:description" content="The news you care about, and things worth learning, in Morning, Midday and Evening editions that finish. Free beta.">
+<meta property="og:url" content="https://knowfeed-nine.vercel.app/">
+<meta property="og:image" content="https://knowfeed-nine.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Knowfeed: the news you care about, and things worth learning, in editions that finish.">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Knowfeed: news and learning in editions that finish">
+<meta name="twitter:description" content="The news you care about, and things worth learning, in editions that finish. Free beta.">
+<meta name="twitter:image" content="https://knowfeed-nine.vercel.app/og-image.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 </head>
 <body class="loading" data-tab="edition">
 <header class="topbar" id="topbar">
+  <h1 class="sr" id="viewH1">Knowfeed: your edition</h1>
   <button class="wm" id="wordmark" aria-label="Knowfeed">Knowfeed<i></i></button>
   <span class="edition" id="edLabel"></span>
   <span class="sp"></span>
@@ -44,7 +57,7 @@
   <button class="tab" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.2-4 4.3-6 8-6s6.8 2 8 6"/></svg><span>Profile</span></button>
 </nav>
 
-<article class="story" id="story" aria-label="Story"></article>
+<article class="story" id="story" role="region" aria-label="Story"></article>
 <div class="shead" id="shead">
   <button class="circ glass" id="sBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
   <span class="sp"></span>

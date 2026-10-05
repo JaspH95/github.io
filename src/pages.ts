@@ -1,4 +1,5 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
+import { statsAllowed } from './consent';
 import { S, persist, tooKnown, type SavedItem } from './state';
 import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL, OUTLETS, itemStory, regionOf } from './data';
@@ -239,13 +240,18 @@ function searchPage(el: HTMLElement) {
 
 /* ---------- Profile: settings through the chat, and suggestions from your likes ---------- */
 
+const LEGAL: [string, string, string][] = [
+  ['/about', 'About Knowfeed', 'Who makes it and how to get in touch'], ['/privacy', 'Privacy Policy', 'What we keep, why, and your rights'],
+  ['/terms', 'Terms of Service', 'The rules for using Knowfeed'], ['/cookies', 'Cookie Policy', 'No cookies; what is stored on this phone'],
+  ['/refunds', 'Refund Policy', 'Knowfeed is free: nothing to refund'],
+];
 const SETTINGS: [string, string, string][] = [
   ['interests', 'Interests', 'What you want news and learning about'], ['skills', 'Work and skills', 'Your job and the skills you want to build'],
   ['city', 'City', 'Where your local news comes from'], ['languages', 'Languages', 'What you are learning, your level and goal'],
   ['news', 'Breaking news and outlets', 'Headlines, and the outlets you follow'], ['sport', 'Sports and teams', 'Sport stories and live scores'], ['editions', 'Editions and times', 'When your editions arrive'],
   ['avoid', 'Topics to avoid', 'Things you would rather not see'], ['wellbeing', 'Reading goal and limit', 'Optional, off by default'],
   ['voice', 'Listening voice', 'The voice that reads to you'], ['feedback', 'Feedback', 'Tell us what is working and what is not'],
-  ['data', 'Your data', 'Back up, restore or delete'],
+  ['data', 'Your data and privacy', 'Usage stats, back up, restore or delete'],
 ];
 
 function profilePage(el: HTMLElement) {
@@ -263,7 +269,9 @@ function profilePage(el: HTMLElement) {
     <section class="psec"><h2>You follow</h2>${following.length ? `<div class="chips">${following.map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}</div>` : '<p class="note">Nothing yet.</p>'}
       <button class="linkish" data-chat="interests">Change interests</button></section>
     ${cloud.cloudOn ? `<section class="psec"><h2>Account</h2><button class="feature" data-chat="account"><span class="ic">${ICON.check}</span><span><b>${u ? esc(u.email) : 'Not signed in'}</b><span>${u ? 'Your answers, saves and progress are kept with your account' : 'Sign in so your answers are kept if you change phones'}</span></span>${ICON.chev}</button></section>` : ''}
-    <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.map(([k, t, sub]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`).join('')}</div></section>`;
+    <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.map(([k, t, sub]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`).join('')}</div></section>
+    <section class="psec"><h2>About and legal</h2><div class="rows">${LEGAL.map(([href, t, sub]) => `<a class="row" href="${href}" target="_blank" rel="noopener"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</a>`).join('')}</div>
+      <p class="pfoot">Knowfeed is a free beta made by Jasper Hayward in the UK. Usage stats are ${statsAllowed() ? 'on' : 'off'}.</p></section>`;
   el.querySelectorAll<HTMLElement>('[data-chat]').forEach(b => b.addEventListener('click', () => openChat((b.dataset.chat || undefined) as any)));
   el.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => b.addEventListener('click', () => {
     const x = sugg.find(s => s.key === b.dataset.follow); if (!x) return;

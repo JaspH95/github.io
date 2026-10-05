@@ -48,9 +48,19 @@ export function openSheet(html: string, label = 'Options'): HTMLElement {
   s.innerHTML = `<div class="grab"></div>${html}`;
   s.classList.add('open'); sheetBg().classList.add('open');
   s.scrollTop = 0;
+  // Keyboard and screen reader users land inside the sheet, and go back where they were when it closes
+  if (!s.contains(document.activeElement)) returnFocus = document.activeElement as HTMLElement | null;
+  requestAnimationFrame(() => s.querySelector<HTMLElement>('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus({ preventScroll: true }));
   return s;
 }
-export function closeSheet() { sheet().classList.remove('open'); sheetBg().classList.remove('open'); }
+let returnFocus: HTMLElement | null = null;
+export function closeSheet() {
+  const was = sheet().classList.contains('open');
+  sheet().classList.remove('open'); sheetBg().classList.remove('open');
+  if (was && returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+  returnFocus = null;
+}
+export const sheetOpen = () => sheet().classList.contains('open');
 export function options(items: [string, string, () => void][], label = 'Options') {
   const s = openSheet(items.map(([k, l]) => `<button class="opt-row" data-k="${esc(k)}">${esc(l)}</button>`).join(''), label);
   s.querySelectorAll<HTMLButtonElement>('.opt-row').forEach(b => b.addEventListener('click', () => { closeSheet(); items.find(i => i[0] === b.dataset.k)?.[2](); }));

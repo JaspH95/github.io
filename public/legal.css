@@ -1,0 +1,46 @@
+/* Shared look for Knowfeed's static pages: About, Privacy, Terms, Cookies, Refunds and the 404 page */
+@font-face{ font-family:"Bricolage Grotesque"; src:url(/fonts/bricolage-grotesque.woff2) format("woff2-variations"); font-weight:200 800; font-display:swap; }
+@font-face{ font-family:"Instrument Sans"; src:url(/fonts/instrument-sans.woff2) format("woff2-variations"); font-weight:400 700; font-display:swap; }
+:root{
+  color-scheme:light dark;
+  --bg:#FAF9FD; --ink:#17152B; --muted:#55516E; --line:rgba(23,21,43,.12); --card:#FFFFFF; --accent:#4B3FD1; --yellow:#FFD23F;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --ui:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0B0A12; --ink:#F2F0FA; --muted:#B4B0CC; --line:rgba(255,255,255,.12); --card:#16141F; --accent:#B3A9FF; }
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+@supports (font: -apple-system-body){ html{ font:-apple-system-body; } }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--ui); font-size:1.0625rem; line-height:1.6; -webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+a{ color:var(--accent); text-underline-offset:3px; }
+a:focus-visible, button:focus-visible{ outline:3px solid var(--accent); outline-offset:3px; border-radius:4px; }
+.skip{ position:absolute; left:-999px; top:8px; background:var(--card); padding:8px 14px; border-radius:8px; z-index:10; }
+.skip:focus{ left:8px; }
+header.site{ max-width:46rem; margin:0 auto; padding:20px clamp(16px, 5vw, 32px) 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.wm{ font-family:var(--display); font-weight:800; font-size:1.3rem; letter-spacing:-.02em; color:var(--ink); text-decoration:none; white-space:nowrap; }
+.wm i{ display:inline-block; width:.3em; height:.3em; border-radius:50%; background:var(--yellow); margin-left:.06em; }
+header.site .open-app{ margin-left:auto; font-weight:600; font-size:.95rem; text-decoration:none; color:var(--ink); border:1.5px solid var(--line); padding:7px 14px; border-radius:999px; white-space:nowrap; }
+main{ max-width:46rem; margin:0 auto; padding:clamp(20px, 5vw, 40px) clamp(16px, 5vw, 32px) 40px; overflow-wrap:anywhere; }
+h1{ font-family:var(--display); font-weight:800; font-size:clamp(1.9rem, 7vw, 2.8rem); line-height:1.05; letter-spacing:-.025em; margin:0 0 10px; }
+h2{ font-family:var(--display); font-weight:700; font-size:clamp(1.25rem, 4.6vw, 1.5rem); letter-spacing:-.015em; line-height:1.2; margin:36px 0 8px; }
+h3{ font-size:1.05rem; margin:22px 0 4px; }
+p, li{ max-width:65ch; }
+ul{ padding-left:1.25rem; }
+li{ margin:4px 0; }
+.updated{ color:var(--muted); font-size:.95rem; margin:0 0 18px; }
+.summary{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 20px; margin:18px 0 8px; }
+.summary h2{ margin-top:0; font-size:1.1rem; }
+.summary ul{ margin:0; }
+table{ width:100%; border-collapse:collapse; font-size:.95rem; }
+.tablewrap{ overflow-x:auto; margin:12px 0; }
+th, td{ text-align:left; vertical-align:top; padding:10px 12px 10px 0; border-bottom:1px solid var(--line); min-width:9rem; }
+th{ font-weight:600; }
+footer.site{ max-width:46rem; margin:0 auto; padding:24px clamp(16px, 5vw, 32px) 40px; border-top:1px solid var(--line); color:var(--muted); font-size:.92rem; }
+footer.site nav{ display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:10px; }
+footer.site a{ color:var(--muted); }
+.big404{ font-family:var(--display); font-weight:800; font-size:clamp(5rem, 30vw, 9rem); line-height:.85; letter-spacing:-.05em; margin:10px 0 6px; color:var(--accent); }
+.btn{ display:inline-block; margin-top:14px; background:var(--ink); color:var(--bg); text-decoration:none; font-weight:600; padding:12px 20px; border-radius:999px; }
+@media print{ header.site .open-app, footer.site nav, .skip{ display:none; } body{ background:#fff; color:#000; } }
