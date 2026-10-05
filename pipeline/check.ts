@@ -31,6 +31,8 @@ async function main() {
     ['GEMINI_API_KEY', 'AI summaries', true], ['GUARDIAN_API_KEY', 'Guardian news and interest search', true],
     ['NASA_API_KEY', 'NASA picture of the day (works without, with low limits)', false], ['API_FOOTBALL_KEY', 'live football', false],
     ['UNSPLASH_ACCESS_KEY', 'backup photos (optional)', false], ['PEXELS_API_KEY', 'backup photos (optional)', false],
+    ['RESEND_API_KEY', 'feedback emails (Vercel)', false], ['VAPID_PUBLIC_KEY', 'notifications (Vercel and GitHub)', false],
+    ['VAPID_PRIVATE_KEY', 'notifications (GitHub only)', false], ['SUPABASE_SERVICE_ROLE_KEY', 'notifications sender (GitHub only)', false],
   ];
   for (const [k, what, needed] of keys) (process.env[k] ? ok : needed ? bad : skip)(`${k}`, process.env[k] ? what : `not set: ${what}`);
 

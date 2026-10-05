@@ -73,19 +73,39 @@ You've already made the Supabase project (Knowfeed, London). Four steps:
 
 The **secret** / **service_role** key is never needed by the app. Only put it in GitHub secrets (`SUPABASE_SERVICE_ROLE_KEY`) when the admin page is built, and never paste it into a chat.
 
-Then on your iPhone: open Knowfeed → Settings (top right) → **Sign in to save my answers** → **No, make one**. Your iPhone offers to save the password in Passwords. On a new phone, or the Home Screen app, choose **Sign in and bring back my answers** at the start.
+Then on your iPhone: open Knowfeed → **Profile** → tap your name → **Sign in or create an account**. Your iPhone offers to save the password in Passwords. On a new phone, or the Home Screen app, choose **Sign in and bring back my answers** at the start.
 
-**Forgotten passwords:** there's no reset email yet. In Supabase → **Authentication** → **Users**, find the person and use **⋯** → send a password recovery, or delete the user so they can sign up again (their saved answers go with it).
+**Forgotten passwords:** testers can choose **Forgot my password** when signing in, or **Profile → their name → Forgot password**. Supabase emails a link; it opens Knowfeed on "Choose a new password". Two things make it work:
+1. Supabase → **Authentication** → **URL Configuration** → **Redirect URLs** → **Add URL**: `https://knowfeed-nine.vercel.app/**` (and keep the Site URL above).
+2. **Your own email sender (needed).** Supabase's built-in sender only delivers to people in your Supabase team, about 2 an hour, so testers would never get the email. Connect your iCloud mail instead (below, "Your own email sender"). Until then, reset someone by hand: Supabase → **Authentication** → **Users** → **⋯** → **Send password recovery**, or delete the user so they can sign up again.
+
+**Your own email sender (iCloud, free):** at appleid.apple.com → **Sign-In and Security** → **App-Specific Passwords**, make one called Knowfeed. Then Supabase → **Authentication** → **Emails** → **SMTP Settings** → turn on **Enable custom SMTP**: sender email `jasperhayward@me.com`, sender name `Knowfeed`, host `smtp.mail.me.com`, port `587`, username `jasperhayward@me.com`, password the app-specific password → **Save**. Then in **Emails** → **Reset Password**, you can change the subject to "Reset your Knowfeed password".
 
 **Good to know**
-- **Emailed sign-in codes later (optional):** if you connect your own email sender (Supabase → Authentication → Emails → SMTP Settings; your iCloud address works with host `smtp.mail.me.com`, port `587` and an app-specific password from appleid.apple.com), you can edit the emails again. Add `<p>Your Knowfeed code: <strong>{{ .Token }}</strong></p>` to the Magic Link email, then add `SUPABASE_EMAIL_CODES` = `1` in Vercel and redeploy. Knowfeed then signs in with a code instead of a password, and password resets work by email.
+- **Emailed sign-in codes later (optional):** once your own email sender is connected (above), you can edit the emails again. Add `<p>Your Knowfeed code: <strong>{{ .Token }}</strong></p>` to the Magic Link email, then add `SUPABASE_EMAIL_CODES` = `1` in Vercel and redeploy. Knowfeed then signs in with a code instead of a password, and password resets work by email.
 - Free Supabase projects pause after 7 days with no use. Daily use keeps it awake; if it pauses, press Restore in Supabase.
 - Each tester's data is private to them (row-level security on every table).
 
-## 7. A more natural voice for Listen
+## 7. Feedback emails (Resend, free)
 
-Listen uses the phone's own voices. The standard iPhone voices sound robotic, but iPhone has natural "Enhanced" and "Premium" voices that are free: **Settings → Accessibility → Spoken Content → Voices → English → pick one marked Enhanced or Premium** (for example Jamie, Serena or Daniel) and download it. Then in Knowfeed: Settings → **Listening voice**, and choose it. Knowfeed picks the best installed voice automatically.
+Every note from the feedback button ("Something wrong?" on a card, or Feedback in settings) is emailed to you. If the tester is signed in, their email is the reply-to address, so you can just press Reply.
 
-## 8. Still to come before testers
+1. Make a free account at **resend.com**, signing up with **jasperhayward@me.com** (until you verify a domain of your own, Resend only delivers to the address the account was made with, which is exactly what's needed here).
+2. Resend → **API Keys** → **Create API Key** (name: Knowfeed, permission: Sending access) → copy it.
+3. Vercel → your project → **Settings** → **Environment Variables** → add `RESEND_API_KEY` with that key → **Save**, then **Redeploy**.
 
-Tester invites, the admin page, push notifications, and Google sign-in.
+Until the key is added, notes are still kept on the phone (and in Supabase for signed-in testers); nothing is lost.
+
+## 8. Notifications ("your edition is ready")
+
+Testers turn them on in **Profile → Notifications**. They need an account, and on iPhone, Knowfeed added to the Home Screen (iOS 16.4 or later). A GitHub job checks every 15 minutes and sends one when an edition's time comes: only if there's new news, never in quiet hours, at most 3 a day.
+
+1. **Database:** run `supabase/schema.sql` again in the SQL Editor (it's safe to re-run; it adds the `push_subscriptions` table).
+2. **Keys:** you need a VAPID key pair (I'll give you one, or make your own with `npx web-push generate-vapid-keys`).
+   - Vercel → Environment Variables: `VAPID_PUBLIC_KEY` (public key only) → Redeploy.
+   - GitHub → repo → **Settings** → **Secrets and variables** → **Actions** → New repository secret, add all four: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API Keys → the **secret** / service_role key; it only ever goes in GitHub secrets, never in the app or a chat).
+3. **Check:** GitHub → **Actions** → **Edition notifications** → **Run workflow** with "Only print what would be sent" ticked. The log shows who would get one.
+
+## 9. Still to come before testers
+
+Tester invites, the admin page and Google sign-in.

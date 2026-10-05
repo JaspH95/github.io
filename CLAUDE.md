@@ -382,7 +382,7 @@ Done (build order 1 to 7, local-first parts, on free services already connected)
   - Learn, Languages, Saved and Search tabs
   - lessons and spaced repetition
   - sports page and live football banner
-  - Listen, wellbeing, dev menu, feedback notes, export and delete
+  - wellbeing, dev menu, feedback notes, export and delete
 - **Phrase packs:** Spanish, French, German, Italian and Portuguese (European), about 135 each, all `checked: false`.
 
 Decisions that differ slightly from the brief:
@@ -420,4 +420,16 @@ Decisions that differ slightly from the brief:
 - **Cool inventions and fun facts (`funCards` in `pipeline/learn.ts`):** inventions from Wikidata (human inventor P61 plus a date, 20+ language articles, natural things excluded), shown with the year and inventor; fun facts from "Wikipedia:Unusual articles", quoting the intro's most surprising sentence word for word. Four of each a day, none repeated within 6 months (`pipeline/cache/fun.json`, lists refreshed fortnightly). One of each goes into every edition's light mix, and the Learn page lists them.
 - **Profile is condensed:** Talk to Knowfeed first, 3 suggestions, the first 10 things you follow, 4 main settings plus Account, and "More settings" and "About, privacy and terms" folded away.
 
-Next: Jasper reviews the first Series; then more (20 skill Series, 5 language scenarios, 3 classic books). Also Google sign-in, custom SMTP (for codes and password resets by email), tester invites, the admin page, and web push (VAPID) with quiet hours. Then Series, and phrase packs for the other languages.
+- **Listen mode is gone** (Jasper didn't like it): no Listen section, player or voice setting. Phrase "Hear it" (normal and slow) stays, in `src/audio.ts`.
+- **Profile (October 2026):** your name opens **Account and data** (sign-in, forgot/change password, your details, usage stats, back up, restore, delete, legal). "This week" opens **Your week** (`src/recap.ts`). "You follow" is one sideways row with "See all". Legal pages open **inside the app** with a Back button (`src/docs.ts`), and any link to them anywhere in the app does the same.
+- **Forgot password:** sign-in failures offer "Forgot my password", and Account has it too. Supabase emails a link back to the site; `src/reset.ts` shows "Choose a new password" (`cloud.recovery`). Expired links show a message (`cloud.linkError`). Needs Supabase Redirect URLs and custom SMTP (SETUP.md), because the built-in sender only reaches team members.
+- **Feedback emails:** every note goes to `/api/feedback`, which emails Jasper through Resend (`RESEND_API_KEY`, Vercel only), with the signed-in tester's email (checked with Supabase) as reply-to. Notes that can't send wait in an outbox (`kf2-fb-outbox`).
+- **Share a card:** `src/share.ts` draws a branded 4:5 picture on the phone (photo if its host allows, otherwise the designed cover; label, headline, wordmark, address, photo credit) and shows it before sharing. Also for the quiz score and Your week. Loaded only when used.
+- **Daily quiz:** `src/dailyquiz.ts`, five questions a day from data only (inventions from Wikidata, On this day years, the pipeline's quizzes), things you read first. A card in editions until done, a row on the done screen, and on Learn. Results in `kf2-dq` and `kf2-dq-history`.
+- **Your week:** tiles, a bar per day, comparison with the week before, daily quiz and languages; shareable. The done screen's Sunday/Monday "Your week" line opens it.
+- **Language progress** says "phrases met" (started) and "learned for good" (passed the 30-day review), so beginners don't see 0.
+- **Notifications (web push):** `src/notify.ts` (Profile → Notifications; needs an account, and on iPhone the Home Screen app), `push_subscriptions` table (with time zone, edition times, quiet hours and today's sends), `pipeline/push.ts` run by `.github/workflows/push.yml` every 15 minutes: sends once per edition within 2 hours of its time, only with new news, never in quiet hours, at most 3 a day; removes dead subscriptions. `sw.js` shows it and opens the app (`?from=push` logs `notification_open`).
+- **Body clips (`overflow:clip`):** a merely hidden body could be scrolled by the browser, which slid the app sideways and up during onboarding.
+- **Route tests:** every route was driven with Playwright against a test build with a mocked Supabase, with screenshots and videos (see the checklist artifact).
+
+Next: Jasper reviews the first Series; then more (20 skill Series, 5 language scenarios, 3 classic books). Also Google sign-in, tester invites and the admin page. Jasper still needs to add RESEND_API_KEY, the VAPID keys, re-run schema.sql, and set up custom SMTP plus the redirect URL in Supabase. Then Series, and phrase packs for the other languages.

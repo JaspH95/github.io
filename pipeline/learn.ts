@@ -489,7 +489,7 @@ export async function hubspot(): Promise<HubItem[]> {
 
 export interface Invention { title: string; year: number; by: string[] }
 export interface FunPool { inventions: Invention[]; oddities: string[]; refreshed: string; used: Record<string, string>; v?: number }
-const FUN_VERSION = 2;   // bump when the way the lists are built changes, to rebuild them
+const FUN_VERSION = 3;   // bump when the way the lists are built changes, to rebuild them
 
 const NOT_INVENTIONS = ['Q11344', 'Q3863', 'Q3559', 'Q1022867', 'Q44559', 'Q318', 'Q523', 'Q16521', 'Q65943', 'Q11173', 'Q7187', 'Q8054', 'Q12136', 'Q24034552', 'Q408891', 'Q2221906', 'Q4022', 'Q8502', 'Q5']
   .map(q => `wd:${q}`).join(' ');
@@ -523,7 +523,9 @@ async function oddityList(): Promise<string[]> {
   const r = await fetchJSON<any>('https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&page=Wikipedia:Unusual_articles', { timeout: 60000 });
   const html: string = r?.parse?.text || '';
   const out = new Set<string>();
-  for (const row of html.split(/<tr[\s>]/i).slice(1)) {
+  // Only the list's own tables (class "wikitable"): maps and navigation boxes elsewhere on the page link to countries
+  const tables = html.split(/<table\b/i).slice(1).filter(t => /^[^>]*class="[^"]*wikitable/i.test(t)).map(t => t.split(/<\/table>/i)[0]);
+  for (const row of tables.join('').split(/<tr[\s>]/i).slice(1)) {
     const cell = row.match(/<td[^>]*>([\s\S]*?)<\/td>/i)?.[1]; if (!cell) continue;
     const href = cell.match(/<a [^>]*href="\/wiki\/([^"#?]+)"/i)?.[1]; if (!href) continue;
     const title = decodeURIComponent(href).replace(/_/g, ' ');

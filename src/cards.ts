@@ -13,9 +13,10 @@ import { openStory, openLearn, openSkill } from './story';
 import { feedback } from './feedback';
 import { markDone, notInterested, knowThis } from './dismiss';
 import { storyLabel } from './data';
+import { quizResult } from './dailyquiz';
 import type { Story, LearnCard, Quiz, HubItem, TopicKey, Entity } from './types';
 
-export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'hub' | 'series' | 'catchup' | 'done';
+export type Kind = 'story' | 'learn' | 'quiz' | 'skill' | 'phrase' | 'review' | 'sign' | 'hub' | 'series' | 'dquiz' | 'catchup' | 'done';
 export interface Card {
   id: string;
   kind: Kind;
@@ -109,6 +110,7 @@ function background(c: Card): string {
     case 'hub': return framed(c.hub!.image, c);
     case 'quiz': return framed(c.quiz!.article?.image, { ...c, label: 'Quiz' });
     case 'sign': return signSVG();
+    case 'dquiz': return cover('general', seedFor(c.id), 'Quiz');
     case 'phrase': case 'review': return cover('lang', seedFor(c.id), undefined, 'lang');
     case 'skill': return cover('work', seedFor(c.id), 'Skill');
     case 'series': { const s = seriesById(c.series!.id); return `<div class="series-bg" style="--c1:${s?.colours[0] || '#5B4BFF'};--c2:${s?.colours[1] || '#19B6D9'}"><span class="series-n">${c.series!.n}</span></div>`; }
@@ -186,6 +188,11 @@ function body(c: Card): string {
         <h2>${esc(e.title)}</h2><p class="lead"><b>${esc(s.title)}</b>. ${esc(s.blurb)}</p>
         <button class="readbtn solid start-series">${started ? 'Continue the series' : 'Start episode'} ${ICON.chev}</button>`;
     }
+    case 'dquiz': {
+      const r = quizResult();
+      return `<div class="meta"><span>DAILY QUIZ · 5 QUESTIONS · 2 MIN</span></div><h2>${r ? `You got ${r.right} of ${r.total} today` : "Today's quiz"}</h2><p class="lead">${r ? 'A new quiz comes tomorrow.' : 'Five questions from Wikipedia and Wikidata: inventions, history and things you read this week.'}</p>
+        ${r ? '' : `<button class="readbtn solid start-quiz">Start the quiz ${ICON.chev}</button>`}`;
+    }
     case 'sign': return `<div class="meta"><span>SIGN OF THE DAY · BSL</span></div><h2>The BSL vowels</h2><p>Thumb is <b>A</b>, then <b>E, I, O, U</b> across the fingertips. Watch the finger move.</p>`;
     case 'hub': {
       const h = c.hub!;
@@ -261,7 +268,7 @@ export function moreMenu(c: Card) {
   const title = c.story?.title || c.learn?.title || c.quiz?.q || c.hub?.title || c.skill?.label || c.label;
   const url = c.story?.url || c.learn?.url || c.hub?.url || c.quiz?.source.url;
   options([
-    ...(url ? [['share', 'Share', () => share(title, url)] as [string, string, () => void]] : []),
+    ...(url ? [['share', 'Share', () => (canPicture(c) ? import('./share').then(m => m.shareCard(c)) : share(title, url))] as [string, string, () => void]] : []),
     ...(c.kind === 'story' ? [
       ['done', 'Mark as read', () => markDone(c, cardEl(c))] as [string, string, () => void],
       ['not', 'Not interested…', () => notInterested(c, cardEl(c))] as [string, string, () => void],
@@ -273,6 +280,8 @@ export function moreMenu(c: Card) {
 
 const cardEl = (c: Card) => document.querySelector<HTMLElement>(`#feed [data-id="${CSS.escape(c.id)}"]`) || undefined;
 
+/* Cards that can be shared as a picture (share.ts loads only when it's needed) */
+export const canPicture = (c: Card) => !!(c.story || c.learn || c.quiz || c.hub);
 export async function share(title: string, url: string) {
   try {
     if (navigator.share) await navigator.share({ title, url });
@@ -319,6 +328,7 @@ function wire(c: Card, el: HTMLElement) {
   el.querySelector('.not-it')?.addEventListener('click', e => { e.stopPropagation(); notInterested(c, el); });
   el.querySelector('.know-it')?.addEventListener('click', e => { e.stopPropagation(); knowThis(c, el); });
   el.querySelector('.start-series')?.addEventListener('click', e => { e.stopPropagation(); open(); });
+  el.querySelector('.start-quiz')?.addEventListener('click', e => { e.stopPropagation(); document.dispatchEvent(new CustomEvent('kf-quiz')); });
   // Taps: a double tap anywhere likes; a single tap on the words opens the story or learning page.
   // The single tap waits a moment, so a double tap never opens the story by accident.
   const canLike = !['sign', 'catchup', 'done'].includes(c.kind);

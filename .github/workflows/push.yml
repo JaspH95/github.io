@@ -1,0 +1,37 @@
+name: Edition notifications
+
+# Every 15 minutes: sends "your edition is ready" to phones whose edition time has come (see pipeline/push.ts).
+# Does nothing until the VAPID keys and the Supabase service role key are added as secrets.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Only print what would be sent'
+        type: boolean
+        default: false
+
+concurrency:
+  group: push
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx pipeline/push.ts ${{ inputs.dry && '--dry' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}

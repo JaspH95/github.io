@@ -54,11 +54,29 @@ create table if not exists public.invites (
   created_at timestamptz not null default now()
 );
 
+-- Web push: one row per phone that turned notifications on. The edition times, quiet hours and time zone are
+-- copied here from the app, so the sender (GitHub Actions, every 15 minutes) knows when to send without reading
+-- anything else. "sent" records today's pushes, so there are never more than 3 a day or 2 for one edition.
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  timezone text not null default 'Europe/London',
+  editions jsonb not null default '{}'::jsonb,
+  quiet jsonb not null default '{}'::jsonb,
+  sent jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists push_user on public.push_subscriptions (user_id);
+
 alter table public.profiles   enable row level security;
 alter table public.user_state enable row level security;
 alter table public.events     enable row level security;
 alter table public.feedback   enable row level security;
 alter table public.invites    enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 drop policy if exists "own profile" on public.profiles;
 create policy "own profile" on public.profiles for all to authenticated
@@ -87,6 +105,9 @@ create policy "read own feedback" on public.feedback for select to authenticated
 drop policy if exists "delete own feedback" on public.feedback;
 create policy "delete own feedback" on public.feedback for delete to authenticated
   using ((select auth.uid()) = user_id);
+drop policy if exists "own push" on public.push_subscriptions;
+create policy "own push" on public.push_subscriptions for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 -- invites: no policies, so only the service role (GitHub Actions, the admin page later) can touch it
 
 -- "Delete my account" in the app: removes the person and, through the cascades above, all their rows

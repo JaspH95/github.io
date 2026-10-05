@@ -48,7 +48,18 @@ onChange(k => {
   if (user) { clearTimeout(timer); timer = setTimeout(() => { push().catch(() => {}); }, 2500); }
 });
 
+/* Opened from a "reset your password" email: the link carries a one-time recovery session in the address */
+export const recovery = typeof location !== 'undefined' && /type=recovery/.test(location.hash + location.search);
+/* An email link that didn't work (expired or already used): Supabase sends the reason in the address instead */
+export const linkError = typeof location !== 'undefined' && /error_code=|error=access_denied/.test(location.hash + location.search)
+  ? (/expired/.test(location.hash + location.search) ? 'expired' : 'failed') : null;
+
 export const signedIn = () => user;
+/* The current session token, so /api/feedback can tell who a note is from */
+export async function accessToken(): Promise<string | null> {
+  const c = user ? await sb() : null; if (!c) return null;
+  try { return (await c.auth.getSession()).data.session?.access_token || null; } catch { return null; }
+}
 export const lastSynced = () => lastSync;
 
 /* On opening: restore the session, then fetch anything newer. Returns true if the account had newer data. */
@@ -59,6 +70,7 @@ export async function start(): Promise<boolean> {
     const u = data.session?.user;
     if (!u) return false;
     user = { id: u.id, email: u.email || '' };
+    if (recovery) return false;   // just setting a new password: don't pull or reload yet
     return await withTimeout(pull(), 5000, false);
   } catch { return false; }
 }
@@ -74,13 +86,27 @@ function friendly(raw: string | undefined, what: string): string {
   return `I couldn't ${what} just now. Try again in a minute, and if it keeps happening, email ${HELP}.`;
 }
 
+/* Forgot password: Supabase emails a link back to Knowfeed, which then asks for a new password */
+export async function sendReset(email: string): Promise<string | null> {
+  const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
+  const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/` });
+  return error ? friendly(error.message, 'send the reset email') : null;
+}
+export async function setNewPassword(password: string): Promise<string | null> {
+  const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
+  const { data, error } = await c.auth.updateUser({ password });
+  if (error) return /weak|short|password/i.test(error.message) ? 'That password is too weak. Use at least 8 characters.' : /session|expired|jwt/i.test(error.message) ? 'That reset link has expired. Ask for a new one from the sign-in screen.' : friendly(error.message, 'change your password');
+  if (data.user) setUser(data.user, data.user.email || '');
+  return null;
+}
+
 /* Returns null when signed in, or a message to show */
 export async function signInPassword(email: string, password: string): Promise<string | null> {
   const c = await sb(); if (!c) return 'Accounts aren’t switched on yet.';
   const { data, error } = await c.auth.signInWithPassword({ email, password });
   if (data.user && !error) { setUser(data.user, email); return null; }
   if (/confirm/i.test(error?.message || '')) return `That account is waiting for an email confirmation, which Knowfeed doesn’t send yet. Email ${HELP} and it’ll be switched on for you.`;
-  if (/invalid login|credentials/i.test(error?.message || '')) return `That email and password don’t match an account. If you’ve forgotten your password, email ${HELP} to reset it.`;
+  if (/invalid login|credentials/i.test(error?.message || '')) return `That email and password don’t match an account. Check them and try again, or choose “Forgot my password”.`;
   return friendly(error?.message, 'sign you in');
 }
 
@@ -188,6 +214,18 @@ onStatsWithdrawn(() => { deleteMyEvents().catch(() => {}); });
 export async function sendFeedback(f: { item?: string; title?: string; text: string; at: string }): Promise<boolean> {
   const c = await sb(); if (!c || !user) return false;
   const { error } = await c.from('feedback').insert({ user_id: user.id, item_id: f.item ?? null, title: f.title ?? null, text: f.text.slice(0, 2000), at: f.at });
+  return !error;
+}
+
+/* Web push subscriptions (notify.ts), with the times the sender needs */
+export async function savePush(row: { endpoint: string; p256dh: string; auth: string; timezone: string; editions: unknown; quiet: unknown }): Promise<boolean> {
+  const c = await sb(); if (!c || !user) return false;
+  const { error } = await c.from('push_subscriptions').upsert({ ...row, user_id: user.id, updated_at: new Date().toISOString() }, { onConflict: 'endpoint' });
+  return !error;
+}
+export async function deletePush(endpoint: string): Promise<boolean> {
+  const c = await sb(); if (!c || !user) return false;
+  const { error } = await c.from('push_subscriptions').delete().eq('endpoint', endpoint);
   return !error;
 }
 

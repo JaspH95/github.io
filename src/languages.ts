@@ -81,5 +81,6 @@ export function nextNew(lang: string, n: number, goal?: string, level?: string):
 }
 
 export function phraseById(lang: string, id: string) { return PACKS[lang]?.find(p => p.id === id); }
-export const progressLine = (lang: string) => { const p = srs.progress(lang, PACKS[lang] || []); return `${lang}: ${p.learned} learned of ${p.total}`; };
+/* "Met" counts every phrase you've started; "learned" only once it's passed its last review (30 days on) */
+export const progressLine = (lang: string) => { const p = srs.progress(lang, PACKS[lang] || []); return `${lang}: ${p.seen} of ${p.total} phrases met${p.learned ? `, ${p.learned} learned for good` : ''}`; };
 export const reloadPod = () => { pod = load('pod', {}); };
