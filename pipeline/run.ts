@@ -167,7 +167,7 @@ async function learn(interests: InterestsFile): Promise<LearnFile> {
   const date = todayUTC(now);
   const extra = JSON.parse(await readFile('content/topics.json', 'utf8'));
   // The version string forces a rebuild when the way cards are chosen changes (v2: growing pools, 5 a day)
-  const topicsHash = hash(JSON.stringify(['v7', interests.interests.map(i => [i.id, i.wiki]), extra]));
+  const topicsHash = hash(JSON.stringify(['v8', interests.interests.map(i => [i.id, i.wiki]), extra]));
   const path = `${OUT}/learn.json`;
   const old = await readJSON<LearnFile | null>(path, null);
   const hub = await hubspot();
