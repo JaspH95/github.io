@@ -3,9 +3,9 @@
 import { S, persist, isSaved, isFollowing, markRead, bump, now, remember } from './state';
 import { esc, safeUrl, ago, age, toast, options, ICON, outletBadge, $, plural } from './ui';
 import { notInterested } from './dismiss';
-import { hl, photo, fixImages, storyMeta, toggleSave, toggleLike, sync, fewerLikeThis, share, loadSkill, type Card, yearText, listOf } from './cards';
+import { canPicture, hl, photo, fixImages, storyMeta, toggleSave, toggleLike, sync, fewerLikeThis, share, loadSkill, type Card, yearText, listOf } from './cards';
 import { findStory, allStories, storyLabel, interestById } from './data';
-import { playQueue, stopAudio, isPlaying } from './audio';
+import { stopAudio } from './audio';
 import { feedback } from './feedback';
 import type { Story, LearnCard, Entity } from './types';
 
@@ -295,12 +295,7 @@ function toggleFollow(card: Card) {
 
 export function initStory() {
   document.getElementById('sBack')!.addEventListener('click', back);
-  document.getElementById('sPlay')!.addEventListener('click', () => {
-    if (!current) return;
-    if (isPlaying()) { stopAudio(); return; }
-    playQueue(current.speech.map(t => ({ text: t, label: current!.title })));
-  });
-  document.getElementById('sShare')!.addEventListener('click', () => { if (current) share(current.title, current.url || location.origin); });
+  document.getElementById('sShare')!.addEventListener('click', () => { if (!current) return; const c = current.card; if (canPicture(c)) import('./share').then(m => m.shareCard(c)); else share(current.title, current.url || location.origin); });
   document.getElementById('sMore')!.addEventListener('click', () => {
     if (!current) return;
     const c = current.card;

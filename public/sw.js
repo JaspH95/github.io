@@ -1,5 +1,5 @@
 /* Knowfeed service worker: keeps the app and the latest feed available offline (for when there's no signal) */
-const VERSION = 'kf-v3';
+const VERSION = 'kf-v4';
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, IMG = `${VERSION}-img`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
 
@@ -53,4 +53,24 @@ self.addEventListener('fetch', e => {
     e.respondWith(cacheFirst(req, IMG).catch(() => Response.error()));
     e.waitUntil(trim(IMG, 150));
   }
+});
+
+/* Edition notifications (sent by pipeline/push.ts) */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Knowfeed', {
+    body: d.body || 'Your edition is ready.',
+    icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+    tag: d.tag || 'knowfeed', data: { url: d.url || '/' },
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || '/', self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const open = list.find(c => new URL(c.url).origin === self.location.origin);
+    if (open) return open.focus().then(c => (c && 'navigate' in c ? c.navigate(url) : undefined)).catch(() => self.clients.openWindow(url));
+    return self.clients.openWindow(url);
+  }));
 });

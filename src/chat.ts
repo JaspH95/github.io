@@ -421,6 +421,14 @@ async function askEmail(): Promise<string> {
   }
 }
 
+/* Forgot password: email a reset link, which brings them back to a "choose a new password" screen */
+export async function forgotPassword(email: string) {
+  await say(`Sending a reset link to ${email}…`);
+  const err = await cloud.sendReset(email);
+  pastAll();
+  await say(err || "Sent. Open the email from Knowfeed (check spam too) and tap the link to choose a new password. You’ll be signed in straight away, and you can always sign in from Profile by tapping your name.");
+}
+
 /* Creating an account means agreeing to the Terms and Privacy Policy: asked plainly, nothing pre-selected */
 async function agreeToTerms(): Promise<boolean> {
   {
@@ -462,9 +470,10 @@ async function accountFlow(mode: 'existing' | 'new'): Promise<boolean> {
     const err = await cloud.signInPassword(email, pw);
     if (!err) return true;
     pastAll(); await say(err);
-    const c = await askOne([['again', 'Try the password again', 'time'], ['new', 'Make a new account with this email', 'spark'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']]);
+    const c = await askOne([['again', 'Try the password again', 'time'], ['forgot', 'Forgot my password', 'shield'], ['new', 'Make a new account with this email', 'spark'], ['email', 'Use a different email', 'dots'], ['skip', 'Skip for now', 'back']]);
     pastAll();
     if (c === 'skip') return false;
+    if (c === 'forgot') { await forgotPassword(email); return false; }
     if (c === 'new') mode = 'new';
     if (c === 'email') { await say("What's the email?"); email = await askEmail(); }
   }
@@ -571,7 +580,7 @@ export async function startOnboarding() {
   const sports = await askMany(Object.keys(SPORT_FEEDS).map(s => [s, s]), { btn: 'Continue', none: 'Not really', compact: true });
   let teams: string[] = [];
   if (sports.includes('Football')) { pastAll(); await say('Which teams? Pick from these or type your own.'); teams = await askTeams(); }
-  pastAll(); await say(teams.length ? `${teams[0]}. You'll get one sports page per edition, and a live score while they're playing.` : sports.length ? "You'll get one sports page per edition, like a newspaper." : 'No sport, then.');
+  pastAll(); await say(teams.length ? `${teams.length > 1 ? 'Got them' : teams[0]}. Their big stories will be in your editions, with a live score at the top while they're playing.` : sports.length ? "The big sport stories will be in your editions." : 'No sport, then.');
   await say("When do you like to catch up? I'll put together an edition for each time. Each one ends, so you know when you're done.");
   const eds = await askEditions({ editions: structuredClone(DEFAULT_EDITIONS), quiet: structuredClone(DEFAULT_QUIET) });
   pastAll(); await say("Anything you'd rather not see?");
@@ -613,7 +622,7 @@ export async function startOnboarding() {
 /* ---------- The settings chat ---------- */
 
 let chatOpen = false;
-type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'voice' | 'news';
+type Section = 'interests' | 'city' | 'skills' | 'languages' | 'sport' | 'editions' | 'avoid' | 'wellbeing' | 'data' | 'suggest' | 'feedback' | 'account' | 'news';
 
 export async function openChat(jump?: Section) {
   if (running || !S.profile) return;
@@ -626,7 +635,7 @@ export async function openChat(jump?: Section) {
     const pick = await askOne([
       ['suggest', 'Suggest something new', 'spark'], ['interests', 'My interests', 'heart'], ['city', 'My city', 'pin'], ['skills', 'My work and skills', 'job'],
       ['languages', 'Languages', 'globe'], ['sport', 'Sports and teams', 'ball'], ['editions', 'Editions and times', 'time'], ['avoid', 'Topics to avoid', 'shield'],
-      ['news', 'Breaking news and outlets', 'flag'], ['wellbeing', 'Reading goal and limit', 'book'], ['voice', 'Listening voice', 'spark'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
+      ['news', 'Breaking news and outlets', 'flag'], ['wellbeing', 'Reading goal and limit', 'book'], ['feedback', 'Feedback and notes', 'flag'], ...(cloud.cloudOn ? [['account', cloud.signedIn() ? 'Account and sync' : 'Sign in to save my answers', 'shield'] as [string, string, string]] : []), ['data', 'Your data', 'dots'], ['done', 'Back to my feed', 'back'],
     ]);
     if (!chatOpen) break;
     pastAll();
@@ -700,7 +709,7 @@ async function section(k: Section) {
       p.sports = await askMany(Object.keys(SPORT_FEEDS).map(s => [s, s]), { btn: 'Save', none: 'None', preset: p.sports, compact: true });
       if (p.sports.includes('Football')) { pastAll(); await say('Which teams?'); p.teams = await askTeams(p.teams); } else p.teams = [];
       p.interests = withSports(p.interests, p.sports);
-      pastAll(); await saveP(p.sports.length ? 'Saved. Your sports page updates from the next edition.' : "Sport's out.");
+      pastAll(); await saveP(p.sports.length ? 'Saved. Sport stories change from the next edition.' : "Sport's out.");
       return;
     }
     case 'editions': {
@@ -734,19 +743,6 @@ async function section(k: Section) {
       if (c === 'new') { closeScreen(); setTimeout(() => feedback(), 500); }
       if (c === 'see') { const box = document.createElement('div'); box.className = 'previewbox'; box.innerHTML = S.feedback.slice(0, 20).map(f => `<p class="prev"><b>${esc(new Date(f.at).toLocaleDateString('en-GB'))}</b> ${f.title ? `(${esc(f.title)}) ` : ''}${esc(f.text)}</p>`).join(''); lines().appendChild(box); toBottom(); }
       return;
-    }
-    case 'voice': {
-      const { voicesFor, setVoice, sample, currentVoice, goodVoice } = await import('./audio');
-      const vs = voicesFor('en-GB').slice(0, 6);
-      if (!vs.length) { await say("This phone doesn't have an English voice I can use."); return; }
-      await say(goodVoice() ? `I'm reading with ${currentVoice()!.name}. Tap a voice to hear it.` : "The voices that come with an iPhone sound robotic, but it has natural ones you can download free: Settings → Accessibility → Spoken Content → Voices → English, then pick one marked Enhanced or Premium. After that, choose it here.");
-      for (;;) {
-        const k = await askOne([...vs.map(v => [v.voiceURI, `${v.name}${v.voiceURI === currentVoice()?.voiceURI ? ' (in use)' : ''}`, 'spark'] as [string, string, string]), ['done', 'Done', 'back']]);
-        pastAll();
-        if (k === 'done') return;
-        const v = vs.find(x => x.voiceURI === k)!; setVoice(k); sample(v);
-        await say(`Now using ${v.name}.`);
-      }
     }
     case 'account': {
       const u = cloud.signedIn();

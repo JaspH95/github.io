@@ -35,6 +35,7 @@
 <li>If you create an account, a copy is kept in Knowfeed's database so it survives a new phone.</li>
 <li>No adverts, no selling or sharing your data, no third-party trackers and no cookies.</li>
 <li>Usage stats are only collected if you say yes, and you can turn them off any time.</li>
+<li>Feedback you send is emailed to Jasper, who runs Knowfeed.</li>
 <li>You can see, export or delete everything, from inside the app.</li>
 </ul></div>
 
@@ -47,12 +48,14 @@
 <h3>2. If you create an account</h3>
 <p>Your email address and password (stored only as a secure hash by our database provider, Supabase), plus a copy of the information above so it can be restored on another phone. A few of your answers (first name, city, time zone, job, edition times, quiet hours and any reading goal or limit) are also kept as plain fields so the beta can be run and improved. Your email is only used to sign you in. We never send marketing emails. <em>Lawful basis: contract.</em></p>
 <h3>3. Usage stats, only if you allow them</h3>
-<p>If you choose "Allow usage stats", Knowfeed counts things like editions opened and finished, stories opened, likes, saves and lessons finished, with the time. For signed-in testers these are sent to Knowfeed's own database, to see which features help people and whether testers come back. If you choose "No thanks", or later turn stats off in Profile, then Your data and privacy, nothing is counted, and anything already counted is deleted from your phone and your account. <em>Lawful basis: consent.</em></p>
+<p>If you choose "Allow usage stats", Knowfeed counts things like editions opened and finished, stories opened, likes, saves and lessons finished, with the time. For signed-in testers these are sent to Knowfeed's own database, to see which features help people and whether testers come back. If you choose "No thanks", or later turn stats off in Profile, then your name (Account and data), nothing is counted, and anything already counted is deleted from your phone and your account. <em>Lawful basis: consent.</em></p>
 <h3>4. Feedback you send</h3>
-<p>If you're signed in and send feedback, we keep what you wrote and which card it was about, to fix problems. <em>Lawful basis: legitimate interests (improving the app).</em></p>
-<h3>5. Searches and lookups</h3>
+<p>When you send feedback ("Something wrong?" on a card, or Feedback in settings), what you wrote, which card or screen it was about, and the time are emailed to Jasper so problems can be fixed. If you're signed in, your email address is included so he can reply, and a copy is kept in Knowfeed's database. If you're not signed in, the note arrives without your name or email. <em>Lawful basis: legitimate interests (improving the app).</em></p>
+<h3>5. Notifications, only if you turn them on</h3>
+<p>If you turn on notifications (Profile, then Notifications), Knowfeed keeps your phone's push address (a long code from Apple, Google or your browser's push service), your time zone, edition times and quiet hours, and which notifications were sent today, so it can tell you when an edition is ready without breaking your quiet hours or sending more than 3 a day. The notification itself only says that your edition is ready and the top headline. Turning notifications off, deleting your account, or blocking notifications on your phone removes the push address. <em>Lawful basis: consent.</em></p>
+<h3>6. Searches and lookups</h3>
 <p>When you search, type in a city, team or interest, or open live scores, the words you type are sent to Knowfeed's server functions to fetch results from news and data services. They aren't stored or linked to you. <em>Lawful basis: contract.</em></p>
-<h3>6. Technical information</h3>
+<h3>7. Technical information</h3>
 <p>Like any website, our host (Vercel) receives your IP address and basic request details when the app loads or calls our server functions, and keeps them briefly in logs for security and fixing faults. <em>Lawful basis: legitimate interests (keeping the service secure and working).</em></p>
 <p>Knowfeed does not knowingly collect any special category data (such as health, religion or politics). Your interests are only used to choose what goes in your editions, never to profile you for advertising.</p>
 
@@ -61,20 +64,24 @@
 <thead><tr><th scope="col">Service</th><th scope="col">What for</th><th scope="col">What they receive</th></tr></thead>
 <tbody>
 <tr><td>Vercel Inc. (hosting)</td><td>Serves the app and runs our server functions</td><td>IP address and request details; the words you search for (not stored)</td></tr>
-<tr><td>Supabase Inc. (database and sign-in)</td><td>Accounts and syncing, only if you create an account</td><td>Your email, password hash, synced settings and progress, usage stats if allowed, feedback</td></tr>
+<tr><td>Supabase Inc. (database and sign-in)</td><td>Accounts and syncing, only if you create an account</td><td>Your email, password hash, synced settings and progress, usage stats if allowed, feedback, push address if notifications are on</td></tr>
+<tr><td>Resend Inc. (email delivery)</td><td>Delivers feedback notes to Jasper's inbox</td><td>Your feedback note, and your email address if you're signed in</td></tr>
+<tr><td>Apple, Google or Mozilla push services</td><td>Delivers notifications to your phone, only if you turn them on</td><td>The notification text and your push address</td></tr>
 <tr><td>Wikipedia and Wikimedia Commons, Open Library</td><td>Learning articles, pictures and book covers your phone loads directly</td><td>Your IP address and the page or image requested, as with any website</td></tr>
 <tr><td>News outlets, Unsplash, Pexels</td><td>Photos shown on story cards, loaded from their servers</td><td>Your IP address and the image requested</td></tr>
 </tbody></table></div>
 <p>Fonts are built into the app, so nothing is requested from Google Fonts. Google's Gemini AI only ever receives public news articles to summarise, never anything about you. We don't use any analytics, advertising or social media tracking tools.</p>
 
 <h2>International transfers</h2>
-<p>Vercel and Supabase are US companies and may process data outside the UK. Where they do, the transfer is protected by the UK International Data Transfer Addendum or Standard Contractual Clauses in their data processing terms.</p>
+<p>Vercel, Supabase and Resend are US companies and may process data outside the UK. Where they do, the transfer is protected by the UK International Data Transfer Addendum or Standard Contractual Clauses in their data processing terms.</p>
 
 <h2>How long we keep it</h2>
 <ul>
-<li><strong>On your phone:</strong> until you delete it (Profile, then Your data and privacy, then Delete everything) or remove the app. Stories you've seen are remembered for 7 days, and those you've read or hidden for 21 days.</li>
+<li><strong>On your phone:</strong> until you delete it (Profile, then your name (Account and data), then Delete everything) or remove the app. Stories you've seen are remembered for 7 days, and those you've read or hidden for 21 days.</li>
 <li><strong>Your account and everything linked to it:</strong> until you delete your account, which removes it straight away.</li>
 <li><strong>Usage stats:</strong> until you turn them off or delete your account.</li>
+<li><strong>Feedback emails:</strong> in Jasper's inbox until the beta ends, then deleted.</li>
+<li><strong>Notifications:</strong> the push address until you turn notifications off or delete your account; it's also removed automatically when your phone stops accepting notifications.</li>
 <li><strong>Server logs:</strong> kept by Vercel for a short time (days, not months).</li>
 </ul>
 
@@ -82,9 +89,9 @@
 <p>Under UK data protection law you can ask to see the personal data we hold about you, correct it, delete it, receive a copy (data portability), object to or restrict how it's used, and withdraw consent at any time. Much of this is built into the app:</p>
 <ul>
 <li><strong>See and change your answers:</strong> Profile, or Talk to Knowfeed.</li>
-<li><strong>Export a copy:</strong> Profile, then Your data and privacy, then Back up to a file.</li>
-<li><strong>Delete everything:</strong> Profile, then Your data and privacy, then Delete everything. If you're signed in, this deletes your account and all data linked to it.</li>
-<li><strong>Turn usage stats off:</strong> Profile, then Your data and privacy.</li>
+<li><strong>Export a copy:</strong> Profile, then your name (Account and data), then Back up to a file.</li>
+<li><strong>Delete everything:</strong> Profile, then your name (Account and data), then Delete everything. If you're signed in, this deletes your account and all data linked to it.</li>
+<li><strong>Turn usage stats off:</strong> Profile, then your name (Account and data).</li>
 </ul>
 <p>For anything else, or if you can't use the app, email <a href="mailto:jasperhayward@me.com">jasperhayward@me.com</a>. We'll reply within one month. If you're unhappy with how we've handled your data, you can complain to the Information Commissioner's Office: <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a> or 0303 123 1113.</p>
 

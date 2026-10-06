@@ -1,14 +1,19 @@
 /* The tab pages: Learn, Languages, Saved and Search. These follow the phone's light or dark setting. */
 import { statsAllowed } from './consent';
 import { S, persist, tooKnown, today, addDays, type SavedItem } from './state';
-import { esc, ago, ICON, plural, toast, openSheet, sentences } from './ui';
+import { esc, ago, ICON, plural, toast, openSheet, closeSheet, sentences } from './ui';
+import { openDoc } from './docs';
+import { setStats } from './consent';
+import { exportData, importData, deleteEverything } from './backup';
+import { notifySheet, pushState, pushLabel } from './notify';
 import { data, allStories, storyLabel, interestById, TOPIC_LABEL, OUTLETS, itemStory, regionOf } from './data';
 import { openStory, openLearn, openSkill, openWiki, wiki } from './story';
 import { learnCard, forget } from './edition';
 import { PACKS, LANG_CODE, LANG_WIKI, BSL, hasPack, progressLine, phraseOfDay } from './languages';
 import * as srs from './srs';
 import { speakIn } from './audio';
-import { startLesson, startReview } from './lessons';
+import { startLesson, startReview, startDailyQuiz } from './lessons';
+import { quizResult } from './dailyquiz';
 import { openChat } from './chat';
 import { onTab, go } from './nav';
 import { suggestions, follow } from './suggest';
@@ -53,6 +58,7 @@ function learnPage(el: HTMLElement) {
   const oddities = cards.filter(c => c.kind === 'oddity' && !S.history[c.id]).slice(0, 6);
   const searched = p.interests.filter(i => i.id.startsWith('q:') && i.mode !== 'news' && i.wiki);
   const quiz = (data.learn?.quizzes || [])[0];
+  const dq = quizResult();
   const series = available(p);
   const KIND: Record<string, string> = { idea: 'BIG IDEAS', history: 'HISTORY', skill: 'SKILL', book: 'CLASSIC BOOK', language: 'LANGUAGE' };
   el.innerHTML = `${head('Learn', 'Your work, your interests and today\'s picks. Every session ends; start another when you like.')}
@@ -63,8 +69,9 @@ function learnPage(el: HTMLElement) {
     ${todays ? `<section class="psec"><h2>Skill of the day</h2><button class="feature" data-skill="${esc(todays.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(cap(todays.label))}</b><span>From your work${p.job ? `: ${esc(p.job.title)}` : ''}</span></span>${ICON.chev}</button>
       <div class="chips">${skills.map(k => `<button class="chip-btn" data-skill="${esc(k.id)}">${esc(cap(k.label))}</button>`).join('')}<button class="chip-btn add" data-add="skills">${ICON.plus} Skills</button></div></section>`
       : `<section class="psec"><h2>Your work</h2><button class="feature" data-add="skills"><span class="ic">${ICON.book}</span><span><b>Add your job and skills</b><span>Get a skill of the day and industry news</span></span>${ICON.chev}</button></section>`}
+    <section class="psec"><h2>Daily quiz</h2>${dq ? `<div class="feature" role="status"><span class="ic">${ICON.check}</span><span><b>${dq.right} of ${dq.total} today</b><span>A new quiz comes tomorrow</span></span></div>` : `<button class="feature" data-dquiz><span class="ic">${ICON.check}</span><span><b>Today's quiz</b><span>Five questions from Wikipedia and Wikidata · 2 min</span></span>${ICON.chev}</button>`}</section>
     <section class="psec"><h2>Review</h2><button class="feature" data-review="1" ${due ? '' : 'disabled'}><span class="ic">${ICON.check}</span><span><b>${due ? `${plural(Math.min(due, 5), 'thing')} to review` : 'Nothing due right now'}</b><span>${due ? 'Five minutes of quick recall' : 'Things you learn come back after 1, 3, 7, 14 and 30 days'}</span></span>${due ? ICON.chev : ''}</button></section>
-    ${quiz ? `<section class="psec"><h2>Quiz of the day</h2><div class="mini-card" id="quizSlot"></div></section>` : ''}
+    ${quiz ? `<section class="psec"><h2>Quick question</h2><div class="mini-card" id="quizSlot"></div></section>` : ''}
     ${byInterest.map(g => `<section class="psec"><h2>${esc(g.label)}</h2><div class="rows">${g.cards.map(c => learnRow(c, g.label)).join('')}</div><button class="linkish books" data-books="${esc(g.label)}">Books about ${esc(g.label.toLowerCase())}</button></section>`).join('')}
     ${searched.map(i => `<section class="psec"><h2>${esc(i.label)}</h2><button class="feature" data-wiki="${esc(i.wiki!)}"><span class="ic">${ICON.book}</span><span><b>${esc(i.wiki!)}</b><span>From Wikipedia</span></span>${ICON.chev}</button></section>`).join('')}
     ${daily.length ? `<section class="psec"><h2>From Wikipedia and NASA today</h2><div class="rows">${daily.map(c => learnRow(c, learnCard(c).label)).join('')}</div></section>` : ''}
@@ -74,6 +81,7 @@ function learnPage(el: HTMLElement) {
   el.querySelectorAll<HTMLElement>('[data-series]').forEach(b => b.addEventListener('click', () => document.dispatchEvent(new CustomEvent('kf-series', { detail: { id: b.dataset.series } }))));
   el.querySelectorAll<HTMLElement>('[data-skill]').forEach(b => b.addEventListener('click', () => { const k = skills.find(x => x.id === b.dataset.skill); if (k) openSkill(k); }));
   el.querySelector('[data-review]')?.addEventListener('click', () => startReview());
+  el.querySelector('[data-dquiz]')?.addEventListener('click', () => startDailyQuiz());
   el.querySelectorAll<HTMLElement>('[data-add]').forEach(b => b.addEventListener('click', () => openChat(b.dataset.add as any)));
   el.querySelectorAll<HTMLElement>('[data-wiki]').forEach(b => b.addEventListener('click', () => openWiki(b.dataset.wiki!)));
   el.querySelectorAll<HTMLElement>('[data-books]').forEach(b => b.addEventListener('click', () => books(b.dataset.books!)));
@@ -254,37 +262,123 @@ const SETTINGS: [string, string, string][] = [
   ['city', 'City', 'Where your local news comes from'], ['languages', 'Languages', 'What you are learning, your level and goal'],
   ['news', 'Breaking news and outlets', 'Headlines, and the outlets you follow'], ['sport', 'Sports and teams', 'Sport stories and live scores'], ['editions', 'Editions and times', 'When your editions arrive'],
   ['avoid', 'Topics to avoid', 'Things you would rather not see'], ['wellbeing', 'Reading goal and limit', 'Optional, off by default'],
-  ['voice', 'Listening voice', 'The voice that reads to you'], ['feedback', 'Feedback', 'Tell us what is working and what is not'],
+  ['feedback', 'Feedback', 'Tell us what is working and what is not'],
   ['data', 'Your data and privacy', 'Usage stats, back up, restore or delete'],
 ];
 
 /* Profile is kept short: "Talk to Knowfeed" can change anything, so only the most-used settings show here,
-   with the rest folded under "More settings" and the legal pages under one line. */
-const MAIN_SETTINGS = ['interests', 'editions', 'languages', 'data'];
+   with the rest folded under "More settings". Your name opens Account and data. */
+const MAIN_SETTINGS = ['interests', 'editions', 'languages'];
+const legalRows = () => LEGAL.map(([href, t, sub]) => `<button class="row" data-doc="${href.slice(1)}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`).join('');
+const following = () => { const p = S.profile!; return [...p.interests.map(i => i.label), ...(p.outlets || []).map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean) as string[], ...[...S.entities].map(titleCase)]; };
+
 function profilePage(el: HTMLElement) {
   const p = S.profile!;
   const sugg = suggestions(3);
-  const u = cloud.signedIn();
-  const following = [...p.interests.map(i => i.label), ...(p.outlets || []).map(id => OUTLETS.find(o => o.id === id)?.name).filter(Boolean) as string[], ...[...S.entities].map(titleCase)];
+  const fol = following();
   // The last 7 days, from the stats kept on this phone
   const week = Object.entries(S.stats).filter(([d]) => d >= addDays(today(), -6)).map(([, v]) => v);
   const read = week.reduce((a, d) => a + d.read, 0), learned = week.reduce((a, d) => a + d.learned, 0);
   const row = ([k, t, sub]: [string, string, string]) => `<button class="row" data-chat="${k}"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</button>`;
-  const SHOW = 10;
-  el.innerHTML = `<header class="phead prof"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p>${read || learned ? `<p class="pweek">This week: ${plural(read, 'story', 'stories')} read · ${plural(learned, 'thing')} learned</p>` : ''}</span></header>
+  const u = cloud.signedIn();
+  el.innerHTML = `<button class="phead prof pbtn" data-account aria-label="Account and data for ${esc(p.name)}"><span class="pav" aria-hidden="true">${esc(p.name.charAt(0).toUpperCase())}</span><span class="pinfo"><h1>${esc(p.name)}</h1><p>${esc([p.city?.name, p.job?.title].filter(Boolean).join(' · '))}</p><p class="pacct">${cloud.cloudOn ? (u ? esc(u.email) : 'Not signed in') + ' · ' : ''}Account and data</p></span>${ICON.chev}</button>
+    ${read || learned ? `<button class="pweek-btn" data-recap><span><b>This week</b> ${plural(read, 'story', 'stories')} read · ${plural(learned, 'thing')} learned</span><span class="pweek-go">Your week ${ICON.chev}</span></button>` : ''}
     <section class="psec"><button class="feature talk" data-chat=""><span class="ic">${ICON.chat}</span><span><b>Talk to Knowfeed</b><span>Change anything just by chatting</span></span>${ICON.chev}</button></section>
     ${sugg.length ? `<section class="psec"><h2>Suggested for you</h2><div class="rows">${sugg.map(x => `<div class="row-wrap"><div class="row static"><span class="rt"><span class="rk">${x.kind === 'interest' ? 'TOPIC' : 'IN THE NEWS'}${x.because ? ` · ${esc(x.because.toUpperCase())}` : ''}</span><b>${esc(x.label)}</b>${x.kind === 'entity' && x.desc ? `<span class="rs">${esc(x.desc)}</span>` : ''}</span></div><button class="follow-btn" data-follow="${esc(x.key)}">Follow</button></div>`).join('')}</div></section>` : ''}
-    <section class="psec"><h2>You follow</h2>${following.length ? `<div class="chips">${following.slice(0, SHOW).map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}${following.length > SHOW ? `<button class="chip-btn" data-chat="interests">+${following.length - SHOW} more</button>` : ''}</div>` : '<p class="note">Nothing yet. Double tap stories you like and Knowfeed will suggest things.</p>'}</section>
+    <section class="psec"><div class="sech-row"><h2>You follow${fol.length ? ` <span class="count">${fol.length}</span>` : ''}</h2>${fol.length ? '<button class="linkish" data-follows>See all</button>' : ''}</div>
+      ${fol.length ? `<div class="chips one-line" role="list">${fol.map(f => `<span class="chip-btn static" role="listitem">${esc(f)}</span>`).join('')}</div>` : '<p class="note">Nothing yet. Double tap stories you like and Knowfeed will suggest things.</p>'}</section>
     <section class="psec"><h2>Settings</h2><div class="rows">${SETTINGS.filter(([k]) => MAIN_SETTINGS.includes(k)).map(row).join('')}
-      ${cloud.cloudOn ? `<button class="row" data-chat="account"><span class="rt"><b>Account</b><span class="rs">${u ? esc(u.email) : 'Not signed in: sign in to keep your answers if you change phones'}</span></span>${ICON.chev}</button>` : ''}</div>
-      <details class="fold"><summary>More settings</summary><div class="rows">${SETTINGS.filter(([k]) => !MAIN_SETTINGS.includes(k)).map(row).join('')}</div></details>
-      <details class="fold"><summary>About, privacy and terms</summary><div class="rows">${LEGAL.map(([href, t, sub]) => `<a class="row" href="${href}" target="_blank" rel="noopener"><span class="rt"><b>${esc(t)}</b><span class="rs">${esc(sub)}</span></span>${ICON.chev}</a>`).join('')}</div></details>
-      <p class="pfoot">Knowfeed is a free beta made by Jasper Hayward in the UK. Usage stats are ${statsAllowed() ? 'on' : 'off'}.</p></section>`;
+      <button class="row" data-notify><span class="rt"><b>Notifications</b><span class="rs" data-pstate>When your edition is ready</span></span>${ICON.chev}</button>
+      <button class="row" data-account><span class="rt"><b>Account and data</b><span class="rs">Sign-in, usage stats, back up or delete</span></span>${ICON.chev}</button></div>
+      <details class="fold"><summary>More settings</summary><div class="rows">${SETTINGS.filter(([k]) => !MAIN_SETTINGS.includes(k) && k !== 'data').map(row).join('')}</div></details>
+      <details class="fold"><summary>About, privacy and terms</summary><div class="rows">${legalRows()}</div></details>
+      <p class="pfoot">Knowfeed is a free beta made by Jasper Hayward in the UK.</p></section>`;
   el.querySelectorAll<HTMLElement>('[data-chat]').forEach(b => b.addEventListener('click', () => openChat((b.dataset.chat || undefined) as any)));
+  el.querySelectorAll<HTMLElement>('[data-account]').forEach(b => b.addEventListener('click', openAccount));
+  el.querySelectorAll<HTMLElement>('[data-doc]').forEach(b => b.addEventListener('click', () => openDoc(b.dataset.doc!)));
+  el.querySelector('[data-recap]')?.addEventListener('click', () => import('./recap').then(m => m.openRecap()));
+  el.querySelector('[data-notify]')?.addEventListener('click', () => notifySheet(() => go('profile')));
+  pushState().then(st => { const x = el.querySelector('[data-pstate]'); if (x) x.textContent = `When your edition is ready · ${pushLabel[st]}`; });
+  el.querySelector('[data-follows]')?.addEventListener('click', () => {
+    const s = openSheet(`<h3>You follow</h3><p class="note">${plural(fol.length, 'thing')}: topics, outlets and people from the news.</p><div class="chips">${fol.map(f => `<span class="chip-btn static">${esc(f)}</span>`).join('')}</div><div class="choices"><button class="cta small" data-chat="interests">Change what I follow</button></div>`, 'You follow');
+    s.querySelector('[data-chat]')!.addEventListener('click', () => { closeSheet(); openChat('interests'); });
+  });
   el.querySelectorAll<HTMLElement>('[data-follow]').forEach(b => b.addEventListener('click', () => {
     const x = sugg.find(s => s.key === b.dataset.follow); if (!x) return;
     follow(x); forget(); toast(`Following ${x.label}. It'll shape your next edition`); go('profile');
   }));
+}
+
+/* ---------- Account and data: sign-in, your details, privacy, back up and delete ---------- */
+export function openAccount() {
+  go('profile');
+  const el = document.getElementById('page')!;
+  el.scrollTop = 0;
+  accountPage(el);
+  document.title = 'Account and data · Knowfeed';
+}
+function accountPage(el: HTMLElement) {
+  const p = S.profile!;
+  const u = cloud.signedIn();
+  const t = cloud.lastSynced();
+  const act = (k: string, title: string, sub = '', danger = false) => `<button class="row${danger ? ' danger' : ''}" data-act="${k}"><span class="rt"><b>${esc(title)}</b>${sub ? `<span class="rs">${esc(sub)}</span>` : ''}</span>${ICON.chev}</button>`;
+  el.innerHTML = `<button class="pback" data-back>${ICON.back}<span>Profile</span></button>
+    <header class="phead"><h1>Account and data</h1><p>${esc(p.name)}${p.city?.name ? ` · ${esc(p.city.name)}` : ''}</p></header>
+    ${cloud.cloudOn ? `<section class="psec"><h2>Account</h2><div class="rows">${u
+      ? `<div class="row static"><span class="rt"><span class="rk">SIGNED IN</span><b>${esc(u.email)}</b><span class="rs">Your answers, saves and progress are kept with your account${t ? `. Last synced ${new Date(t).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</span></span></div>
+         ${act('sync', 'Sync now')}${act('password', 'Change password', 'We’ll email you a link to choose a new one')}${act('signout', 'Sign out', 'Everything stays on this phone')}`
+      : `${act('signin', 'Sign in or create an account', 'Keep your answers if you change phones')}${act('forgot', 'Forgot password', 'Get a link to choose a new one')}`}</div></section>` : ''}
+    <section class="psec"><h2>Your details</h2><div class="rows">
+      ${act('city', 'City', p.city?.name || 'Not set')}${act('skills', 'Work and skills', p.job?.title || 'Not set')}</div></section>
+    <section class="psec"><h2>Privacy</h2><div class="rows">
+      <label class="row toggle"><span class="rt"><b>Usage stats</b><span class="rs">Count things like editions finished, to improve the beta. No ads or trackers.</span></span><input type="checkbox" role="switch" data-stats ${statsAllowed() ? 'checked' : ''}></label></div></section>
+    <section class="psec"><h2>Your data</h2><div class="rows">
+      ${act('export', 'Back up to a file', 'Likes, saves, follows, progress and settings')}${act('import', 'Restore from a file')}${act('delete', 'Delete everything', u ? 'Deletes your account and everything on this phone' : 'Removes everything from this phone', true)}</div></section>
+    <section class="psec"><h2>About and legal</h2><div class="rows">${legalRows()}</div></section>`;
+  el.querySelector('[data-back]')!.addEventListener('click', () => go('profile'));
+  el.querySelectorAll<HTMLElement>('[data-doc]').forEach(b => b.addEventListener('click', () => openDoc(b.dataset.doc!)));
+  el.querySelector<HTMLInputElement>('[data-stats]')!.addEventListener('change', e => {
+    const on = (e.target as HTMLInputElement).checked; setStats(on);
+    toast(on ? 'Usage stats on. Thank you' : 'Usage stats off, and what was counted is deleted');
+  });
+  const again = () => accountPage(el);
+  el.querySelectorAll<HTMLElement>('[data-act]').forEach(b => b.addEventListener('click', async () => {
+    switch (b.dataset.act) {
+      case 'sync': { const got = await cloud.pull().catch(() => null); if (got === null) toast("Couldn't reach Knowfeed. It'll try again later"); else if (got) { toast('Got newer answers. Reloading…'); setTimeout(() => location.reload(), 700); } else { await cloud.push().catch(() => {}); toast('All up to date'); again(); } return; }
+      case 'password': { const err = await cloud.sendReset(u!.email); toast(err || `Check ${u!.email} for a link to choose a new password`); return; }
+      case 'signout': { await cloud.signOut(); toast('Signed out. Everything is still on this phone'); again(); return; }
+      case 'signin': openChat('account'); return;
+      case 'forgot': return emailSheet();
+      case 'city': openChat('city'); return;
+      case 'skills': openChat('skills'); return;
+      case 'export': exportData(); return;
+      case 'import': importData(); return;
+      case 'delete': return confirmDelete();
+    }
+  }));
+}
+function emailSheet() {
+  const s = openSheet(`<h3>Forgot password</h3><p class="note">Enter the email for your Knowfeed account and we'll send a link to choose a new password.</p>
+    <form class="sform" novalidate><label class="sr" for="fpEmail">Email</label><input id="fpEmail" type="email" autocomplete="email" placeholder="you@example.com" required><button class="cta small" type="submit">Send link</button></form><p class="note" role="status" id="fpMsg"></p>`, 'Forgot password');
+  const input = s.querySelector<HTMLInputElement>('#fpEmail')!, msg = s.querySelector<HTMLElement>('#fpMsg')!;
+  s.querySelector('form')!.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = input.value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = "That doesn't look like an email address."; return; }
+    msg.textContent = 'Sending…';
+    const err = await cloud.sendReset(email);
+    msg.textContent = err || `Sent. Open the email to ${email} (check spam too) and tap the link.`;
+  });
+}
+function confirmDelete() {
+  const u = cloud.signedIn();
+  const s = openSheet(`<h3>Delete everything?</h3><p class="note">${u ? 'This deletes your Knowfeed account and removes your settings, likes, saves and progress from this phone. It can’t be undone.' : 'This removes your settings, likes, saves and progress from this phone. It can’t be undone.'}</p>
+    <div class="choices"><button class="cta ghost small" data-no>No, keep everything</button><button class="cta small danger" data-yes>Yes, delete everything</button></div>`, 'Delete everything');
+  s.querySelector('[data-no]')!.addEventListener('click', closeSheet);
+  s.querySelector('[data-yes]')!.addEventListener('click', async () => {
+    if (u && !(await cloud.deleteAccount())) { closeSheet(); toast("Couldn't delete your account just now, so nothing's been deleted. Try again with signal"); return; }
+    closeSheet(); deleteEverything();
+  });
 }
 
 export function initPages() {

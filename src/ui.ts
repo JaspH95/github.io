@@ -37,7 +37,8 @@ let tt: ReturnType<typeof setTimeout>;
 export function toast(msg: string) {
   const t = document.getElementById('toast')!;
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2100);
+  // Long enough to read: about 60ms a character, between 2 and 7 seconds
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), Math.min(7000, Math.max(2100, msg.length * 60)));
 }
 
 /* A bottom sheet of options, or any content */

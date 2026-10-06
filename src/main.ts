@@ -8,7 +8,6 @@ import { S } from './state';
 import { loadData, data, refreshLive } from './data';
 import { showEdition, showJustIn, refreshDone, stale, initFeed } from './feed';
 import { initStory } from './story';
-import { initAudio } from './audio';
 import { initChat, startOnboarding, onChatClosed } from './chat';
 import { initBackup } from './backup';
 import { initDev, onDevRebuild } from './dev';
@@ -16,12 +15,16 @@ import { initPages } from './pages';
 import { initNav, go, currentTab, refreshTab } from './nav';
 import { initWellbeing } from './wellbeing';
 import { startLive } from './live';
-import { closeSheet, sheetOpen } from './ui';
+import { closeSheet, sheetOpen, toast } from './ui';
 import { closeLesson } from './lessons';
 import { log } from './events';
 import * as cloud from './cloud';
 import { initSeries, loadSeries } from './series';
 import { initConsent } from './consent';
+import { initDocs, docOpen, closeDoc } from './docs';
+import { showReset } from './reset';
+import { flushOutbox } from './feedback';
+import { fromPush } from './notify';
 import { loadPacks } from './languages';
 
 /* Knowfeed is an app, not a web page: no pinch zoom (text size still follows the iPhone's setting). iPhone ignores
@@ -55,8 +58,8 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
   window.addEventListener('scroll', () => { if (window.scrollY) window.scrollTo(0, 0); }, { passive: true });
 })();
 
-initConsent();
-initSeries(); initNav(); initStory(); initAudio(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
+initConsent(); initDocs();
+initSeries(); initNav(); initStory(); initChat(); initBackup(); initDev(); initPages(); initFeed(); initWellbeing();
 document.getElementById('sheetBg')!.addEventListener('click', closeSheet);
 
 /* Keyboard: Escape closes sheets and lessons; on the edition, the arrow keys, Page Up/Down and J/K move between cards */
@@ -64,6 +67,7 @@ document.addEventListener('keydown', e => {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable;
   if (e.key === 'Escape') {
+    if (docOpen()) { closeDoc(); e.preventDefault(); return; }
     if (sheetOpen()) { closeSheet(); e.preventDefault(); return; }
     if (document.getElementById('lesson')?.classList.contains('open')) { closeLesson(); e.preventDefault(); return; }
   }
@@ -108,12 +112,20 @@ function reloadForSync(): boolean {
 
 async function boot() {
   const [, changed] = await Promise.all([loadData(), cloud.start(), loadPacks(), loadSeries()]);
+  if (cloud.recovery) await showReset();
+  else if (cloud.linkError) {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast(cloud.linkError === 'expired' ? 'That email link has expired or was already used. Ask for a new one: Profile → your name → Forgot password' : "That email link didn't work. Ask for a new one: Profile → your name → Forgot password"), 1200);
+  }
   if (changed && reloadForSync()) return;
   ready();
   if (!S.profile) { startOnboarding(); return; }
   open();
+  fromPush();
+  setTimeout(() => flushOutbox(), 4000);
 }
 boot();
+window.addEventListener('online', () => { flushOutbox(); });
 
 /* Home-screen apps on iPhone resume rather than reload: after a while away, fetch the latest data.
    A new edition appears once its time has come; otherwise big news shows as "Just in". */

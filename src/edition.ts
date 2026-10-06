@@ -9,6 +9,7 @@ import * as srs from './srs';
 import { phraseOfDay, hasPack, PACKS } from './languages';
 import type { Story, LearnCard, TopicKey } from './types';
 import { todays } from './series';
+import { dailyQuestions, quizResult } from './dailyquiz';
 import type { Card } from './cards';
 
 export const SLOTS: Slot[] = ['morning', 'midday', 'evening'];
@@ -266,6 +267,9 @@ function learningCards(p: Profile, firstToday: boolean, count: number, used: Set
   }
 
   // Light: one thing worth knowing (on this day, picture of the day, NASA, most read)
+  // The daily quiz, until it's done (one card a day: once you've passed it, it doesn't come back)
+  const dqId = `dquiz-${ymd(now())}`;
+  if (!quizResult() && !S.seen[dqId] && !used.has(dqId) && dailyQuestions().length >= 3) learning.push({ id: dqId, kind: 'dquiz', topic: 'general', label: 'Daily quiz' });
   // A cool invention and a fun fact in every edition: things everyone likes to know
   for (const k of ['invention', 'oddity'] as const) {
     const pick = (learn?.cards || []).find(c => c.kind === k && fresh(c.id));

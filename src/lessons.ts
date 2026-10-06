@@ -1,4 +1,4 @@
-/* Finite learning sessions: a 5-minute language lesson and a quick review of due items.
+/* Finite learning sessions: a 5-minute language lesson, a quick review of due items and the daily quiz.
    Each one ends; starting another is always a choice. Quiz questions come only from the phrase pack. */
 import { S, bump, day, today } from './state';
 import { esc, ICON, toast } from './ui';
@@ -7,6 +7,7 @@ import * as srs from './srs';
 import { speakIn } from './audio';
 import { loadSkill } from './cards';
 import { log } from './events';
+import { dailyQuestions, quizResult, saveQuizResult, type DQ } from './dailyquiz';
 import type { Phrase } from './types';
 
 type Step =
@@ -14,12 +15,15 @@ type Step =
   | { t: 'new'; lang: string; p: Phrase }
   | { t: 'recall'; key: string; lang?: string; p?: Phrase; quiz?: srs.Item['quiz']; skill?: { id: string; label: string } }
   | { t: 'mcq'; lang: string; p: Phrase; opts: string[]; answer: number }
+  | { t: 'dq'; q: DQ; n: number }
   | { t: 'end'; title: string; sub: string; again?: () => void };
 
 const box = () => document.getElementById('lesson')!;
 let steps: Step[] = [];
 let i = 0;
-let kind: 'lesson' | 'review' = 'lesson';
+let kind: 'lesson' | 'review' | 'quiz' = 'lesson';
+let score = 0;
+const KICKER = { lesson: 'Language lesson', review: 'Review', quiz: 'Daily quiz' };
 
 function shuffle<T>(xs: T[]): T[] { const a = xs.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
 
@@ -64,6 +68,21 @@ export function startReview() {
   kind = 'review'; i = 0; open(); log('review_start', { n: recall.length });
 }
 
+/* The daily quiz: five questions from Wikidata and Wikipedia, the same five all day. Done once a day. */
+export function startDailyQuiz() {
+  const done = quizResult();
+  if (done) { toast(`You got ${done.right} of ${done.total} today. A new quiz comes tomorrow`); return; }
+  const qs = dailyQuestions();
+  if (qs.length < 3) { toast("Today's quiz isn't ready yet. Try again later"); return; }
+  steps = [
+    { t: 'intro', title: "Today's quiz", sub: `${qs.length} questions from Wikipedia and Wikidata, with the answer and source after each one.` },
+    ...qs.map((q, n) => ({ t: 'dq' as const, q, n })),
+    { t: 'end', title: '', sub: '' },
+  ];
+  kind = 'quiz'; score = 0; i = 0; open(); log('quiz_start', { n: qs.length });
+}
+document.addEventListener('kf-quiz', () => startDailyQuiz());
+
 function open() {
   const b = box();
   b.classList.add('open');
@@ -85,7 +104,7 @@ function draw() {
   const dots = steps.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('');
   let body = '';
   switch (s.t) {
-    case 'intro': body = `<p class="kicker">${kind === 'lesson' ? 'Language lesson' : 'Review'}</p><h2 class="display">${esc(s.title)}</h2><p class="lead">${esc(s.sub)}</p><button class="cta go">Start</button>`; break;
+    case 'intro': body = `<p class="kicker">${KICKER[kind]}</p><h2 class="display">${esc(s.title)}</h2><p class="lead">${esc(s.sub)}</p><button class="cta go">Start</button>`; break;
     case 'new': body = `<p class="kicker">New phrase · ${esc(s.lang)}</p>${phraseBlock(s.lang, s.p)}<p class="lead"><b>${esc(s.p.meaning)}</b>. ${esc(s.p.when)}</p>${s.p.notes ? `<p class="note">${esc(s.p.notes)}</p>` : ''}<button class="cta go">Next</button>`; break;
     case 'recall': {
       const q = s.p ? s.p.meaning : s.quiz ? s.quiz.q : `Do you remember what “${s.skill!.label}” means?`;
@@ -94,7 +113,16 @@ function draw() {
       break;
     }
     case 'mcq': body = `<p class="kicker">Quick quiz · ${esc(s.lang)}</p><h2 class="phrase" lang="${esc(LANG_CODE[s.lang] || '')}">${esc(s.p.phrase)}</h2><p class="lead">What does it mean?</p><div class="opts">${s.opts.map((o, k) => `<button class="opt" data-k="${k}">${esc(o)}</button>`).join('')}</div><button class="cta go hidden">Next</button>`; break;
-    case 'end': body = `<p class="kicker">${kind === 'lesson' ? 'Language lesson' : 'Review'}</p><h2 class="display">${esc(s.title)}</h2><p class="lead">${esc(s.sub)}</p><p class="note">Learned today: ${day().learned}</p><div class="choices">${s.again ? '<button class="cta again">Another lesson</button>' : ''}<button class="cta ghost close-l">Back</button></div>`; break;
+    case 'dq': body = `<p class="kicker">Daily quiz · ${s.n + 1} of ${steps.length - 2}</p><h2>${esc(s.q.q)}</h2>${s.q.prompt ? `<p class="lead">${esc(s.q.prompt)}</p>` : ''}<div class="opts">${s.q.opts.map((o, k) => `<button class="opt" data-k="${k}">${esc(o)}</button>`).join('')}</div><div class="reveal dq-why"><p class="note">${esc(s.q.explain)} <a href="${esc(s.q.source.url)}" target="_blank" rel="noopener">Source: ${esc(s.q.source.name)}</a></p></div><button class="cta go hidden">${s.n + 3 === steps.length ? 'See your score' : 'Next'}</button>`; break;
+    case 'end': {
+      if (kind === 'quiz') {
+        const total = steps.length - 2;
+        const line = score === total ? 'Every one right.' : score >= total / 2 ? 'Nicely done.' : 'Each one is a new thing learned.';
+        body = `<p class="kicker">Daily quiz</p><h2 class="display">${score} of ${total}</h2><p class="lead">${line} A new quiz comes tomorrow.</p><div class="choices"><button class="cta share-q">${ICON.share} Share my score</button><button class="cta ghost close-l">Back</button></div>`;
+        break;
+      }
+      body = `<p class="kicker">${KICKER[kind]}</p><h2 class="display">${esc(s.title)}</h2><p class="lead">${esc(s.sub)}</p><p class="note">Learned today: ${day().learned}</p><div class="choices">${s.again ? '<button class="cta again">Another lesson</button>' : ''}<button class="cta ghost close-l">Back</button></div>`; break;
+    }
   }
   b.innerHTML = `<div class="aurora soft"></div><header class="lhead"><button class="circ glass x" aria-label="Close">${ICON.close}</button><div class="dots" aria-hidden="true">${dots}</div></header><div class="lbody">${body}</div>`;
   b.querySelector('.x')!.addEventListener('click', closeLesson);
@@ -126,7 +154,23 @@ function draw() {
       b.querySelector('.go')!.classList.remove('hidden');
     }));
   }
-  if (s.t === 'end') {
+  if (s.t === 'dq') {
+    b.querySelectorAll<HTMLButtonElement>('.opt').forEach(o => o.addEventListener('click', () => {
+      if (b.dataset.answered === String(i)) return; b.dataset.answered = String(i);
+      const k = +o.dataset.k!;
+      b.querySelectorAll<HTMLButtonElement>('.opt').forEach(x => { const xk = +x.dataset.k!; x.disabled = true; if (xk === s.q.answer) x.classList.add('right'); else if (xk === k) x.classList.add('wrong'); });
+      bump('quizDone'); if (k === s.q.answer) { bump('quizRight'); score++; }
+      b.querySelector('.dq-why')!.classList.add('show');
+      b.querySelector('.go')!.classList.remove('hidden');
+      (b.querySelector('.go') as HTMLElement).focus({ preventScroll: true });
+    }));
+  }
+  if (s.t === 'end' && kind === 'quiz') {
+    const total = steps.length - 2;
+    if (!quizResult()) { saveQuizResult(score, total); bump('learned', score); log('quiz_finish', { right: score, total }); document.dispatchEvent(new CustomEvent('kf-quiz-done')); }
+    b.querySelector('.share-q')?.addEventListener('click', () => import('./share').then(m => m.shareSpec({ kicker: 'Daily quiz', topic: 'general', seed: `quiz-${today()}`, title: `I got ${score} out of ${total} in today's Knowfeed quiz`, sub: 'Five questions from Wikipedia and Wikidata. Can you beat it?', url: 'https://knowfeed-nine.vercel.app', file: 'knowfeed-quiz.png' })));
+    b.querySelector('.close-l')!.addEventListener('click', closeLesson);
+  } else if (s.t === 'end') {
     log(kind === 'lesson' ? 'lesson_finish' : 'review_finish', {});
     b.querySelector('.again')?.addEventListener('click', () => s.again?.());
     b.querySelector('.close-l')!.addEventListener('click', closeLesson);

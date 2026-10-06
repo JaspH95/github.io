@@ -45,7 +45,7 @@ export function weekly(): string | null {
   if (days < 3) return null;
   const mins = Math.round(secs / 60);
   const time = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : plural(mins, 'minute');
-  const langs = (S.profile?.languages || []).filter(l => PACKS[l.name]).map(l => `${l.name}: ${srs.progress(l.name, PACKS[l.name]).learned} learned`);
+  const langs = (S.profile?.languages || []).filter(l => PACKS[l.name]).map(l => `${l.name}: ${srs.progress(l.name, PACKS[l.name]).seen} phrases met`);
   return `${time} reading, ${plural(read, 'story', 'stories')} read in full, ${plural(learned, 'thing')} learned.${langs.length ? ' ' + langs.join(', ') + '.' : ''}`;
 }
 

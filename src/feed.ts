@@ -7,11 +7,11 @@ import { build, markFinished, nextLabel, SLOT_LABEL, justIn, hadBefore, type Edi
 import { hasPack, progressLine } from './languages';
 import * as srs from './srs';
 import { openStory } from './story';
-import { playQueue, stopAudio, isPlaying } from './audio';
 import { go } from './nav';
-import { startLesson, startReview } from './lessons';
+import { startLesson, startReview, startDailyQuiz } from './lessons';
 import { openChat } from './chat';
 import { weekly, goalLine } from './wellbeing';
+import { quizResult } from './dailyquiz';
 
 export const feed = () => document.getElementById('feed')!;
 export let edition: Edition | null = null;
@@ -135,10 +135,11 @@ function doneHTML(e: Edition): string {
     <div class="next-list">
       ${ser ? `<button class="next-row" data-series="${esc(ser.s.id)}"><span class="ic">${ICON.book}</span><span><b>${esc(ser.s.title)}</b><span>Episode ${ser.e.n} of ${ser.s.episodes.length}: ${esc(ser.e.title)} · ${minutes(ser.e)} min</span></span>${ICON.chev}</button>` : ''}
       ${langs.map(l => `<button class="next-row" data-lesson="${esc(l.name)}"><span class="ic">${ICON.lang}</span><span><b>5-minute ${esc(l.name)} lesson</b><span>${esc(progressLine(l.name))}</span></span>${ICON.chev}</button>`).join('')}
+      ${quizResult() ? '' : `<button class="next-row" data-quiz><span class="ic">${ICON.check}</span><span><b>Today's quiz</b><span>Five questions · about 2 minutes</span></span>${ICON.chev}</button>`}
       ${due ? `<button class="next-row" data-review="1"><span class="ic">${ICON.check}</span><span><b>Review ${plural(Math.min(due, 5), 'thing')}</b><span>Quick recall of what you've learned</span></span>${ICON.chev}</button>` : ''}
       <button class="next-row" data-go="learn"><span class="ic">${ICON.book}</span><span><b>Explore your library</b><span>Skills, topics and today's picks</span></span>${ICON.chev}</button>
     </div>
-    ${week ? `<div class="recap"><p class="kicker small">Your week</p><p>${week}</p></div>` : ''}
+    ${week ? `<div class="recap"><button class="recap-btn" data-recap><p class="kicker small">Your week</p><p>${week}</p><p class="see-week">See your week ›</p></button></div>` : ''}
     ${earlierCount() ? `<div class="hint">${ICON.up}Keep scrolling for ${plural(earlierCount(), 'story', 'stories')} from earlier today</div>` : ''}
     <button class="linkish change">Change what you see</button>
   </div>`;
@@ -152,6 +153,8 @@ function wireDone(el: HTMLElement, e: Edition) {
   el.querySelector<HTMLElement>('[data-series]')?.addEventListener('click', b => document.dispatchEvent(new CustomEvent('kf-series', { detail: { id: (b.currentTarget as HTMLElement).dataset.series } })));
   el.querySelector('[data-go]')?.addEventListener('click', () => go('learn'));
   el.querySelector('.change')?.addEventListener('click', () => openChat());
+  el.querySelector('[data-recap]')?.addEventListener('click', () => import('./recap').then(m => m.openRecap()));
+  el.querySelector('[data-quiz]')?.addEventListener('click', () => startDailyQuiz());
 }
 
 export function refreshDone() {
@@ -173,39 +176,13 @@ export function showJustIn() {
   b.querySelector('.jx')!.addEventListener('click', () => { b.hidden = true; });
 }
 
-/* ---------- Listen: read the edition aloud, card by card ---------- */
-
-function speechFor(c: Card): string | null {
-  switch (c.kind) {
-    case 'story': { const s = c.story!; return `${c.label}. ${s.title}. ${s.summary ? s.summary.gist.join(' ') : s.standfirst}`; }
-    case 'learn': return c.learn!.kind === 'fact' ? `Did you know ${c.learn!.hook!.replace(/^…/, '')}` : c.learn!.kind === 'onthisday' ? `On this day in ${c.learn!.year}. ${c.learn!.event}` : `${c.label}. ${c.learn!.title}. ${c.learn!.extract.split(/(?<=\.)\s/).slice(0, 2).join(' ')}`;
-    case 'quiz': return `Quiz. ${c.quiz!.q} ${c.quiz!.prompt || ''} ${c.quiz!.opts.join(', or ')}? The answer: ${c.quiz!.opts[c.quiz!.answer]}.`;
-    case 'hub': return `${c.label}. ${c.hub!.title}. ${c.hub!.summary}`;
-    case 'series': return `A Series episode: ${c.label}.`;
-    case 'skill': return `Skill of the day: ${c.skill!.label}.`;
-    default: return null;
-  }
-}
-
-function listenFrom(el: HTMLElement | null) {
-  while (el && !speechFor((el as any)._card || {})) el = el.nextElementSibling as HTMLElement | null;
-  if (!el || el.dataset.kind === 'done') { stopAudio(); return false; }
-  const c: Card = (el as any)._card;
-  feed().scrollTo({ top: el.offsetTop, behavior: 'smooth' });
-  currentEl = el;
-  playQueue([{ text: speechFor(c)!, label: c.story?.title || c.learn?.title || c.label }], { next: () => { setTimeout(() => listenFrom(el!.nextElementSibling as HTMLElement | null), 400); return true; } });
-  return true;
-}
-
-export function toggleListen() {
-  if (isPlaying()) { stopAudio(); return; }
-  go('edition');
-  const start = currentEl && (currentEl as any)._card ? currentEl : (feed().firstElementChild as HTMLElement | null);
-  listenFrom(start);
-}
+/* After the daily quiz: the quiz card shows the score and the done screen drops its quiz row */
+document.addEventListener('kf-quiz-done', () => {
+  feed().querySelectorAll<HTMLElement>('[data-kind="dquiz"]').forEach(el => { const r = quizResult(); const btn = el.querySelector('.start-quiz'); if (r && btn) { el.querySelector('h2')!.textContent = `You got ${r.right} of ${r.total} today`; el.querySelector('.lead')!.textContent = 'A new quiz comes tomorrow.'; btn.remove(); } });
+  refreshDone();
+});
 
 export function initFeed() {
-  document.getElementById('listenAll')!.addEventListener('click', toggleListen);
   // Keep the progress bar honest while scrolling
   feed().addEventListener('scroll', () => { if (!currentEl) progress(); }, { passive: true });
 }
